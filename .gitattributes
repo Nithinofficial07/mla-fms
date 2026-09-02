@@ -1,0 +1,16 @@
+# Normalize line endings. Shell scripts and Docker/compose files MUST be LF
+# so they run on the Linux server regardless of the OS they were committed from.
+* text=auto eol=lf
+*.sh   text eol=lf
+Dockerfile text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+Caddyfile text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.ico binary
