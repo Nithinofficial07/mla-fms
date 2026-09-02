@@ -69,14 +69,33 @@ cd /opt/mla-fms
 
 ## 4. S3 bucket
 
-1. Create a **private** bucket, e.g. `mla-fms-documents-prod`, in your region.
-2. **Block Public Access = ON** (all four settings). The app only ever hands out
-   short-lived *presigned* URLs.
-3. Enable **versioning** (protects against accidental overwrite/delete) and a
-   lifecycle rule to expire non-current versions after ~90 days.
-4. Create an IAM user / API token scoped to **just this bucket**:
-   `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:ListBucket`.
-5. Note the access key + secret. For R2/B2/MinIO also note the **endpoint URL**.
+### AWS — one command (CloudFormation)
+
+`deploy/aws/s3-storage.cfn.yaml` provisions the private bucket + a
+least-privilege IAM key. With the AWS CLI configured:
+
+```bash
+cd deploy/aws
+BUCKET=mla-fms-documents-prod APP_ORIGIN=https://mlaoffice.example.in ./provision-s3.sh
+```
+
+It prints the four `AWS_*` lines to paste into `deploy/.env`. The stack sets:
+Block Public Access (all on), default AES-256 encryption, versioning,
+TLS-only bucket policy, a lifecycle rule to expire old versions after 90 days,
+and a CORS rule for your app origin (needed by the in-browser PDF viewer).
+`DeletionPolicy: Retain` means deleting the stack never deletes your documents.
+
+### Manual / non-AWS (R2, B2, MinIO, Wasabi)
+
+1. Create a **private** bucket, e.g. `mla-fms-documents-prod`.
+2. **Block all public access.** The app only ever hands out short-lived
+   *presigned* URLs.
+3. Enable **versioning** + a lifecycle rule to expire non-current versions
+   after ~90 days.
+4. Create an API key scoped to that bucket:
+   `PutObject`, `GetObject`, `DeleteObject`, `ListBucket`.
+5. Note key + secret. For R2/B2/MinIO also set `AWS_S3_ENDPOINT` and
+   `AWS_S3_FORCE_PATH_STYLE=true` in `deploy/.env`.
 
 ---
 

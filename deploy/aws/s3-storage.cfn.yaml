@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  MLA File Management System - document storage.
+  Creates a private, versioned S3 bucket and a least-privilege IAM user whose
+  access key the app uses (STORAGE_PROVIDER=s3). Nothing is public; the app only
+  ever hands out short-lived presigned URLs.
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: mla-fms-documents-prod
+    Description: Globally-unique bucket name. Add a suffix if the default is taken.
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  AppOrigin:
+    Type: String
+    Default: "*"
+    Description: >
+      Your app's HTTPS origin, e.g. https://mlaoffice.example.in - used for the
+      bucket CORS rule so the in-browser PDF viewer can fetch documents.
+      Leave as * only for initial testing, then re-deploy with the real origin.
+  NoncurrentVersionExpirationDays:
+    Type: Number
+    Default: 90
+    MinValue: 1
+    Description: Delete previous (overwritten) file versions after this many days.
+
+Resources:
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-versions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: !Ref NoncurrentVersionExpirationDays
+          - Id: abort-incomplete-multipart
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, HEAD]
+            AllowedOrigins: [!Ref AppOrigin]
+            AllowedHeaders: ["*"]
+            ExposedHeaders: [ETag, Content-Length, Content-Type]
+            MaxAge: 3000
+
+  # Enforce TLS-only access to the bucket.
+  BucketTlsPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DocumentsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt DocumentsBucket.Arn
+              - !Sub "${DocumentsBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+
+  AppUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${BucketName}-app"
+      Policies:
+        - PolicyName: mla-fms-s3-object-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+                Resource: !Sub "${DocumentsBucket.Arn}/*"
+              - Effect: Allow
+                Action: [s3:ListBucket, s3:GetBucketLocation]
+                Resource: !GetAtt DocumentsBucket.Arn
+
+  AppAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref AppUser
+
+Outputs:
+  AWS_S3_BUCKET:
+    Value: !Ref DocumentsBucket
+  AWS_REGION:
+    Value: !Ref AWS::Region
+  AWS_ACCESS_KEY_ID:
+    Value: !Ref AppAccessKey
+  AWS_SECRET_ACCESS_KEY:
+    Description: >
+      Retrievable via `aws cloudformation describe-stacks`. Put it in deploy/.env,
+      then rotate periodically (delete this stack's key + redeploy, or manage
+      the key manually).
+    Value: !GetAtt AppAccessKey.SecretAccessKey
