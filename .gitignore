@@ -37,3 +37,7 @@ Thumbs.db
 
 # local portable node
 .tools/
+
+# deploy artifact
+mla-fms-deploy.tar.gz
+*.tar.gz
