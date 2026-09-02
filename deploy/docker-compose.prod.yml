@@ -1,0 +1,61 @@
+# Production stack: Caddy (TLS + reverse proxy) -> app (API + SPA).
+# MongoDB is external (Atlas); files are on external S3-compatible storage.
+#
+#   cd deploy
+#   cp .env.production.example .env      # then edit
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+name: mla-fms
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: mla-fms:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      SERVE_CLIENT: "true"
+    expose:
+      - "4000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # only needed if STORAGE_PROVIDER=local (S3 deploys can drop this)
+    volumes:
+      - app_storage:/app/storage-data
+    networks:
+      - web
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+
+volumes:
+  app_storage:
+  caddy_data:
+  caddy_config:
+
+networks:
+  web:

@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.npm/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# local file storage (dev)
+server/storage-data/
+uploads/
+
+# coverage / test
+coverage/
+.vitest/
+playwright-report/
+test-results/
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# local portable node
+.tools/

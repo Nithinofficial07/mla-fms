@@ -1,0 +1,31 @@
+# Caddy reverse proxy - automatic HTTPS via Let's Encrypt.
+# {$DOMAIN} and {$ACME_EMAIL} come from deploy/.env (compose passes them in).
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# security headers (CSP is set by the app; keep these here too)
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# uploads can be large-ish (scanned multi-page PDFs)
+	request_body {
+		max_size 25MB
+	}
+
+	reverse_proxy app:4000 {
+		health_uri /api/health
+		health_interval 15s
+		health_timeout 5s
+	}
+}

@@ -1,0 +1,28 @@
+{
+  "name": "mla-file-management-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MLA File Management System - constituency-level request, file and document management",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "scripts": {
+    "dev": "npm run build --workspace shared && npm-run-all --parallel dev:shared dev:server dev:client",
+    "dev:shared": "npm run dev --workspace shared",
+    "dev:server": "npm run dev --workspace server",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace shared && npm run build --workspace server && npm run build --workspace client",
+    "lint": "npm run lint --workspace server && npm run lint --workspace client",
+    "test": "npm run test --workspace server && npm run test --workspace client",
+    "seed": "npm run build --workspace shared && npm run seed --workspace server",
+    "typecheck": "npm run build --workspace shared && npm run typecheck --workspace server && npm run typecheck --workspace client"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}
