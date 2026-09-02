@@ -1,0 +1,40 @@
+# LAN-only variant: use when the server is NOT reachable from the public
+# internet (so Let's Encrypt can't validate the domain).
+#
+# Caddy issues its own local CA cert. Browsers will warn once; either:
+#   - accept the warning, or
+#   - install Caddy's root CA on office PCs
+#     (copy /data/caddy/pki/authorities/local/root.crt from the caddy volume
+#      and import it into "Trusted Root Certification Authorities").
+#
+# To use this file, in docker-compose.prod.yml change the caddy volume line:
+#     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+#   to:
+#     - ./Caddyfile.lan:/etc/caddy/Caddyfile:ro
+# Access the app at  https://<DOMAIN>  (point DOMAIN at a hosts-file entry or
+# your internal DNS) or just https://<server-LAN-IP> after setting DOMAIN to it.
+
+{
+	# no ACME email needed for the internal CA
+	auto_https disable_redirects
+}
+
+{$DOMAIN} {
+	tls internal
+
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+		-Server
+	}
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy app:4000 {
+		health_uri /api/health
+		health_interval 15s
+	}
+}
