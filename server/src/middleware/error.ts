@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from 'express';
-import { MongoServerError } from 'mongodb';
 import { Error as MongooseError } from 'mongoose';
 import multer from 'multer';
 import { ZodError } from 'zod';
@@ -9,6 +8,19 @@ import { isProd } from '../config/env.js';
 
 export function notFound(_req: Request, _res: Response, next: NextFunction): void {
   next(AppError.notFound('Route not found'));
+}
+
+/**
+ * Mongo duplicate-key (E11000). Detected structurally instead of importing the
+ * `mongodb` package directly (it is only a transitive dep of mongoose).
+ */
+function isDuplicateKeyError(err: unknown): err is { code: number; keyPattern?: Record<string, unknown> } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { name?: string }).name === 'MongoServerError' &&
+    (err as { code?: number }).code === 11000
+  );
 }
 
 /** Central error handler: maps known error shapes, hides internals in prod. */
@@ -37,7 +49,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     status = 400;
     code = 'BAD_REQUEST';
     message = `Invalid value for ${err.path}`;
-  } else if (err instanceof MongoServerError && err.code === 11000) {
+  } else if (isDuplicateKeyError(err)) {
     status = 409;
     code = 'CONFLICT';
     const field = Object.keys(err.keyPattern ?? {})[0] ?? 'field';
