@@ -46,7 +46,10 @@ services:
       DOMAIN: ${DOMAIN:?set DOMAIN in deploy/.env}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # CADDY_FILE=Caddyfile (default, real public domain + Let's Encrypt)
+      # CADDY_FILE=Caddyfile.lan (no domain yet / office-LAN-only, internal TLS)
+      # switch it in deploy/.env, then `docker compose up -d` to apply - no rebuild needed
+      - ./${CADDY_FILE:-Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:

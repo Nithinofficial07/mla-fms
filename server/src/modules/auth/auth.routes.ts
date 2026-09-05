@@ -13,11 +13,18 @@ import {
 
 const router = Router();
 
+// Browsers reject a cookie's Domain attribute when it's a bare IP address
+// (RFC 6265) - and an empty COOKIE_DOMAIN means "host-only cookie" (LAN
+// access by IP, or before a real domain is assigned). Omit the attribute in
+// both cases instead of sending a Domain the browser will silently drop.
+const IP_RE = /^\d{1,3}(\.\d{1,3}){3}$/;
+const cookieDomain = env.COOKIE_DOMAIN && !IP_RE.test(env.COOKIE_DOMAIN) ? env.COOKIE_DOMAIN : undefined;
+
 const cookieOpts = {
   httpOnly: true,
   secure: env.COOKIE_SECURE,
   sameSite: 'lax' as const,
-  domain: env.COOKIE_DOMAIN,
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
   path: '/api/auth',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
