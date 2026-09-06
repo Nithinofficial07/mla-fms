@@ -1,0 +1,66 @@
+# Render.com Blueprint - one public web service running the Docker image
+# (API + built SPA on one origin). TLS + a *.onrender.com URL are automatic;
+# no Caddy, no domain needed.
+#
+# Deploy:
+#   1. Push this repo to GitHub (private is fine).
+#   2. Render dashboard -> New -> Blueprint -> pick the repo -> Apply.
+#   3. Fill the secret env vars it prompts for (marked sync: false below).
+#   4. First open of the URL -> Setup Wizard -> create the Super Admin.
+#
+# Notes:
+#   - MongoDB Atlas: add 0.0.0.0/0 to Network Access (Render has no fixed
+#     outbound IP on the free/starter plans; upgrade for static IPs to lock down).
+#   - S3: same bucket + key as the LAN deploy; set CORS AllowedOrigins to the
+#     Render URL once you know it.
+
+services:
+  - type: web
+    name: mla-fms
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter                 # 512MB is tight for the build; use standard if it OOMs
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_CLIENT
+        value: "true"
+      - key: CLIENT_DIR
+        value: /app/client/dist
+      # Render injects PORT; the app already reads it.
+      - key: STORAGE_PROVIDER
+        value: s3
+      - key: AWS_REGION
+        value: ap-south-1
+      - key: AWS_S3_BUCKET
+        value: mla-fms-documents-prod
+      - key: DEFAULT_TIMEZONE
+        value: Asia/Kolkata
+      - key: FILE_ID_FORMAT
+        value: MLA/{YYYY}/{SEQ:6}
+      - key: DEFAULT_SLA_DAYS
+        value: "15"
+      # cookie is host-only on the onrender.com subdomain
+      - key: COOKIE_DOMAIN
+        value: ""
+      - key: COOKIE_SECURE
+        value: "true"
+      # ---- set these after the first deploy, to the assigned URL ----
+      - key: BACKEND_URL
+        value: https://REPLACE-with-your.onrender.com
+      - key: FRONTEND_URL
+        value: https://REPLACE-with-your.onrender.com
+      # ---- secrets: entered in the Render dashboard, never committed ----
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false

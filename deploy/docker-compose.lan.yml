@@ -1,0 +1,42 @@
+# LAN deployment: the app only, plain HTTP on a high port, no Caddy.
+# Use this when the machine has no public domain and ports 80/443 aren't
+# available (common on Windows/Docker Desktop). Access on the office LAN at
+#   http://<server-ip>:8080
+#
+# In deploy/.env set:
+#   COOKIE_SECURE=false
+#   BACKEND_URL=http://<server-ip>:8080
+#   FRONTEND_URL=http://<server-ip>:8080
+#
+#   docker compose -f docker-compose.lan.yml up -d --build
+#
+# Move to real HTTPS later by switching back to docker-compose.prod.yml
+# (Caddy + a domain, or on a Linux server).
+name: mla-fms
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: mla-fms:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      SERVE_CLIENT: "true"
+    ports:
+      - "${LAN_PORT:-8080}:4000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    volumes:
+      - app_storage:/app/storage-data
+
+volumes:
+  app_storage:
