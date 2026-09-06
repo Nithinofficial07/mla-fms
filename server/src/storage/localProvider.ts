@@ -1,7 +1,7 @@
-import { createHmac } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { env } from '../config/env.js';
+import { signRawUrl } from './rawUrl.js';
 import type { PutObjectInput, StorageProvider, StoredObjectRef } from './types.js';
 
 /**
@@ -25,15 +25,7 @@ export class LocalProvider implements StorageProvider {
   }
 
   async getSignedUrl(key: string, opts?: { download?: boolean; filename?: string }): Promise<string> {
-    const exp = Date.now() + env.S3_SIGNED_URL_TTL * 1000;
-    const sig = LocalProvider.sign(key, exp);
-    const u = new URL('/api/documents/raw', env.BACKEND_URL);
-    u.searchParams.set('key', key);
-    u.searchParams.set('exp', String(exp));
-    u.searchParams.set('sig', sig);
-    if (opts?.download) u.searchParams.set('download', '1');
-    if (opts?.filename) u.searchParams.set('filename', opts.filename);
-    return u.toString();
+    return signRawUrl(key, opts ?? {});
   }
 
   async getBuffer(key: string): Promise<Buffer> {
@@ -51,14 +43,5 @@ export class LocalProvider implements StorageProvider {
     } catch {
       return false;
     }
-  }
-
-  static sign(key: string, exp: number): string {
-    return createHmac('sha256', env.JWT_SECRET).update(`${key}:${exp}`).digest('hex');
-  }
-
-  static verify(key: string, exp: number, sig: string): boolean {
-    if (!Number.isFinite(exp) || exp < Date.now()) return false;
-    return LocalProvider.sign(key, exp) === sig;
   }
 }

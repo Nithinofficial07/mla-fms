@@ -9,7 +9,8 @@ import { asyncHandler, created, noContent, ok } from '../../utils/http.js';
 import { withId } from '../../utils/queryFeatures.js';
 import { AppError } from '../../utils/AppError.js';
 import { recordAudit } from '../../utils/audit.js';
-import { LocalProvider } from '../../storage/index.js';
+import { storage } from '../../storage/index.js';
+import { verifyRawToken } from '../../storage/rawUrl.js';
 import { RequestModel } from '../../models/Request.js';
 import { Letter } from '../../models/Letter.js';
 import { addTimeline } from '../workflow/timeline.service.js';
@@ -18,11 +19,23 @@ import { documentsService, type DocOwner } from './documents.service.js';
 
 const router = Router();
 
+const MIME_BY_EXT: Record<string, string> = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
 /**
  * GET /api/documents/raw?key=&exp=&sig=[&download=1]
- * Serves a locally-stored object after verifying the HMAC signed-URL token.
- * (S3 provider hands the browser a presigned S3 URL directly and never hits this.)
- * Public route by design - the token IS the authorization - but rejects expired/forged tokens.
+ * Same-origin proxy that streams a stored object (local disk OR S3) after
+ * verifying the HMAC signed-URL token. Both storage providers hand the browser
+ * a URL to this route, so previews/downloads stay same-origin (CSP-friendly)
+ * and the S3 URL is never exposed. The token IS the authorization.
  */
 router.get(
   '/raw',
@@ -31,17 +44,20 @@ router.get(
     const key = String(req.query.key ?? '');
     const exp = Number(req.query.exp);
     const sig = String(req.query.sig ?? '');
-    if (!key || !LocalProvider.verify(key, exp, sig)) throw AppError.forbidden('Invalid or expired link');
-    const { storage } = await import('../../storage/index.js');
+    if (!verifyRawToken(key, exp, sig)) throw AppError.forbidden('Invalid or expired link');
+
     const buf = await storage().getBuffer(key).catch(() => {
       throw AppError.notFound('File not found');
     });
-    const name = req.query.filename ? String(req.query.filename) : key.split('/').pop();
-    res.setHeader('Content-Type', 'application/octet-stream');
+    const name = req.query.filename ? String(req.query.filename) : key.split('/').pop() ?? 'file';
+    const ext = name.split('.').pop()?.toLowerCase() ?? '';
+    res.setHeader('Content-Type', MIME_BY_EXT[ext] ?? 'application/octet-stream');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader(
       'Content-Disposition',
       `${req.query.download ? 'attachment' : 'inline'}; filename="${name}"`,
     );
+    res.setHeader('Cache-Control', 'private, max-age=60');
     res.send(buf);
   }),
 );

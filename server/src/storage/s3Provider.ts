@@ -5,8 +5,8 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl as presign } from '@aws-sdk/s3-request-presigner';
 import { env } from '../config/env.js';
+import { signRawUrl } from './rawUrl.js';
 import type { PutObjectInput, StorageProvider, StoredObjectRef } from './types.js';
 
 /** Production storage: private S3 bucket, temporary presigned URLs only. */
@@ -42,15 +42,14 @@ export class S3Provider implements StorageProvider {
     return { key: input.key, size: input.body.length, contentType: input.contentType };
   }
 
+  /**
+   * Returns a same-origin `/api/documents/raw?...` URL (not a direct S3
+   * presigned URL) so document previews/downloads work under a strict CSP and
+   * the bucket URL is never exposed to the browser. `/raw` streams via
+   * getBuffer().
+   */
   async getSignedUrl(key: string, opts?: { download?: boolean; filename?: string }): Promise<string> {
-    const cmd = new GetObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      ResponseContentDisposition: opts?.download
-        ? `attachment; filename="${opts.filename ?? key.split('/').pop()}"`
-        : undefined,
-    });
-    return presign(this.client, cmd, { expiresIn: env.S3_SIGNED_URL_TTL });
+    return signRawUrl(key, opts ?? {});
   }
 
   async getBuffer(key: string): Promise<Buffer> {
