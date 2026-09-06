@@ -8,7 +8,7 @@ import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import { pinoHttp } from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
-import { env, isProd } from './config/env.js';
+import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { requestContext } from './middleware/requestContext.js';
 import { apiLimiter } from './middleware/rateLimit.js';
@@ -39,7 +39,9 @@ export function createApp() {
               frameSrc: ["'self'", 'blob:'],
               objectSrc: ["'self'", 'blob:'],
               workerSrc: ["'self'", 'blob:'],
-              upgradeInsecureRequests: isProd ? [] : null,
+              // Only force HTTPS upgrades when actually served over TLS -
+              // otherwise a plain-HTTP LAN deployment can't load its own assets.
+              upgradeInsecureRequests: env.BACKEND_URL.startsWith('https') ? [] : null,
             },
           }
         : false,
