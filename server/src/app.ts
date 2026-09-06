@@ -69,6 +69,10 @@ export function createApp() {
     }),
   );
 
+  // Health check before the rate limiter so platform probes (Render, k8s,
+  // uptime monitors) never consume the request budget.
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec as Record<string, unknown>));
   app.get('/api/openapi.json', (_req, res) => res.json(openapiSpec));
   app.use('/api', apiLimiter, api);
