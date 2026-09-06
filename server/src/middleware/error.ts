@@ -66,10 +66,18 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     logger.warn({ code, path: req.path, reqId: req.id }, message);
   }
 
+  // Opt-in: when EXPOSE_ERRORS=true, include the underlying error name/message
+  // on 5xx responses. For debugging a live deploy; turn it off afterwards.
+  const debug =
+    status >= 500 && process.env.EXPOSE_ERRORS === 'true' && err instanceof Error
+      ? { debug: `${err.name}: ${err.message}` }
+      : {};
+
   res.status(status).json({
     message,
     code,
     details,
+    ...debug,
     ...(isProd || !(err instanceof Error) ? {} : { stack: undefined }),
     requestId: req.id,
   });
