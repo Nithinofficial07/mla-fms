@@ -4,10 +4,12 @@ import {
   TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { Icon } from '@/components/Icon';
-import { api } from '@/api/client';
+import { api, errorMessage } from '@/api/client';
+import { downloadViaApi } from '@/lib/download';
 import { useDepartments } from '@/hooks/useOptions';
 
 const REPORTS = [
@@ -24,10 +26,12 @@ const REPORTS = [
 ];
 
 export function ReportsPage() {
+  const { enqueueSnackbar } = useSnackbar();
   const [key, setKey] = useState('department');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [departmentId, setDepartmentId] = useState('');
+  const [exporting, setExporting] = useState('');
   const departments = useDepartments();
 
   const params: Record<string, string> = { format: 'json' };
@@ -40,9 +44,15 @@ export function ReportsPage() {
     queryFn: () => api.get(`/reports/${key}`, { params }).then((r) => r.data),
   });
 
-  const exportUrl = (fmt: string) => {
-    const qs = new URLSearchParams({ ...params, format: fmt });
-    return `/api/reports/${key}?${qs.toString()}`;
+  const doExport = async (fmt: string) => {
+    setExporting(fmt);
+    try {
+      await downloadViaApi(`/reports/${key}`, { ...params, format: fmt }, `${key}-report.${fmt}`);
+    } catch (e) {
+      enqueueSnackbar(errorMessage(e, 'Export failed'), { variant: 'error' });
+    } finally {
+      setExporting('');
+    }
   };
 
   return (
@@ -65,9 +75,9 @@ export function ReportsPage() {
               {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
             </TextField>
             <Box sx={{ flex: 1 }} />
-            <Button component="a" href={exportUrl('csv')} startIcon={<Icon name="Description" />}>CSV</Button>
-            <Button component="a" href={exportUrl('xlsx')} startIcon={<Icon name="TableView" />}>Excel</Button>
-            <Button component="a" href={exportUrl('pdf')} startIcon={<Icon name="PictureAsPdf" />}>PDF</Button>
+            <Button onClick={() => doExport('csv')} disabled={!!exporting} startIcon={<Icon name="Description" />}>CSV</Button>
+            <Button onClick={() => doExport('xlsx')} disabled={!!exporting} startIcon={<Icon name="TableView" />}>Excel</Button>
+            <Button onClick={() => doExport('pdf')} disabled={!!exporting} startIcon={<Icon name="PictureAsPdf" />}>PDF</Button>
           </Stack>
         </CardContent>
       </Card>

@@ -14,6 +14,7 @@ import { DocumentUploader } from '@/components/DocumentUploader';
 import { DocumentList } from '@/components/DocumentList';
 import { TimelineView } from '@/components/TimelineView';
 import { api, errorMessage } from '@/api/client';
+import { openViaApi } from '@/lib/download';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments, useStatuses } from '@/hooks/useOptions';
 import { PERMISSIONS } from '@mla/shared';
@@ -69,7 +70,15 @@ export function RequestDetailPage() {
         subtitle={r.subject}
         crumbs={[{ label: 'Home', to: '/' }, { label: 'Requests', to: '/requests' }, { label: r.fileId }]}
         action={
-          <Button variant="outlined" startIcon={<Icon name="Print" />} component="a" href={`/api/requests/${id}/cover.pdf`} target="_blank">
+          <Button
+            variant="outlined"
+            startIcon={<Icon name="Print" />}
+            onClick={() =>
+              openViaApi(`/requests/${id}/cover.pdf`).catch((e) =>
+                enqueueSnackbar(errorMessage(e, 'Could not open the cover sheet'), { variant: 'error' }),
+              )
+            }
+          >
             Print cover
           </Button>
         }

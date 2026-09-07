@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react';
 import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
 import dayjs from 'dayjs';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { EmptyState } from '@/components/EmptyState';
 import { Icon } from '@/components/Icon';
 import { StatusChip, PriorityChip } from '@/components/chips';
-import { api } from '@/api/client';
+import { api, errorMessage } from '@/api/client';
+import { downloadViaApi } from '@/lib/download';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments, useStatuses, usePriorities } from '@/hooks/useOptions';
 import { PERMISSIONS } from '@mla/shared';
@@ -22,9 +24,11 @@ const BUCKETS: Record<string, string[]> = {
 export function RequestListPage() {
   const navigate = useNavigate();
   const { can } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [sp, setSp] = useSearchParams();
   const [page, setPage] = useState({ page: 0, pageSize: 25 });
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState('');
 
   const departments = useDepartments();
   const statuses = useStatuses();
@@ -75,10 +79,15 @@ export function RequestListPage() {
     },
   ];
 
-  const exportUrl = (fmt: string) => {
-    const qs = new URLSearchParams(params as Record<string, string>);
-    qs.set('format', fmt);
-    return `/api/reports/pending?${qs.toString()}`;
+  const doExport = async (fmt: string) => {
+    setExporting(fmt);
+    try {
+      await downloadViaApi('/reports/pending', { ...(params as Record<string, string>), format: fmt }, `requests.${fmt}`);
+    } catch (e) {
+      enqueueSnackbar(errorMessage(e, 'Export failed'), { variant: 'error' });
+    } finally {
+      setExporting('');
+    }
   };
 
   return (
@@ -117,8 +126,8 @@ export function RequestListPage() {
           <MenuItem value="">All</MenuItem>
           {(priorities.data ?? []).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
         </TextField>
-        <Button component="a" href={exportUrl('xlsx')} startIcon={<Icon name="TableView" />}>Excel</Button>
-        <Button component="a" href={exportUrl('pdf')} startIcon={<Icon name="PictureAsPdf" />}>PDF</Button>
+        <Button onClick={() => doExport('xlsx')} disabled={!!exporting} startIcon={<Icon name="TableView" />}>Excel</Button>
+        <Button onClick={() => doExport('pdf')} disabled={!!exporting} startIcon={<Icon name="PictureAsPdf" />}>PDF</Button>
       </Stack>
 
       {data && data.total === 0 ? (
