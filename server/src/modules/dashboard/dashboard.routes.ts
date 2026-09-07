@@ -7,6 +7,9 @@ import { asyncHandler, ok } from '../../utils/http.js';
 import { withId } from '../../utils/queryFeatures.js';
 import { RequestModel } from '../../models/Request.js';
 import { RequestStatus } from '../../models/config.js';
+import { Ward } from '../../models/location.js';
+
+const PENDING_CODES = ['SUBMITTED', 'UNDER_REVIEW', 'ASSIGNED', 'FORWARDED', 'IN_PROGRESS', 'AWAITING_INFO', 'DEPT_RESPONSE'];
 
 const router = Router();
 router.use(authenticate, requirePermission(PERMISSIONS.DASHBOARD_VIEW));
@@ -125,6 +128,49 @@ router.get(
       .populate(['statusId', 'priorityId', 'primaryDepartmentId'])
       .lean();
     ok(res, withId(rows));
+  }),
+);
+
+/**
+ * GET /api/dashboard/geo - request counts per ward, for the constituency map.
+ * Returns one row per ward that has a boundary + any request, keyed by
+ * wardNumber so the client can join it to the GeoJSON features.
+ */
+router.get(
+  '/geo',
+  asyncHandler(async (req, res) => {
+    const wards = await Ward.find().select('name number').lean();
+    const now = new Date();
+
+    const agg = await RequestModel.aggregate([
+      { $match: { ...scope(req.auth!), 'location.wardId': { $ne: null } } },
+      {
+        $group: {
+          _id: '$location.wardId',
+          total: { $sum: 1 },
+          pending: { $sum: { $cond: [{ $in: ['$statusCode', PENDING_CODES] }, 1, 0] } },
+          overdue: {
+            $sum: {
+              $cond: [{ $and: [{ $lt: ['$dueDate', now] }, { $in: ['$statusCode', PENDING_CODES] }] }, 1, 0],
+            },
+          },
+        },
+      },
+    ]);
+    const counts = new Map(agg.map((a) => [String(a._id), a]));
+
+    const rows = wards.map((w) => {
+      const c = counts.get(String(w._id));
+      return {
+        wardId: String(w._id),
+        wardNumber: Number(w.number) || null,
+        wardName: w.name,
+        total: c?.total ?? 0,
+        pending: c?.pending ?? 0,
+        overdue: c?.overdue ?? 0,
+      };
+    });
+    ok(res, rows);
   }),
 );
 

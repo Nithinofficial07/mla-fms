@@ -8,6 +8,7 @@ import {
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { ChartCard } from '@/components/ChartCard';
+import { ConstituencyMap } from '@/components/ConstituencyMap';
 import { DataTable } from '@/components/DataTable';
 import { StatusChip, PriorityChip } from '@/components/chips';
 import { api } from '@/api/client';
@@ -125,6 +126,10 @@ export function DashboardPage() {
           </ChartCard>
         </Grid>
       </Grid>
+
+      <Box sx={{ mt: 2 }}>
+        <ConstituencyMap />
+      </Box>
 
       <Card sx={{ mt: 2 }}>
         <CardHeader title="Recent Requests" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
