@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, Card, CardContent, CardHeader, Divider, Grid, Stack, TextField, Typography,
+  Alert, Box, Button, Card, CardContent, CardHeader, Divider, FormControlLabel, Grid, Stack,
+  Switch, TextField, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
@@ -28,6 +29,10 @@ export function SettingsPage() {
   });
 
   const set = (k: string, v: unknown) => setForm((s: any) => ({ ...s, [k]: v }));
+  const setNotif = (k: string, v: unknown) =>
+    setForm((s: any) => ({ ...s, notifications: { ...(s.notifications ?? {}), [k]: v } }));
+
+  const n = form.notifications ?? {};
 
   const submit = () =>
     save.mutate({
@@ -43,6 +48,12 @@ export function SettingsPage() {
       allowedFileTypes: typeof form.allowedFileTypes === 'string' ? form.allowedFileTypes.split(',').map((s: string) => s.trim()) : form.allowedFileTypes,
       defaultSlaDays: Number(form.defaultSlaDays),
       ocrEnabled: !!form.ocrEnabled,
+      notifications: {
+        inApp: n.inApp !== false,
+        email: !!n.email,
+        sms: !!n.sms,
+        dueSoonDays: Number(n.dueSoonDays ?? 2),
+      },
     });
 
   return (
@@ -76,6 +87,41 @@ export function SettingsPage() {
                   value={Array.isArray(form.allowedFileTypes) ? form.allowedFileTypes.join(', ') : form.allowedFileTypes ?? ''}
                   onChange={(e) => set('allowedFileTypes', e.target.value)}
                 />
+                <Box>
+                  <Button variant="contained" onClick={submit} disabled={save.isPending}>Save settings</Button>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ mt: 2 }}>
+            <CardHeader title="Notifications" subheader="How departments and officers are alerted when a request is routed to them" />
+            <CardContent>
+              <Stack spacing={1}>
+                <FormControlLabel
+                  control={<Switch checked={n.inApp !== false} onChange={(e) => setNotif('inApp', e.target.checked)} />}
+                  label="In-app notifications (bell menu)"
+                />
+                <FormControlLabel
+                  control={<Switch checked={!!n.email} onChange={(e) => setNotif('email', e.target.checked)} />}
+                  label="Email the department + its officers on assignment / forward"
+                />
+                <FormControlLabel
+                  control={<Switch checked={!!n.sms} onChange={(e) => setNotif('sms', e.target.checked)} />}
+                  label="SMS (requires an SMS provider)"
+                />
+                <TextField
+                  type="number"
+                  size="small"
+                  label="'Due soon' reminder (days before due date)"
+                  value={n.dueSoonDays ?? 2}
+                  onChange={(e) => setNotif('dueSoonDays', e.target.value)}
+                  sx={{ maxWidth: 320 }}
+                />
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  Email also needs <code>EMAIL_PROVIDER=smtp</code> and SMTP credentials set in the server environment.
+                  Department emails come from each department's <b>Email</b> field.
+                </Alert>
                 <Box>
                   <Button variant="contained" onClick={submit} disabled={save.isPending}>Save settings</Button>
                 </Box>

@@ -14,6 +14,7 @@ import { User } from '../../models/User.js';
 import { Assignment } from '../../models/workflow.js';
 import { addTimeline, listTimeline } from '../workflow/timeline.service.js';
 import { notifyUsers } from '../notifications/notify.js';
+import { notifyRequestToDepartment } from '../notifications/requestNotify.js';
 import { requestsService } from './requests.service.js';
 import {
   assignSchema, createRequestSchema, duplicateCheckSchema,
@@ -70,6 +71,14 @@ router.post(
       actorName: req.auth!.name,
     });
     recordAudit(req, { action: 'CREATE', entity: 'Request', entityId: String(doc._id), after: { fileId: doc.fileId } });
+    if (doc.primaryDepartmentId) {
+      await notifyRequestToDepartment({
+        request: doc,
+        departmentId: String(doc.primaryDepartmentId),
+        officerId: doc.assignedOfficerId ? String(doc.assignedOfficerId) : null,
+        kind: 'CREATED',
+      });
+    }
     created(res, doc);
   }),
 );
@@ -92,6 +101,14 @@ router.post(
   asyncHandler(async (req, res) => {
     const doc = await requestsService.submit(req.params.id, req.auth!.userId, req.auth!.name);
     recordAudit(req, { action: 'REQUEST_SUBMIT', entity: 'Request', entityId: req.params.id });
+    if (doc.primaryDepartmentId) {
+      await notifyRequestToDepartment({
+        request: doc,
+        departmentId: String(doc.primaryDepartmentId),
+        officerId: doc.assignedOfficerId ? String(doc.assignedOfficerId) : null,
+        kind: 'CREATED',
+      });
+    }
     ok(res, doc);
   }),
 );
@@ -158,13 +175,11 @@ async function doAssignOrForward(kind: 'ASSIGN' | 'FORWARD', req: any, res: any)
   });
   recordAudit(req, { action: kind === 'ASSIGN' ? 'REQUEST_ASSIGN' : 'REQUEST_FORWARD', entity: 'Request', entityId: String(doc._id), after: { departmentId: String(dept._id), officerId } });
 
-  const officers = officerId
-    ? [officerId]
-    : (await User.find({ departmentId: dept._id, isActive: true }).select('_id').lean()).map((u) => String(u._id));
-  await notifyUsers(officers, {
-    type: kind === 'ASSIGN' ? 'REQUEST_ASSIGNED' : 'REQUEST_FORWARDED',
-    title: `${doc.fileId} ${kind === 'ASSIGN' ? 'assigned' : 'forwarded'} to ${dept.name}`,
-    body: doc.subject, requestId: String(doc._id), link: `/requests/${doc._id}`,
+  await notifyRequestToDepartment({
+    request: doc,
+    departmentId: String(dept._id),
+    officerId,
+    kind: kind === 'ASSIGN' ? 'ASSIGNED' : 'FORWARDED',
   });
   ok(res, doc);
 }

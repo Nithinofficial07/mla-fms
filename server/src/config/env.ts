@@ -53,7 +53,15 @@ const schema = z.object({
   S3_SIGNED_URL_TTL: z.coerce.number().default(300),
 
   OCR_PROVIDER: z.enum(['none', 'tesseract', 'textract']).default('none'),
+
   EMAIL_PROVIDER: z.enum(['none', 'smtp']).default('none'),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_SECURE: z.coerce.boolean().default(false), // true for port 465
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().default('MLA Office <no-reply@example.gov.in>'),
+
   SMS_PROVIDER: z.enum(['none', 'msg91', 'twilio']).default('none'),
 
   DEFAULT_SLA_DAYS: z.coerce.number().default(15),
@@ -65,6 +73,9 @@ const schema = z.object({
 }).superRefine((v, ctx) => {
   if (v.STORAGE_PROVIDER === 's3' && !v.AWS_S3_BUCKET) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['AWS_S3_BUCKET'], message: 'Required when STORAGE_PROVIDER=s3' });
+  }
+  if (v.EMAIL_PROVIDER === 'smtp' && !v.SMTP_HOST) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMTP_HOST'], message: 'Required when EMAIL_PROVIDER=smtp' });
   }
   if (v.NODE_ENV === 'production') {
     if (/change-me|admin-access-secret|test-secret/.test(v.JWT_SECRET)) {
