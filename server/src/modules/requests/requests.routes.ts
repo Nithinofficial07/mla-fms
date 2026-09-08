@@ -77,6 +77,7 @@ router.post(
         departmentId: String(doc.primaryDepartmentId),
         officerId: doc.assignedOfficerId ? String(doc.assignedOfficerId) : null,
         kind: 'CREATED',
+        actorId: req.auth!.userId,
       });
     }
     created(res, doc);
@@ -107,6 +108,7 @@ router.post(
         departmentId: String(doc.primaryDepartmentId),
         officerId: doc.assignedOfficerId ? String(doc.assignedOfficerId) : null,
         kind: 'CREATED',
+        actorId: req.auth!.userId,
       });
     }
     ok(res, doc);
@@ -180,6 +182,7 @@ async function doAssignOrForward(kind: 'ASSIGN' | 'FORWARD', req: any, res: any)
     departmentId: String(dept._id),
     officerId,
     kind: kind === 'ASSIGN' ? 'ASSIGNED' : 'FORWARDED',
+    actorId: req.auth.userId,
   });
   ok(res, doc);
 }

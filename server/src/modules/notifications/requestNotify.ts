@@ -1,3 +1,4 @@
+import { ROLES } from '@mla/shared';
 import { env } from '../../config/env.js';
 import { Department } from '../../models/Department.js';
 import { User } from '../../models/User.js';
@@ -5,6 +6,9 @@ import { SystemSettings } from '../../models/config.js';
 import { logger } from '../../config/logger.js';
 import { notifyUsers } from './notify.js';
 import { queueEmail, emailLayout } from './email.js';
+
+/** Roles that get a bell notification for every routing event (office oversight). */
+const OVERSIGHT_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MLA];
 
 type Kind = 'CREATED' | 'ASSIGNED' | 'FORWARDED';
 
@@ -39,11 +43,12 @@ export async function notifyRequestToDepartment(opts: {
   departmentId: string;
   officerId?: string | null;
   kind: Kind;
+  actorId?: string | null;
   priorityName?: string | null;
   wardOrArea?: string | null;
 }): Promise<void> {
   try {
-    const { request, departmentId, officerId, kind } = opts;
+    const { request, departmentId, officerId, kind, actorId } = opts;
     const rid = String(request._id);
     const [dept, settings] = await Promise.all([
       Department.findById(departmentId).lean(),
@@ -55,14 +60,27 @@ export async function notifyRequestToDepartment(opts: {
       ? await User.find({ _id: officerId }).select('_id email name').lean()
       : await User.find({ departmentId, isActive: true }).select('_id email name').lean();
 
+    // Also alert office oversight roles so routing is visible even before a
+    // department has its own officer accounts.
+    const oversight = await User.find({ roleCode: { $in: OVERSIGHT_ROLES }, isActive: true })
+      .select('_id')
+      .lean();
+
     const title = `${request.fileId} ${VERB[kind]} ${dept.name}`;
     const link = `/requests/${rid}`;
 
-    if (settings?.notifications?.inApp !== false && officers.length) {
-      await notifyUsers(
-        officers.map((o) => String(o._id)),
-        { type: NTYPE[kind], title, body: request.subject, requestId: rid, link },
-      );
+    if (settings?.notifications?.inApp !== false) {
+      const recipients = [
+        ...officers.map((o) => String(o._id)),
+        ...oversight.map((o) => String(o._id)),
+      ].filter((id) => id !== String(actorId ?? ''));
+      await notifyUsers(recipients, {
+        type: NTYPE[kind],
+        body: request.subject,
+        title,
+        requestId: rid,
+        link,
+      });
     }
 
     const emailOn = settings?.notifications?.email && env.EMAIL_PROVIDER !== 'none';
