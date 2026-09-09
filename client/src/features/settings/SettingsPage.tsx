@@ -126,9 +126,15 @@ export function SettingsPage() {
                   sx={{ maxWidth: 320 }}
                 />
                 <Alert severity={emailStatus.data?.configured ? 'success' : 'info'} sx={{ mt: 1 }}>
-                  {emailStatus.data?.configured
-                    ? 'SMTP is configured on the server. Use the test button to confirm delivery.'
-                    : <>Email also needs <code>EMAIL_PROVIDER=smtp</code> + SMTP credentials in the server environment. Department emails come from each department&apos;s <b>Email</b> field.</>}
+                  {emailStatus.data?.configured ? (
+                    <>
+                      SMTP configured: <b>{emailStatus.data.host}:{emailStatus.data.port}</b>{' '}
+                      ({emailStatus.data.secure ? 'TLS' : 'STARTTLS'}, {emailStatus.data.hasUser ? 'auth' : 'no auth'}).
+                      Use the test button to confirm delivery.
+                    </>
+                  ) : (
+                    <>Email needs <code>EMAIL_PROVIDER=smtp</code> + SMTP credentials in the server environment. Department emails come from each department&apos;s <b>Email</b> field.</>
+                  )}
                 </Alert>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Button variant="contained" onClick={submit} disabled={save.isPending}>Save settings</Button>

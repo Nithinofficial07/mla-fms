@@ -4,6 +4,7 @@ import { PERMISSIONS } from '@mla/shared';
 import { authenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
+import { env } from '../../config/env.js';
 import { asyncHandler, ok } from '../../utils/http.js';
 import { AppError } from '../../utils/AppError.js';
 import { recordAudit } from '../../utils/audit.js';
@@ -78,11 +79,21 @@ router.get(
   }),
 );
 
-/** Whether SMTP is wired up (for the Settings UI to show status). */
+/** SMTP wiring status for the Settings UI - host/port only, never credentials. */
 router.get(
   '/email-status',
   requirePermission(PERMISSIONS.SETTINGS_MANAGE),
-  asyncHandler(async (_req, res) => ok(res, { configured: emailConfigured() })),
+  asyncHandler(async (_req, res) =>
+    ok(res, {
+      configured: emailConfigured(),
+      provider: env.EMAIL_PROVIDER,
+      host: env.SMTP_HOST ?? null,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE || env.SMTP_PORT === 465,
+      hasUser: !!env.SMTP_USER,
+      from: env.EMAIL_FROM,
+    }),
+  ),
 );
 
 /** Sends a test email to the signed-in admin so SMTP config can be verified. */
