@@ -29,14 +29,20 @@ export interface EmailInput {
   html?: string;
 }
 
+export const emailConfigured = () => env.EMAIL_PROVIDER === 'smtp' && !!env.SMTP_HOST;
+
+function recipientsOf(to: string | string[]): string[] {
+  return (Array.isArray(to) ? to : [to])
+    .map((s) => s?.trim())
+    .filter((s): s is string => !!s && /.+@.+\..+/.test(s));
+}
+
 /**
  * Fire-and-forget email. Never throws into the request path. When email isn't
  * configured it logs the message instead of sending, so flows still work.
  */
 export function queueEmail(input: EmailInput): void {
-  const recipients = (Array.isArray(input.to) ? input.to : [input.to])
-    .map((s) => s?.trim())
-    .filter((s): s is string => !!s && /.+@.+\..+/.test(s));
+  const recipients = recipientsOf(input.to);
   if (!recipients.length) return;
 
   const t = getTransport();
@@ -53,6 +59,31 @@ export function queueEmail(input: EmailInput): void {
   })
     .then((info) => logger.info({ to: recipients, messageId: info.messageId }, 'email sent'))
     .catch((err) => logger.error({ err, to: recipients, subject: input.subject }, 'email send failed'));
+}
+
+/**
+ * Awaitable send that reports the outcome - used by the "send test email"
+ * admin action so SMTP config can be verified from the UI.
+ */
+export async function sendEmailNow(input: EmailInput): Promise<{ ok: boolean; detail: string }> {
+  const recipients = recipientsOf(input.to);
+  if (!recipients.length) return { ok: false, detail: 'No valid recipient address on your account' };
+  const t = getTransport();
+  if (!t) {
+    return { ok: false, detail: 'Email is disabled - set EMAIL_PROVIDER=smtp and SMTP_HOST on the server' };
+  }
+  try {
+    const info = await t.sendMail({
+      from: env.EMAIL_FROM,
+      to: recipients.join(', '),
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
+    });
+    return { ok: true, detail: `Sent to ${recipients.join(', ')} (id ${info.messageId})` };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /** Minimal branded HTML wrapper for notification emails. */

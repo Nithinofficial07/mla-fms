@@ -13,6 +13,13 @@ export function SettingsPage() {
   const { enqueueSnackbar } = useSnackbar();
   const settings = useQuery({ queryKey: ['settings'], queryFn: () => api.get('/settings').then((r) => r.data) });
   const backup = useQuery({ queryKey: ['settings', 'backup'], queryFn: () => api.get('/settings/backup-status').then((r) => r.data) });
+  const emailStatus = useQuery({ queryKey: ['settings', 'email-status'], queryFn: () => api.get('/settings/email-status').then((r) => r.data) });
+
+  const testEmail = useMutation({
+    mutationFn: () => api.post('/settings/test-email').then((r) => r.data),
+    onSuccess: (d: any) => enqueueSnackbar(d.message ?? 'Test email sent', { variant: 'success' }),
+    onError: (e) => enqueueSnackbar(errorMessage(e, 'Test email failed'), { variant: 'error' }),
+  });
   const [form, setForm] = useState<any>({});
 
   useEffect(() => {
@@ -118,13 +125,17 @@ export function SettingsPage() {
                   onChange={(e) => setNotif('dueSoonDays', e.target.value)}
                   sx={{ maxWidth: 320 }}
                 />
-                <Alert severity="info" sx={{ mt: 1 }}>
-                  Email also needs <code>EMAIL_PROVIDER=smtp</code> and SMTP credentials set in the server environment.
-                  Department emails come from each department's <b>Email</b> field.
+                <Alert severity={emailStatus.data?.configured ? 'success' : 'info'} sx={{ mt: 1 }}>
+                  {emailStatus.data?.configured
+                    ? 'SMTP is configured on the server. Use the test button to confirm delivery.'
+                    : <>Email also needs <code>EMAIL_PROVIDER=smtp</code> + SMTP credentials in the server environment. Department emails come from each department&apos;s <b>Email</b> field.</>}
                 </Alert>
-                <Box>
+                <Stack direction="row" spacing={1} alignItems="center">
                   <Button variant="contained" onClick={submit} disabled={save.isPending}>Save settings</Button>
-                </Box>
+                  <Button variant="outlined" onClick={() => testEmail.mutate()} disabled={testEmail.isPending}>
+                    {testEmail.isPending ? 'Sending…' : 'Send test email to me'}
+                  </Button>
+                </Stack>
               </Stack>
             </CardContent>
           </Card>

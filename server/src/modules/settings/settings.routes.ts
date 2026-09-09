@@ -5,8 +5,11 @@ import { authenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler, ok } from '../../utils/http.js';
+import { AppError } from '../../utils/AppError.js';
 import { recordAudit } from '../../utils/audit.js';
 import { SystemSettings } from '../../models/config.js';
+import { User } from '../../models/User.js';
+import { sendEmailNow, emailLayout, emailConfigured } from '../notifications/email.js';
 
 const router = Router();
 router.use(authenticate);
@@ -72,6 +75,36 @@ router.get(
       configured: false,
       note: 'Automated backup is not configured. See docs/DEPLOYMENT.md for MongoDB Atlas backup + object-store lifecycle setup.',
     });
+  }),
+);
+
+/** Whether SMTP is wired up (for the Settings UI to show status). */
+router.get(
+  '/email-status',
+  requirePermission(PERMISSIONS.SETTINGS_MANAGE),
+  asyncHandler(async (_req, res) => ok(res, { configured: emailConfigured() })),
+);
+
+/** Sends a test email to the signed-in admin so SMTP config can be verified. */
+router.post(
+  '/test-email',
+  requirePermission(PERMISSIONS.SETTINGS_MANAGE),
+  asyncHandler(async (req, res) => {
+    const me = await User.findById(req.auth!.userId).select('email name').lean();
+    if (!me?.email) throw AppError.badRequest('Your account has no email address');
+    const result = await sendEmailNow({
+      to: me.email,
+      subject: 'MLA FMS - test email',
+      html: emailLayout('SMTP is working', [
+        ['To', me.email],
+        ['Requested by', me.name],
+        ['When', new Date().toLocaleString('en-IN')],
+      ]),
+      text: 'This confirms the MLA File Management System can send email through your SMTP settings.',
+    });
+    recordAudit(req, { action: 'SETTINGS_CHANGE', entity: 'SystemSettings', entityId: 'app', message: `test email: ${result.ok ? 'ok' : result.detail}` });
+    if (!result.ok) return res.status(502).json({ message: result.detail, code: 'EMAIL_FAILED' });
+    ok(res, { message: `Test email sent to ${me.email}. Check your inbox (and spam).`, detail: result.detail });
   }),
 );
 

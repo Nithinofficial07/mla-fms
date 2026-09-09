@@ -6,6 +6,7 @@ import {
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
+import { NotificationBell } from '@/components/NotificationBell';
 import { NAV, type NavItem } from '@/routes/nav';
 import { useAuth } from '@/app/AuthProvider';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
@@ -88,11 +89,6 @@ export function AppShell() {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
 
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => api.get('/settings').then((r) => r.data) });
-  const { data: unread } = useQuery({
-    queryKey: ['notifications', 'unread'],
-    queryFn: () => api.get('/notifications/unread-count').then((r) => r.data.count as number),
-    refetchInterval: 60_000,
-  });
 
   const brandName = settings?.appName ?? 'MLA FMS';
 
@@ -126,13 +122,7 @@ export function AppShell() {
             color={online ? 'success' : 'warning'}
             variant="outlined"
           />
-          <Tooltip title="Notifications">
-            <IconButton onClick={() => navigate('/notifications')}>
-              <Badge color="error" badgeContent={unread ?? 0}>
-                <Icon name="Notifications" />
-              </Badge>
-            </IconButton>
-          </Tooltip>
+          <NotificationBell />
           <IconButton onClick={(e) => setAnchor(e.currentTarget)}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
               {user?.name?.[0]?.toUpperCase() ?? '?'}

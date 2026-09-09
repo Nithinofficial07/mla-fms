@@ -40,4 +40,31 @@ router.post(
   }),
 );
 
+/** Mark a single notification unread again. */
+router.post(
+  '/:id/unread',
+  asyncHandler(async (req, res) => {
+    await Notification.updateOne({ _id: req.params.id, userId: req.auth!.userId }, { readAt: null });
+    ok(res, { ok: true });
+  }),
+);
+
+/** Delete one notification. */
+router.delete(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    await Notification.deleteOne({ _id: req.params.id, userId: req.auth!.userId });
+    ok(res, { ok: true });
+  }),
+);
+
+/** Delete all the caller's already-read notifications. */
+router.post(
+  '/clear-read',
+  asyncHandler(async (req, res) => {
+    const r = await Notification.deleteMany({ userId: req.auth!.userId, readAt: { $ne: null } });
+    ok(res, { ok: true, removed: r.deletedCount ?? 0 });
+  }),
+);
+
 export default router;
