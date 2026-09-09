@@ -70,11 +70,14 @@ export async function notifyRequestToDepartment(opts: {
     const link = `/requests/${rid}`;
 
     if (settings?.notifications?.inApp !== false) {
-      const recipients = [
-        ...officers.map((o) => String(o._id)),
-        ...oversight.map((o) => String(o._id)),
-      ].filter((id) => id !== String(actorId ?? ''));
-      await notifyUsers(recipients, {
+      // officers of the target department + office oversight. The actor is only
+      // excluded when there is at least one *other* recipient - so a single-admin
+      // setup still sees a confirmation of what was routed where.
+      const officerIds = officers.map((o) => String(o._id));
+      const oversightIds = oversight.map((o) => String(o._id));
+      const all = [...new Set([...officerIds, ...oversightIds])];
+      const others = all.filter((id) => id !== String(actorId ?? ''));
+      await notifyUsers(others.length ? others : all, {
         type: NTYPE[kind],
         body: request.subject,
         title,
