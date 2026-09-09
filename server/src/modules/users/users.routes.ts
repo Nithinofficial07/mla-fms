@@ -9,6 +9,7 @@ import { AppError } from '../../utils/AppError.js';
 import { recordAudit } from '../../utils/audit.js';
 import { parseListParams, paginate, escapeRegex, withId } from '../../utils/queryFeatures.js';
 import { hashPassword } from '../../utils/password.js';
+import { queueEmail, emailLayout } from '../notifications/email.js';
 import { User } from '../../models/User.js';
 import { Role } from '../../models/Role.js';
 import { Department } from '../../models/Department.js';
@@ -111,6 +112,15 @@ router.post(
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await user.save();
     recordAudit(req, { action: 'PASSWORD_RESET', entity: 'User', entityId: req.params.id, message: 'admin reset' });
+    queueEmail({
+      to: user.email,
+      subject: 'Your MLA FMS password was reset',
+      html: emailLayout('An administrator reset your password', [
+        ['Account', user.email],
+        ['Next step', 'Log in with the new password; you will be asked to change it.'],
+      ]),
+      text: 'An administrator has reset your password. Log in with the new one you were given; you will be prompted to change it.',
+    });
     ok(res, { message: 'Password reset. User must change it on next login.' });
   }),
 );

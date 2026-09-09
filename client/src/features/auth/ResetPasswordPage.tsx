@@ -7,18 +7,24 @@ import { api, errorMessage } from '@/api/client';
 export function ResetPasswordPage() {
   const [sp] = useSearchParams();
   const navigate = useNavigate();
-  const [token, setToken] = useState(sp.get('token') ?? '');
+  const tokenFromLink = sp.get('token') ?? '';
+  const [token, setToken] = useState(tokenFromLink);
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    if (password !== confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setLoading(true);
     try {
       await api.post('/auth/reset-password', { token, password });
-      navigate('/login', { replace: true });
+      navigate('/login?reset=1', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -27,11 +33,19 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <AuthLayout title="Set a new password">
+    <AuthLayout title="Set a new password" subtitle={tokenFromLink ? 'Choose a new password for your account.' : undefined}>
       <Box component="form" onSubmit={submit}>
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
-          <TextField label="Reset token" value={token} onChange={(e) => setToken(e.target.value)} required />
+          {!tokenFromLink && (
+            <TextField
+              label="Reset token"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              required
+              helperText="Paste the token from your reset email"
+            />
+          )}
           <TextField
             label="New password"
             type="password"
@@ -40,7 +54,14 @@ export function ResetPasswordPage() {
             required
             helperText="At least 8 characters, including a letter and a digit."
           />
-          <Button type="submit" variant="contained" disabled={loading}>
+          <TextField
+            label="Confirm new password"
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+          />
+          <Button type="submit" variant="contained" disabled={loading || !token}>
             Update password
           </Button>
           <Link component={RouterLink} to="/login" variant="body2">Back to sign in</Link>
