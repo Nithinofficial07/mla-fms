@@ -54,13 +54,20 @@ const schema = z.object({
 
   OCR_PROVIDER: z.enum(['none', 'tesseract', 'textract']).default('none'),
 
-  EMAIL_PROVIDER: z.enum(['none', 'smtp']).default('none'),
+  // smtp  = classic SMTP (blocked on some hosts, e.g. Render free/starter)
+  // ses   = AWS SES over HTTPS:443 (works everywhere; needs ses:SendEmail)
+  EMAIL_PROVIDER: z.enum(['none', 'smtp', 'ses']).default('none'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_SECURE: z.coerce.boolean().default(false), // true for port 465
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default('MLA Office <no-reply@example.gov.in>'),
+  // SES over the HTTPS API. Credentials fall back to AWS_ACCESS_KEY_ID/SECRET,
+  // region falls back to AWS_REGION.
+  AWS_SES_REGION: z.string().optional(),
+  SES_ACCESS_KEY_ID: z.string().optional(),
+  SES_SECRET_ACCESS_KEY: z.string().optional(),
 
   SMS_PROVIDER: z.enum(['none', 'msg91', 'twilio']).default('none'),
 
@@ -76,6 +83,12 @@ const schema = z.object({
   }
   if (v.EMAIL_PROVIDER === 'smtp' && !v.SMTP_HOST) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMTP_HOST'], message: 'Required when EMAIL_PROVIDER=smtp' });
+  }
+  if (v.EMAIL_PROVIDER === 'ses') {
+    const region = v.AWS_SES_REGION || v.AWS_REGION;
+    const key = v.SES_ACCESS_KEY_ID || v.AWS_ACCESS_KEY_ID;
+    if (!region) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['AWS_SES_REGION'], message: 'Set AWS_SES_REGION or AWS_REGION for EMAIL_PROVIDER=ses' });
+    if (!key) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SES_ACCESS_KEY_ID'], message: 'Set SES_ACCESS_KEY_ID (or AWS_ACCESS_KEY_ID) for EMAIL_PROVIDER=ses' });
   }
   if (v.NODE_ENV === 'production') {
     if (/change-me|admin-access-secret|test-secret/.test(v.JWT_SECRET)) {

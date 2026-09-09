@@ -127,13 +127,14 @@ export function SettingsPage() {
                 />
                 <Alert severity={emailStatus.data?.configured ? 'success' : 'info'} sx={{ mt: 1 }}>
                   {emailStatus.data?.configured ? (
-                    <>
-                      SMTP configured: <b>{emailStatus.data.host}:{emailStatus.data.port}</b>{' '}
-                      ({emailStatus.data.secure ? 'TLS' : 'STARTTLS'}, {emailStatus.data.hasUser ? 'auth' : 'no auth'}).
-                      Use the test button to confirm delivery.
-                    </>
+                    emailStatus.data.provider === 'ses' ? (
+                      <>Email via <b>AWS SES</b> ({emailStatus.data.sesRegion}), from <b>{emailStatus.data.from}</b>. Use the test button to confirm delivery.</>
+                    ) : (
+                      <>Email via <b>SMTP {emailStatus.data.host}:{emailStatus.data.port}</b>{' '}
+                        ({emailStatus.data.secure ? 'TLS' : 'STARTTLS'}). Use the test button to confirm delivery.</>
+                    )
                   ) : (
-                    <>Email needs <code>EMAIL_PROVIDER=smtp</code> + SMTP credentials in the server environment. Department emails come from each department&apos;s <b>Email</b> field.</>
+                    <>Set <code>EMAIL_PROVIDER</code> to <code>ses</code> (AWS SES, works on Render) or <code>smtp</code> in the server environment. Department emails come from each department&apos;s <b>Email</b> field.</>
                   )}
                 </Alert>
                 <Stack direction="row" spacing={1} alignItems="center">

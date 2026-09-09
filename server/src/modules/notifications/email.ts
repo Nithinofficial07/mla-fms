@@ -1,22 +1,31 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 
-let transporter: Transporter | null = null;
-let warned = false;
+export interface EmailInput {
+  to: string | string[];
+  subject: string;
+  text?: string;
+  html?: string;
+}
 
-function getTransport(): Transporter | null {
-  if (env.EMAIL_PROVIDER !== 'smtp' || !env.SMTP_HOST) {
-    if (!warned) {
-      logger.info('EMAIL_PROVIDER is not "smtp" (or SMTP_HOST missing) - emails are logged, not sent');
-      warned = true;
-    }
-    return null;
-  }
+export const emailConfigured = () =>
+  (env.EMAIL_PROVIDER === 'smtp' && !!env.SMTP_HOST) ||
+  (env.EMAIL_PROVIDER === 'ses' && !!(env.AWS_SES_REGION || env.AWS_REGION) && !!(env.SES_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID));
+
+function recipientsOf(to: string | string[]): string[] {
+  return (Array.isArray(to) ? to : [to])
+    .map((s) => s?.trim())
+    .filter((s): s is string => !!s && /.+@.+\..+/.test(s));
+}
+
+/* --------------------------------- SMTP --------------------------------- */
+let transporter: Transporter | null = null;
+function smtpTransport(): Transporter {
   transporter ??= nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
-    // 465 = implicit TLS; 587/25/2587 = STARTTLS (secure:false + requireTLS)
     secure: env.SMTP_SECURE || env.SMTP_PORT === 465,
     requireTLS: !(env.SMTP_SECURE || env.SMTP_PORT === 465),
     auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined,
@@ -27,68 +36,86 @@ function getTransport(): Transporter | null {
   return transporter;
 }
 
-export interface EmailInput {
-  to: string | string[];
-  subject: string;
-  text?: string;
-  html?: string;
+/* --------------------------------- SES ---------------------------------- */
+let ses: SESv2Client | null = null;
+function sesClient(): SESv2Client {
+  ses ??= new SESv2Client({
+    region: env.AWS_SES_REGION || env.AWS_REGION,
+    credentials:
+      (env.SES_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID)
+        ? {
+            accessKeyId: (env.SES_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID)!,
+            secretAccessKey: (env.SES_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY)!,
+          }
+        : undefined,
+  });
+  return ses;
 }
 
-export const emailConfigured = () => env.EMAIL_PROVIDER === 'smtp' && !!env.SMTP_HOST;
-
-function recipientsOf(to: string | string[]): string[] {
-  return (Array.isArray(to) ? to : [to])
-    .map((s) => s?.trim())
-    .filter((s): s is string => !!s && /.+@.+\..+/.test(s));
-}
-
-/**
- * Fire-and-forget email. Never throws into the request path. When email isn't
- * configured it logs the message instead of sending, so flows still work.
- */
-export function queueEmail(input: EmailInput): void {
-  const recipients = recipientsOf(input.to);
-  if (!recipients.length) return;
-
-  const t = getTransport();
-  if (!t) {
-    logger.info({ to: recipients, subject: input.subject }, 'email (not sent - provider disabled)');
-    return;
+/* ------------------------------- send core ------------------------------ */
+async function deliver(to: string[], input: EmailInput): Promise<{ ok: boolean; detail: string }> {
+  if (env.EMAIL_PROVIDER === 'ses') {
+    try {
+      const out = await sesClient().send(
+        new SendEmailCommand({
+          FromEmailAddress: env.EMAIL_FROM,
+          Destination: { ToAddresses: to },
+          Content: {
+            Simple: {
+              Subject: { Data: input.subject },
+              Body: {
+                ...(input.text ? { Text: { Data: input.text } } : {}),
+                ...(input.html ? { Html: { Data: input.html } } : {}),
+              },
+            },
+          },
+        }),
+      );
+      return { ok: true, detail: `SES sent to ${to.join(', ')} (id ${out.MessageId})` };
+    } catch (err) {
+      return { ok: false, detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
+    }
   }
-  t.sendMail({
-    from: env.EMAIL_FROM,
-    to: recipients.join(', '),
-    subject: input.subject,
-    text: input.text,
-    html: input.html,
-  })
-    .then((info) => logger.info({ to: recipients, messageId: info.messageId }, 'email sent'))
-    .catch((err) => logger.error({ err, to: recipients, subject: input.subject }, 'email send failed'));
-}
 
-/**
- * Awaitable send that reports the outcome - used by the "send test email"
- * admin action so SMTP config can be verified from the UI.
- */
-export async function sendEmailNow(input: EmailInput): Promise<{ ok: boolean; detail: string }> {
-  const recipients = recipientsOf(input.to);
-  if (!recipients.length) return { ok: false, detail: 'No valid recipient address on your account' };
-  const t = getTransport();
-  if (!t) {
-    return { ok: false, detail: 'Email is disabled - set EMAIL_PROVIDER=smtp and SMTP_HOST on the server' };
-  }
+  // smtp
   try {
-    const info = await t.sendMail({
+    const info = await smtpTransport().sendMail({
       from: env.EMAIL_FROM,
-      to: recipients.join(', '),
+      to: to.join(', '),
       subject: input.subject,
       text: input.text,
       html: input.html,
     });
-    return { ok: true, detail: `Sent to ${recipients.join(', ')} (id ${info.messageId})` };
+    return { ok: true, detail: `SMTP sent to ${to.join(', ')} (id ${info.messageId})` };
   } catch (err) {
     return { ok: false, detail: err instanceof Error ? err.message : String(err) };
   }
+}
+
+/**
+ * Fire-and-forget. Never throws into the request path; logs the message when
+ * email isn't configured so flows keep working undeployed.
+ */
+export function queueEmail(input: EmailInput): void {
+  const to = recipientsOf(input.to);
+  if (!to.length) return;
+  if (!emailConfigured()) {
+    logger.info({ to, subject: input.subject }, 'email (not sent - provider disabled)');
+    return;
+  }
+  deliver(to, input)
+    .then((r) => (r.ok ? logger.info({ to }, r.detail) : logger.error({ to, subject: input.subject }, r.detail)))
+    .catch((err) => logger.error({ err, to }, 'email send crashed'));
+}
+
+/** Awaitable send that reports the outcome - used by the "send test email" action. */
+export async function sendEmailNow(input: EmailInput): Promise<{ ok: boolean; detail: string }> {
+  const to = recipientsOf(input.to);
+  if (!to.length) return { ok: false, detail: 'No valid recipient address on your account' };
+  if (!emailConfigured()) {
+    return { ok: false, detail: 'Email is disabled - set EMAIL_PROVIDER (smtp or ses) and its settings on the server' };
+  }
+  return deliver(to, input);
 }
 
 /** Minimal branded HTML wrapper for notification emails. */

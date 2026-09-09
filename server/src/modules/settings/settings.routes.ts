@@ -87,11 +87,14 @@ router.get(
     ok(res, {
       configured: emailConfigured(),
       provider: env.EMAIL_PROVIDER,
+      from: env.EMAIL_FROM,
+      // smtp
       host: env.SMTP_HOST ?? null,
       port: env.SMTP_PORT,
       secure: env.SMTP_SECURE || env.SMTP_PORT === 465,
       hasUser: !!env.SMTP_USER,
-      from: env.EMAIL_FROM,
+      // ses
+      sesRegion: env.EMAIL_PROVIDER === 'ses' ? (env.AWS_SES_REGION || env.AWS_REGION) : null,
     }),
   ),
 );
