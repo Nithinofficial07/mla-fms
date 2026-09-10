@@ -99,6 +99,33 @@ and a CORS rule for your app origin (needed by the in-browser PDF viewer).
 
 ---
 
+## 4b. Email (SES) — needed for password reset + department notifications
+
+Many hosts (Render free/starter included) **block outbound SMTP ports**, so
+use SES over its HTTPS API: `EMAIL_PROVIDER=ses`.
+
+**One command (CloudFormation)** — creates the sender identity + a
+least-privilege sending key:
+
+```bash
+cd deploy/aws
+SENDER=youroffice@example.in REGION=ap-south-1 ./provision-ses.sh   # or .\provision-ses.ps1
+```
+
+It prints `EMAIL_PROVIDER` / `AWS_SES_REGION` / `EMAIL_FROM` /
+`SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` for `deploy/.env` (or Render env).
+
+Then, manually (CloudFormation can't do these):
+1. **Open the verification link** SES emails to the sender address.
+   Check: `aws ses get-identity-verification-attributes --identities <sender> --region ap-south-1`
+2. **SES → Account dashboard → Request production access** — until approved,
+   SES only sends *to* verified addresses (fine for testing, not for real
+   department emails).
+
+Verify from the app: **Settings → Notifications → Send test email to me**.
+
+---
+
 ## 5. Configure
 
 ```bash

@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  MLA File Management System - transactional email via AWS SES (HTTPS API,
+  port 443 - works on hosts that block SMTP such as Render free/starter).
+  Creates the sender identity and a least-privilege IAM user whose key the
+  app uses with EMAIL_PROVIDER=ses.
+
+Parameters:
+  SenderEmail:
+    Type: String
+    Default: office.samarthsir@gmail.com
+    Description: >
+      From-address for all system email. On stack create, SES emails this
+      address a verification link - open it once and the identity flips to
+      "Verified". (A domain identity on Route 53 would be fully automatic; an
+      email-address identity cannot be.)
+    AllowedPattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+
+Resources:
+  SenderIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Ref SenderEmail
+
+  MailUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: mla-fms-ses-sender
+      Policies:
+        - PolicyName: mla-fms-ses-send
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ["ses:SendEmail"]
+                Resource:
+                  - !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${SenderEmail}"
+                Condition:
+                  StringEquals:
+                    "ses:FromAddress": !Ref SenderEmail
+
+  MailAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref MailUser
+
+Outputs:
+  EMAIL_PROVIDER:
+    Value: ses
+  AWS_SES_REGION:
+    Value: !Ref AWS::Region
+  EMAIL_FROM:
+    Value: !Sub "MLA Office <${SenderEmail}>"
+  SES_ACCESS_KEY_ID:
+    Value: !Ref MailAccessKey
+  SES_SECRET_ACCESS_KEY:
+    Description: Retrievable via `aws cloudformation describe-stacks`. Treat as sensitive; rotate by recreating the stack's key.
+    Value: !GetAtt MailAccessKey.SecretAccessKey
+  VerificationNote:
+    Value: !Sub "Open the verification link SES just emailed to ${SenderEmail}. Then request SES production access to email addresses other than verified ones."
