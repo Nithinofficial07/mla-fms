@@ -95,6 +95,8 @@ router.get(
       hasUser: !!env.SMTP_USER,
       // ses
       sesRegion: env.EMAIL_PROVIDER === 'ses' ? (env.AWS_SES_REGION || env.AWS_REGION) : null,
+      // brevo
+      brevoKeySet: env.EMAIL_PROVIDER === 'brevo' ? !!env.BREVO_API_KEY : null,
     }),
   ),
 );

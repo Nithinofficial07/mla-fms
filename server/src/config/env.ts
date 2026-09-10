@@ -55,8 +55,9 @@ const schema = z.object({
   OCR_PROVIDER: z.enum(['none', 'tesseract', 'textract']).default('none'),
 
   // smtp  = classic SMTP (blocked on some hosts, e.g. Render free/starter)
-  // ses   = AWS SES over HTTPS:443 (works everywhere; needs ses:SendEmail)
-  EMAIL_PROVIDER: z.enum(['none', 'smtp', 'ses']).default('none'),
+  // ses   = AWS SES over HTTPS:443 (needs ses:SendEmail; ~$0.10 / 1000)
+  // brevo = Brevo HTTPS API (free 300/day, only a verified sender email needed)
+  EMAIL_PROVIDER: z.enum(['none', 'smtp', 'ses', 'brevo']).default('none'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_SECURE: z.coerce.boolean().default(false), // true for port 465
@@ -68,6 +69,7 @@ const schema = z.object({
   AWS_SES_REGION: z.string().optional(),
   SES_ACCESS_KEY_ID: z.string().optional(),
   SES_SECRET_ACCESS_KEY: z.string().optional(),
+  BREVO_API_KEY: z.string().optional(),
 
   SMS_PROVIDER: z.enum(['none', 'msg91', 'twilio']).default('none'),
 
@@ -89,6 +91,9 @@ const schema = z.object({
     const key = v.SES_ACCESS_KEY_ID || v.AWS_ACCESS_KEY_ID;
     if (!region) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['AWS_SES_REGION'], message: 'Set AWS_SES_REGION or AWS_REGION for EMAIL_PROVIDER=ses' });
     if (!key) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SES_ACCESS_KEY_ID'], message: 'Set SES_ACCESS_KEY_ID (or AWS_ACCESS_KEY_ID) for EMAIL_PROVIDER=ses' });
+  }
+  if (v.EMAIL_PROVIDER === 'brevo' && !v.BREVO_API_KEY) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['BREVO_API_KEY'], message: 'Required when EMAIL_PROVIDER=brevo' });
   }
   if (v.NODE_ENV === 'production') {
     if (/change-me|admin-access-secret|test-secret/.test(v.JWT_SECRET)) {

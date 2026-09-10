@@ -12,12 +12,19 @@ export interface EmailInput {
 
 export const emailConfigured = () =>
   (env.EMAIL_PROVIDER === 'smtp' && !!env.SMTP_HOST) ||
-  (env.EMAIL_PROVIDER === 'ses' && !!(env.AWS_SES_REGION || env.AWS_REGION) && !!(env.SES_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID));
+  (env.EMAIL_PROVIDER === 'ses' && !!(env.AWS_SES_REGION || env.AWS_REGION) && !!(env.SES_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID)) ||
+  (env.EMAIL_PROVIDER === 'brevo' && !!env.BREVO_API_KEY);
 
 function recipientsOf(to: string | string[]): string[] {
   return (Array.isArray(to) ? to : [to])
     .map((s) => s?.trim())
     .filter((s): s is string => !!s && /.+@.+\..+/.test(s));
+}
+
+/** "MLA Office <x@y.com>" -> { name, email }; bare "x@y.com" -> { email }. */
+function parseFrom(from: string): { name?: string; email: string } {
+  const m = /^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/.exec(from);
+  return m ? { name: m[1] || undefined, email: m[2] } : { email: from.trim() };
 }
 
 /* --------------------------------- SMTP --------------------------------- */
@@ -52,8 +59,35 @@ function sesClient(): SESv2Client {
   return ses;
 }
 
+/* -------------------------------- Brevo -------------------------------- */
+async function sendViaBrevo(to: string[], input: EmailInput): Promise<{ ok: boolean; detail: string }> {
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': env.BREVO_API_KEY!, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        sender: parseFrom(env.EMAIL_FROM),
+        to: to.map((email) => ({ email })),
+        subject: input.subject,
+        htmlContent: input.html ?? `<pre>${input.text ?? ''}</pre>`,
+        textContent: input.text,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, detail: `Brevo ${res.status}: ${(body as { message?: string }).message ?? JSON.stringify(body)}` };
+    }
+    return { ok: true, detail: `Brevo sent to ${to.join(', ')} (id ${(body as { messageId?: string }).messageId ?? '?'})` };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
+  }
+}
+
 /* ------------------------------- send core ------------------------------ */
 async function deliver(to: string[], input: EmailInput): Promise<{ ok: boolean; detail: string }> {
+  if (env.EMAIL_PROVIDER === 'brevo') return sendViaBrevo(to, input);
+
   if (env.EMAIL_PROVIDER === 'ses') {
     try {
       const out = await sesClient().send(
