@@ -26,6 +26,7 @@ export const lettersService = {
         gramPanchayatId: body.location.gramPanchayatId ?? null,
         villageId: body.location.villageId ?? null,
         subVillageId: body.location.subVillageId ?? null,
+        addressText: body.location.addressText ?? null,
       },
       referredBy: body.referredBy,
       departmentId: body.departmentId ?? null,

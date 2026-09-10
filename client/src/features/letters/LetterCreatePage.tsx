@@ -48,12 +48,17 @@ export function LetterCreatePage() {
       altMobile: form.applicant.altMobile || undefined,
       address: form.applicant.address || undefined,
     },
-    location: {
-      wardId: form.location.branch === 'URBAN' ? form.location.wardId : undefined,
-      gramPanchayatId: form.location.branch === 'RURAL' ? form.location.gramPanchayatId : undefined,
-      villageId: form.location.villageId || undefined,
-      subVillageId: form.location.subVillageId || undefined,
-    },
+    location:
+      form.location.branch === 'URBAN'
+        ? {
+            wardId: form.location.wardId,
+            addressText: form.location.addressText?.trim() || undefined,
+          }
+        : {
+            gramPanchayatId: form.location.gramPanchayatId,
+            villageId: form.location.villageId || undefined,
+            subVillageId: form.location.subVillageId || undefined,
+          },
     referredBy: form.referredBy || undefined,
     departmentId: form.departmentId || undefined,
     departmentLetterNo: form.departmentLetterNo || undefined,

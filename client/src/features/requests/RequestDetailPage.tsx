@@ -117,6 +117,7 @@ export function RequestDetailPage() {
               ['Email', r.applicant?.email],
               ['Address', r.applicant?.address],
               ['Ward', r.location?.wardId?.name],
+              ['Address', r.location?.addressText],
               ['Gram Panchayat', r.location?.gramPanchayatId?.name],
               ['Village', r.location?.villageId?.name],
               ['Sub-village', r.location?.subVillageId?.name],

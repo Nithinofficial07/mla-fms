@@ -29,6 +29,8 @@ const letterSchema = new Schema(
       gramPanchayatId: { type: Schema.Types.ObjectId, ref: 'GramPanchayat', default: null, index: true },
       villageId: { type: Schema.Types.ObjectId, ref: 'Village', default: null },
       subVillageId: { type: Schema.Types.ObjectId, ref: 'SubVillage', default: null },
+      // Free-text address for urban (ward) entries in place of village / sub-village.
+      addressText: { type: String, trim: true },
     },
 
     referredBy: { type: String, trim: true },

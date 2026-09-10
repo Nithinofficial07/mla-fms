@@ -32,6 +32,9 @@ const requestSchema = new Schema(
       gramPanchayatId: { type: Schema.Types.ObjectId, ref: 'GramPanchayat', default: null, index: true },
       villageId: { type: Schema.Types.ObjectId, ref: 'Village', default: null, index: true },
       subVillageId: { type: Schema.Types.ObjectId, ref: 'SubVillage', default: null },
+      // Free-text street / landmark address, used for urban (ward) requests
+      // instead of the village / sub-village hierarchy.
+      addressText: { type: String, trim: true },
     },
 
     primaryDepartmentId: { type: Schema.Types.ObjectId, ref: 'Department', default: null, index: true },

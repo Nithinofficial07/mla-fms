@@ -73,6 +73,7 @@ export function LetterDetailPage() {
               ['Alternate phone', l.applicant?.altMobile],
               ['Address', l.applicant?.address],
               ['Location', loc],
+              ['Ward address', l.location?.addressText],
               ['Village', l.location?.villageId?.name],
               ['Sub-village', l.location?.subVillageId?.name],
               ['Referred by', l.referredBy],

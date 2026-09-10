@@ -20,6 +20,7 @@ export const locationSchema = z
     gramPanchayatId: objectId.nullable().optional(),
     villageId: objectId.nullable().optional(),
     subVillageId: objectId.nullable().optional(),
+    addressText: z.string().max(500).optional(),
   })
   .refine((l) => l.wardId || l.gramPanchayatId, {
     message: 'Select a Ward or a Gram Panchayat',
