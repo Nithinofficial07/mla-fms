@@ -36,15 +36,25 @@ export function PageHeader({
         </Breadcrumbs>
       )}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }}>
-        <Box>
-          <Typography variant="h4">{title}</Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h4" sx={{ wordBreak: 'break-word' }}>{title}</Typography>
           {subtitle && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {subtitle}
             </Typography>
           )}
         </Box>
-        {action && <Box>{action}</Box>}
+        {action && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              width: { xs: '100%', sm: 'auto' },
+              '& > *': { width: { xs: '100%', sm: 'auto' } },
+            }}
+          >
+            {action}
+          </Box>
+        )}
       </Stack>
     </Box>
   );

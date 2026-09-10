@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
+import { Box, Button, Collapse, MenuItem, Stack, TextField, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
@@ -25,10 +26,13 @@ export function RequestListPage() {
   const navigate = useNavigate();
   const { can } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [sp, setSp] = useSearchParams();
   const [page, setPage] = useState({ page: 0, pageSize: 25 });
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const departments = useDepartments();
   const statuses = useStatuses();
@@ -60,6 +64,14 @@ export function RequestListPage() {
     if (value) next.set(key, value);
     else next.delete(key);
     next.delete('bucket');
+    setSp(next);
+  };
+
+  const FILTER_KEYS = ['statusCode', 'priorityId', 'departmentId', 'wardId', 'gramPanchayatId', 'overdue', 'bucket'];
+  const activeFilters = FILTER_KEYS.filter((k) => sp.get(k)).length;
+  const clearFilters = () => {
+    const next = new URLSearchParams(sp);
+    FILTER_KEYS.forEach((k) => next.delete(k));
     setSp(next);
   };
 
@@ -105,30 +117,51 @@ export function RequestListPage() {
         }
       />
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
         <TextField
           size="small"
-          placeholder="Search file ID, applicant, mobile, subject…"
+          placeholder="Search file ID, applicant, mobile…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ flex: 1 }}
           InputProps={{ startAdornment: <Icon name="Search" sx={{ mr: 1, opacity: 0.6 }} /> }}
         />
-        <TextField size="small" select label="Status" value={sp.get('statusCode') ?? ''} onChange={(e) => setFilter('statusCode', e.target.value)} sx={{ minWidth: 150 }}>
-          <MenuItem value="">All</MenuItem>
-          {(statuses.data ?? []).map((s) => <MenuItem key={s.id} value={(s as any).code}>{s.name}</MenuItem>)}
-        </TextField>
-        <TextField size="small" select label="Department" value={sp.get('departmentId') ?? ''} onChange={(e) => setFilter('departmentId', e.target.value)} sx={{ minWidth: 170 }}>
-          <MenuItem value="">All</MenuItem>
-          {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
-        </TextField>
-        <TextField size="small" select label="Priority" value={sp.get('priorityId') ?? ''} onChange={(e) => setFilter('priorityId', e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">All</MenuItem>
-          {(priorities.data ?? []).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
-        </TextField>
-        <Button onClick={() => doExport('xlsx')} disabled={!!exporting} startIcon={<Icon name="TableView" />}>Excel</Button>
-        <Button onClick={() => doExport('pdf')} disabled={!!exporting} startIcon={<Icon name="PictureAsPdf" />}>PDF</Button>
+        {isMobile && (
+          <Button
+            variant={activeFilters ? 'contained' : 'outlined'}
+            onClick={() => setFiltersOpen((o) => !o)}
+            startIcon={<Icon name="FilterList" />}
+            sx={{ flexShrink: 0 }}
+          >
+            {activeFilters ? `Filters (${activeFilters})` : 'Filters'}
+          </Button>
+        )}
       </Stack>
+
+      <Collapse in={!isMobile || filtersOpen}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }} alignItems={{ md: 'center' }}>
+          <TextField size="small" select label="Status" value={sp.get('statusCode') ?? ''} onChange={(e) => setFilter('statusCode', e.target.value)} sx={{ minWidth: 150 }} fullWidth={isMobile}>
+            <MenuItem value="">All</MenuItem>
+            {(statuses.data ?? []).map((s) => <MenuItem key={s.id} value={(s as any).code}>{s.name}</MenuItem>)}
+          </TextField>
+          <TextField size="small" select label="Department" value={sp.get('departmentId') ?? ''} onChange={(e) => setFilter('departmentId', e.target.value)} sx={{ minWidth: 170 }} fullWidth={isMobile}>
+            <MenuItem value="">All</MenuItem>
+            {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
+          </TextField>
+          <TextField size="small" select label="Priority" value={sp.get('priorityId') ?? ''} onChange={(e) => setFilter('priorityId', e.target.value)} sx={{ minWidth: 140 }} fullWidth={isMobile}>
+            <MenuItem value="">All</MenuItem>
+            {(priorities.data ?? []).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
+          </TextField>
+          <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', md: 'auto' } }}>
+            {activeFilters > 0 && (
+              <Button onClick={clearFilters} color="inherit" startIcon={<Icon name="Close" />}>Clear</Button>
+            )}
+            <Box sx={{ flex: 1 }} />
+            <Button onClick={() => doExport('xlsx')} disabled={!!exporting} startIcon={<Icon name="TableView" />}>Excel</Button>
+            <Button onClick={() => doExport('pdf')} disabled={!!exporting} startIcon={<Icon name="PictureAsPdf" />}>PDF</Button>
+          </Stack>
+        </Stack>
+      </Collapse>
 
       {data && data.total === 0 ? (
         <EmptyState

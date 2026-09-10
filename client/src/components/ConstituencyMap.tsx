@@ -94,9 +94,22 @@ export function ConstituencyMap() {
   return (
     <Card variant="outlined">
       <CardContent>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent="space-between"
+          spacing={1}
+          sx={{ mb: 1 }}
+        >
           <Typography variant="subtitle2">Requests by ward</Typography>
-          <ToggleButtonGroup size="small" exclusive value={metric} onChange={(_e, v) => v && setMetric(v)}>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            fullWidth
+            value={metric}
+            onChange={(_e, v) => v && setMetric(v)}
+            sx={{ maxWidth: { sm: 320 } }}
+          >
             <ToggleButton value="total">Total</ToggleButton>
             <ToggleButton value="pending">Pending</ToggleButton>
             <ToggleButton value="overdue">Overdue</ToggleButton>

@@ -1,4 +1,4 @@
-import { createTheme, alpha } from '@mui/material/styles';
+import { createTheme, responsiveFontSizes, alpha } from '@mui/material/styles';
 
 /**
  * Government-grade but modern: deep indigo primary, restrained surfaces,
@@ -6,7 +6,7 @@ import { createTheme, alpha } from '@mui/material/styles';
  */
 const brand = '#0b3d91';
 
-export const theme = createTheme({
+const base = createTheme({
   palette: {
     mode: 'light',
     primary: { main: brand, light: '#3f63b3', dark: '#062a66' },
@@ -38,7 +38,14 @@ export const theme = createTheme({
       defaultProps: { elevation: 0, variant: 'outlined' },
       styleOverrides: { root: { transition: 'box-shadow .2s ease, transform .2s ease' } },
     },
+    MuiCardContent: {
+      styleOverrides: {
+        root: ({ theme }) => ({ [theme.breakpoints.down('sm')]: { padding: 14, '&:last-child': { paddingBottom: 14 } } }),
+      },
+    },
     MuiButton: { defaultProps: { disableElevation: true } },
+    MuiTab: { styleOverrides: { root: { minHeight: 46, textTransform: 'none', fontWeight: 600 } } },
+    MuiDialog: { styleOverrides: { paper: ({ theme }) => ({ [theme.breakpoints.down('sm')]: { margin: 12, width: 'calc(100% - 24px)', maxHeight: 'calc(100% - 24px)' } }) } },
     MuiAppBar: {
       defaultProps: { elevation: 0, color: 'inherit' },
       styleOverrides: { root: { borderBottom: `1px solid ${alpha(brand, 0.1)}`, backdropFilter: 'blur(6px)' } },
@@ -47,3 +54,5 @@ export const theme = createTheme({
     MuiChip: { styleOverrides: { root: { fontWeight: 600 } } },
   },
 });
+
+export const theme = responsiveFontSizes(base, { factor: 2.2 });

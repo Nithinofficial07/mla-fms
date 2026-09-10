@@ -108,11 +108,11 @@ export function AppShell() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
       <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
-        <Toolbar sx={{ gap: 1 }}>
+        <Toolbar sx={{ gap: { xs: 0.25, sm: 1 }, px: { xs: 1, sm: 3 } }}>
           <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ display: { md: 'none' } }}>
             <Icon name="Menu" />
           </IconButton>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1 }} noWrap>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1, fontSize: { xs: '0.95rem', sm: '1rem' } }} noWrap>
             {settings?.constituencyName || 'Constituency'}
           </Typography>
           <Chip
@@ -121,7 +121,11 @@ export function AppShell() {
             label={online ? 'Online' : 'Offline'}
             color={online ? 'success' : 'warning'}
             variant="outlined"
+            sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
           />
+          {!online && (
+            <Icon name="CloudOff" sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: 'warning.main' }} />
+          )}
           <NotificationBell />
           <IconButton onClick={(e) => setAnchor(e.currentTarget)}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
@@ -162,7 +166,17 @@ export function AppShell() {
         </Drawer>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` }, p: { xs: 2, sm: 3 } }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          minWidth: 0,
+          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          px: { xs: 1.5, sm: 3 },
+          py: { xs: 2, sm: 3 },
+          pb: 'calc(env(safe-area-inset-bottom) + 16px)',
+        }}
+      >
         <Toolbar />
         <Outlet />
       </Box>

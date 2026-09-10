@@ -13,7 +13,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
       }}
     >
       <Card sx={{ width: '100%', maxWidth: 420, boxShadow: '0 20px 50px -20px rgba(11,61,145,0.35)' }}>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
           <Stack spacing={1} sx={{ mb: 3 }}>
             <Box
               component="img"
