@@ -1,40 +1,34 @@
 import { createTheme, responsiveFontSizes, alpha } from '@mui/material/styles';
 
 /**
- * Vibrant, modern palette: indigo -> violet -> pink brand gradient, warm
- * amber accents, crisp white surfaces on a soft lavender ground. Used
- * app-wide via ThemeProvider. `gradient.brand` is exported for the few
- * spots (AppBar, auth screen, sidebar header) that paint the gradient
- * directly instead of a flat color.
+ * Government Navy + Gold - a formal, civic palette matched to official
+ * portal conventions: solid navy chrome, a muted gold accent used sparingly
+ * for emphasis (active nav, drawer headers), flat surfaces (no gradients).
+ * Used app-wide via ThemeProvider.
  */
-const brand = '#4F46E5'; // indigo-600
-const brandLight = '#818CF8'; // indigo-400
-const brandDark = '#3730A3'; // indigo-800
-const accent = '#EC4899'; // pink-500 - pairs with indigo for the brand gradient
-
-export const gradient = {
-  brand: `linear-gradient(135deg, ${brandDark} 0%, ${brand} 45%, ${accent} 100%)`,
-  brandSoft: `linear-gradient(135deg, ${alpha(brand, 0.12)} 0%, ${alpha(accent, 0.1)} 100%)`,
-};
+const navy = '#0B3450';
+const navyLight = '#2C5578';
+const navyDark = '#06202F';
+const gold = '#B8860B';
 
 const base = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: brand, light: brandLight, dark: brandDark, contrastText: '#ffffff' },
-    secondary: { main: accent, light: '#F472B6', dark: '#BE185D', contrastText: '#ffffff' },
-    success: { main: '#10B981', light: '#6EE7B7', dark: '#047857' },
-    warning: { main: '#F59E0B', light: '#FCD34D', dark: '#B45309' },
-    error: { main: '#E11D48', light: '#FB7185', dark: '#9F1239' },
-    info: { main: '#0EA5E9', light: '#7DD3FC', dark: '#0369A1' },
-    background: { default: '#F6F5FC', paper: '#ffffff' },
-    text: { primary: '#1E1B3A', secondary: '#6B7280' },
-    divider: alpha(brand, 0.12),
+    primary: { main: navy, light: navyLight, dark: navyDark, contrastText: '#ffffff' },
+    secondary: { main: gold, light: '#D4A017', dark: '#8B6508', contrastText: '#ffffff' },
+    success: { main: '#1B5E20', light: '#4C8C4A', dark: '#0D3F10' },
+    warning: { main: '#E65100', light: '#F57C00', dark: '#A83800' },
+    error: { main: '#B71C1C', light: '#E53935', dark: '#7F0000' },
+    info: { main: '#0277BD', light: '#4FC3F7', dark: '#01579B' },
+    background: { default: '#F4F5F7', paper: '#ffffff' },
+    text: { primary: '#1A2233', secondary: '#5B6472' },
+    divider: alpha(navy, 0.12),
   },
-  shape: { borderRadius: 14 },
+  shape: { borderRadius: 10 },
   typography: {
     fontFamily: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'].join(','),
-    h4: { fontWeight: 800, letterSpacing: -0.5 },
-    h5: { fontWeight: 800, letterSpacing: -0.3 },
+    h4: { fontWeight: 700, letterSpacing: -0.3 },
+    h5: { fontWeight: 700, letterSpacing: -0.2 },
     h6: { fontWeight: 700 },
     subtitle2: { fontWeight: 600 },
     button: { fontWeight: 600, textTransform: 'none' },
@@ -43,7 +37,7 @@ const base = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: { backgroundImage: 'none' },
-        outlined: { borderColor: alpha(brand, 0.14) },
+        outlined: { borderColor: alpha(navy, 0.14) },
       },
     },
     MuiCard: {
@@ -51,7 +45,7 @@ const base = createTheme({
       styleOverrides: {
         root: {
           transition: 'box-shadow .2s ease, transform .2s ease, border-color .2s ease',
-          '&:hover': { borderColor: alpha(brand, 0.35) },
+          '&:hover': { borderColor: alpha(navy, 0.3) },
         },
       },
     },
@@ -62,7 +56,7 @@ const base = createTheme({
     },
     MuiButton: {
       defaultProps: { disableElevation: true },
-      styleOverrides: { root: { borderRadius: 10 } },
+      styleOverrides: { root: { borderRadius: 8 } },
     },
     MuiTab: { styleOverrides: { root: { minHeight: 46, textTransform: 'none', fontWeight: 600 } } },
     MuiDialog: { styleOverrides: { paper: ({ theme }) => ({ [theme.breakpoints.down('sm')]: { margin: 12, width: 'calc(100% - 24px)', maxHeight: 'calc(100% - 24px)' } }) } },
@@ -70,16 +64,16 @@ const base = createTheme({
       defaultProps: { elevation: 0 },
       styleOverrides: {
         root: {
-          backgroundImage: gradient.brand,
+          backgroundColor: navy,
           color: '#ffffff',
-          borderBottom: 'none',
+          borderBottom: `3px solid ${gold}`,
         },
       },
     },
-    MuiTableCell: { styleOverrides: { head: { fontWeight: 700, color: '#6B7280' } } },
+    MuiTableCell: { styleOverrides: { head: { fontWeight: 700, color: '#5B6472' } } },
     MuiChip: { styleOverrides: { root: { fontWeight: 600 } } },
     MuiDrawer: {
-      styleOverrides: { paper: { borderColor: alpha(brand, 0.1) } },
+      styleOverrides: { paper: { borderColor: alpha(navy, 0.1) } },
     },
   },
 });

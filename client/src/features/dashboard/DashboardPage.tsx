@@ -15,7 +15,7 @@ import { StatusChip, PriorityChip } from '@/components/chips';
 import { RequestQuickView } from '@/features/requests/RequestQuickView';
 import { api } from '@/api/client';
 
-const PIE_COLORS = ['#4F46E5', '#EC4899', '#F59E0B', '#10B981', '#0EA5E9', '#8B5CF6', '#F97316', '#14B8A6'];
+const PIE_COLORS = ['#0B3450', '#B8860B', '#1565C0', '#2E7D32', '#6D4C41', '#00695C', '#E65100', '#455A64'];
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -26,16 +26,16 @@ export function DashboardPage() {
 
   const s = stats.data ?? {};
   const cards = [
-    { label: 'Total Files', key: 'totalFiles', icon: 'FolderCopy', color: '#4F46E5', to: '/requests' },
-    { label: 'New Requests', key: 'newRequests', icon: 'FiberNew', color: '#0EA5E9', to: '/requests?statusCode=SUBMITTED' },
-    { label: 'Pending', key: 'pending', icon: 'HourglassEmpty', color: '#F59E0B', to: '/requests?bucket=pending' },
-    { label: 'In Progress', key: 'inProgress', icon: 'Autorenew', color: '#8B5CF6', to: '/requests?bucket=in-progress' },
-    { label: 'Completed', key: 'completed', icon: 'TaskAlt', color: '#10B981', to: '/requests?bucket=completed' },
-    { label: 'Rejected', key: 'rejected', icon: 'Cancel', color: '#E11D48', to: '/requests?statusCode=REJECTED' },
-    { label: 'Overdue', key: 'overdue', icon: 'ReportProblem', color: '#F43F5E', to: '/requests?overdue=true' },
-    { label: 'Urgent', key: 'urgent', icon: 'PriorityHigh', color: '#EC4899', to: '/requests' },
-    { label: 'Dept Pending', key: 'departmentPending', icon: 'AccountBalance', color: '#14B8A6', to: '/requests?bucket=pending' },
-    { label: "Today's Requests", key: 'todayRequests', icon: 'Today', color: '#6366F1', to: '/requests' },
+    { label: 'Total Files', key: 'totalFiles', icon: 'FolderCopy', color: '#0B3450', to: '/requests' },
+    { label: 'New Requests', key: 'newRequests', icon: 'FiberNew', color: '#1565C0', to: '/requests?statusCode=SUBMITTED' },
+    { label: 'Pending', key: 'pending', icon: 'HourglassEmpty', color: '#B8860B', to: '/requests?bucket=pending' },
+    { label: 'In Progress', key: 'inProgress', icon: 'Autorenew', color: '#00695C', to: '/requests?bucket=in-progress' },
+    { label: 'Completed', key: 'completed', icon: 'TaskAlt', color: '#2E7D32', to: '/requests?bucket=completed' },
+    { label: 'Rejected', key: 'rejected', icon: 'Cancel', color: '#B71C1C', to: '/requests?statusCode=REJECTED' },
+    { label: 'Overdue', key: 'overdue', icon: 'ReportProblem', color: '#D84315', to: '/requests?overdue=true' },
+    { label: 'Urgent', key: 'urgent', icon: 'PriorityHigh', color: '#7B241C', to: '/requests' },
+    { label: 'Dept Pending', key: 'departmentPending', icon: 'AccountBalance', color: '#455A64', to: '/requests?bucket=pending' },
+    { label: "Today's Requests", key: 'todayRequests', icon: 'Today', color: '#0277BD', to: '/requests' },
   ];
 
   const recentColumns = [
@@ -83,7 +83,7 @@ export function DashboardPage() {
                 <XAxis dataKey="label" hide />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="#0B3450" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -111,7 +111,7 @@ export function DashboardPage() {
                 <XAxis dataKey="label" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#EC4899" strokeWidth={2.5} />
+                <Line type="monotone" dataKey="value" stroke="#B8860B" strokeWidth={2.5} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -123,7 +123,7 @@ export function DashboardPage() {
                 <XAxis type="number" allowDecimals={false} />
                 <YAxis type="category" dataKey="label" width={90} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="value" fill="#00695C" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>

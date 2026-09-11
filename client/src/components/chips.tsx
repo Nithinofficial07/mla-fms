@@ -1,28 +1,28 @@
 import { Chip } from '@mui/material';
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: '#9CA3AF', SUBMITTED: '#3B82F6', UNDER_REVIEW: '#0EA5E9', ASSIGNED: '#8B5CF6',
-  FORWARDED: '#6366F1', IN_PROGRESS: '#F59E0B', AWAITING_INFO: '#EAB308', DEPT_RESPONSE: '#14B8A6',
-  APPROVED: '#10B981', COMPLETED: '#059669', REJECTED: '#E11D48', CLOSED: '#64748B',
+  DRAFT: '#78716C', SUBMITTED: '#1565C0', UNDER_REVIEW: '#0277BD', ASSIGNED: '#B8860B',
+  FORWARDED: '#5E7C99', IN_PROGRESS: '#E65100', AWAITING_INFO: '#F9A825', DEPT_RESPONSE: '#00695C',
+  APPROVED: '#2E7D32', COMPLETED: '#1B5E20', REJECTED: '#B71C1C', CLOSED: '#455A64',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  LOW: '#10B981', MEDIUM: '#F59E0B', HIGH: '#F97316', URGENT: '#E11D48',
+  LOW: '#2E7D32', MEDIUM: '#E65100', HIGH: '#D84315', URGENT: '#B71C1C',
 };
 
 export function StatusChip({ code, label }: { code?: string; label?: string }) {
-  const c = STATUS_COLORS[code ?? ''] ?? '#64748B';
+  const c = STATUS_COLORS[code ?? ''] ?? '#607D8B';
   return (
     <Chip
       size="small"
       label={label ?? code ?? '—'}
-      sx={{ bgcolor: `${c}1F`, color: c, border: `1px solid ${c}55` }}
+      sx={{ bgcolor: `${c}1A`, color: c, border: `1px solid ${c}55` }}
     />
   );
 }
 
 export function PriorityChip({ code, label }: { code?: string; label?: string }) {
-  const c = PRIORITY_COLORS[code?.toUpperCase() ?? ''] ?? '#64748B';
+  const c = PRIORITY_COLORS[code?.toUpperCase() ?? ''] ?? '#607D8B';
   return (
     <Chip
       size="small"

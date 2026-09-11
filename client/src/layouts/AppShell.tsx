@@ -3,6 +3,7 @@ import {
   AppBar, Avatar, Badge, Box, Chip, Collapse, Divider, Drawer, IconButton, List,
   ListItemButton, ListItemIcon, ListItemText, Menu, MenuItem, Toolbar, Tooltip, Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -11,7 +12,15 @@ import { NAV, type NavItem } from '@/routes/nav';
 import { useAuth } from '@/app/AuthProvider';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import { api } from '@/api/client';
-import { gradient } from '@/theme';
+
+/** Formal left-accent-bar treatment for the active nav item (navy tint + gold edge). */
+const activeNavSx = {
+  bgcolor: alpha('#0B3450', 0.08),
+  color: 'primary.main',
+  fontWeight: 700,
+  borderLeft: '3px solid',
+  borderLeftColor: 'secondary.main',
+};
 
 const DRAWER_WIDTH = 264;
 
@@ -51,7 +60,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                       component={NavLink}
                       to={child.to!}
                       onClick={onNavigate}
-                      sx={{ pl: 6, borderRadius: 2, '&.active': { backgroundImage: gradient.brand, color: '#fff' } }}
+                      sx={{ pl: 6, borderRadius: 2, '&.active': activeNavSx }}
                     >
                       <ListItemText primaryTypographyProps={{ variant: 'body2' }} primary={child.label} />
                     </ListItemButton>
@@ -69,7 +78,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             end={item.to === '/'}
             onClick={onNavigate}
             selected={location.pathname === item.to}
-            sx={{ borderRadius: 2, '&.active': { backgroundImage: gradient.brand, color: '#fff', '& .MuiListItemIcon-root': { color: 'inherit' } } }}
+            sx={{ borderRadius: 2, '&.active': { ...activeNavSx, '& .MuiListItemIcon-root': { color: 'inherit' } } }}
           >
             <ListItemIcon sx={{ minWidth: 36 }}>
               <Icon name={item.icon} />
@@ -95,8 +104,8 @@ export function AppShell() {
 
   const drawer = (
     <Box>
-      <Toolbar sx={{ gap: 1.5, backgroundImage: gradient.brandSoft }}>
-        <Avatar src="/favicon.svg" variant="rounded" sx={{ width: 34, height: 34, boxShadow: '0 2px 8px rgba(79,70,229,0.35)' }} />
+      <Toolbar sx={{ gap: 1.5 }}>
+        <Avatar src="/favicon.svg" variant="rounded" sx={{ width: 34, height: 34, boxShadow: '0 2px 8px rgba(11,52,80,0.35)' }} />
         <Typography variant="subtitle1" fontWeight={800} noWrap>
           {brandName}
         </Typography>

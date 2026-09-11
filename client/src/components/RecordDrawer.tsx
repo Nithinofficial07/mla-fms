@@ -4,7 +4,6 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from './Icon';
-import { gradient } from '@/theme';
 
 export interface RecordField {
   label: string;
@@ -50,7 +49,7 @@ export function RecordDrawer({
       onClose={onClose}
       sx={{ '& .MuiDrawer-paper': { width: { xs: '100%', sm: 440 }, display: 'flex', flexDirection: 'column' } }}
     >
-      <Box sx={{ backgroundImage: gradient.brand, color: '#fff', px: 3, py: 2.5 }}>
+      <Box sx={{ bgcolor: 'primary.main', color: '#fff', px: 3, py: 2.5, borderBottom: '3px solid', borderBottomColor: 'secondary.main' }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="overline" sx={{ opacity: 0.85, letterSpacing: 1 }}>{eyebrow}</Typography>
