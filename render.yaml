@@ -1,22 +1,43 @@
-# Render.com Blueprint - one public web service running the Docker image
-# (API + built SPA on one origin). TLS + a *.onrender.com URL are automatic;
-# no Caddy, no domain needed.
+# Render.com Blueprint - two independent web services from the same repo:
+#   mla-fms      (PROD) - deploys from the `main` branch
+#   mla-fms-dev  (DEV)  - deploys from the `dev`  branch
+# Each is its own Docker container, its own URL, its own env vars/secrets.
+# They share the Atlas cluster and the S3 bucket, but stay isolated:
+#   - DEV's DATABASE_URL points at a different database name on the same
+#     cluster (e.g. .../mla_fms_dev?... vs .../mla_fms?...).
+#   - DEV's AWS_S3_KEY_PREFIX namespaces every object under "dev/" so it
+#     never collides with PROD's files in the same bucket.
 #
-# Deploy:
-#   1. Push this repo to GitHub (private is fine).
+# Workflow: push everyday work to `dev` -> mla-fms-dev redeploys automatically
+# and is the place to test. PROD only moves when `dev` is merged/fast-forwarded
+# into `main` on purpose - never push to `main` "just because dev looks fine".
+#
+# First-time setup:
+#   1. Push this repo to GitHub (private is fine), with both `main` and `dev`
+#      branches present.
 #   2. Render dashboard -> New -> Blueprint -> pick the repo -> Apply.
-#   3. Fill the secret env vars it prompts for (marked sync: false below).
-#   4. First open of the URL -> Setup Wizard -> create the Super Admin.
+#      (If a Blueprint already exists from before this file changed, use
+#      Blueprint -> "Manual Sync" so it picks up the new mla-fms-dev service.)
+#   3. Fill the secret env vars each service prompts for (marked sync: false
+#      below) - PROD and DEV need their own values entered separately even
+#      when they're the same secret (e.g. the AWS keys).
+#   4. First open of each URL -> Setup Wizard -> create that environment's
+#      Super Admin. DEV and PROD have completely separate users/data.
 #
 # Notes:
 #   - MongoDB Atlas: add 0.0.0.0/0 to Network Access (Render has no fixed
 #     outbound IP on the free/starter plans; upgrade for static IPs to lock down).
-#   - S3: same bucket + key as the LAN deploy; set CORS AllowedOrigins to the
-#     Render URL once you know it.
+#   - S3: same bucket for both environments; DEV's objects live under the
+#     "dev/" prefix (see AWS_S3_KEY_PREFIX below). Set the bucket's CORS
+#     AllowedOrigins to both onrender.com URLs once you know them.
+#   - DEV defaults to EMAIL_PROVIDER=none so testing never emails real
+#     department officers. Turn it on deliberately if you need to test email.
 
 services:
+  # ------------------------------- PROD --------------------------------
   - type: web
     name: mla-fms
+    branch: main
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
@@ -50,12 +71,77 @@ services:
         value: "true"
       # ---- set these after the first deploy, to the assigned URL ----
       - key: BACKEND_URL
-        value: https://REPLACE-with-your.onrender.com
+        value: https://REPLACE-with-your-prod.onrender.com
       - key: FRONTEND_URL
-        value: https://REPLACE-with-your.onrender.com
+        value: https://REPLACE-with-your-prod.onrender.com
       # ---- secrets: entered in the Render dashboard, never committed ----
       - key: DATABASE_URL
         sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: EMAIL_PROVIDER
+        sync: false            # brevo, once verified
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+
+  # -------------------------------- DEV ---------------------------------
+  - type: web
+    name: mla-fms-dev
+    branch: dev
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free                    # sleeps when idle - fine for a test environment
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: development        # pretty logs, auto-index, password-reset token echoed in the API response (no email needed to test it)
+      - key: EXPOSE_ERRORS
+        value: "true"             # 5xx responses include the underlying error - fine for a test env, never set this on prod
+      - key: SERVE_CLIENT
+        value: "true"
+      - key: CLIENT_DIR
+        value: /app/client/dist
+      - key: STORAGE_PROVIDER
+        value: s3
+      - key: AWS_REGION
+        value: ap-south-1
+      - key: AWS_S3_BUCKET
+        value: mla-fms-documents-prod   # same bucket as prod
+      - key: AWS_S3_KEY_PREFIX
+        value: dev                # keeps dev's files under dev/... , isolated from prod's
+      - key: DEFAULT_TIMEZONE
+        value: Asia/Kolkata
+      - key: FILE_ID_FORMAT
+        value: MLA/{YYYY}/{SEQ:6}
+      - key: DEFAULT_SLA_DAYS
+        value: "15"
+      - key: COOKIE_DOMAIN
+        value: ""
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: EMAIL_PROVIDER
+        value: none                # deliberately off - flip to brevo only when you need to test email
+      # ---- set these after the first deploy, to the assigned URL ----
+      - key: BACKEND_URL
+        value: https://REPLACE-with-your-dev.onrender.com
+      - key: FRONTEND_URL
+        value: https://REPLACE-with-your-dev.onrender.com
+      # ---- secrets: entered in the Render dashboard, never committed ----
+      # Use a DIFFERENT database name than prod on the same Atlas cluster,
+      # e.g. mongodb+srv://user:pass@cluster0.xxx.mongodb.net/mla_fms_dev?...
+      - key: DATABASE_URL
+        sync: false
+      # Generate fresh random secrets - do not reuse prod's.
       - key: JWT_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET

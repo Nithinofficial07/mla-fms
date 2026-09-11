@@ -14,10 +14,12 @@ export class S3Provider implements StorageProvider {
   readonly name = 's3' as const;
   private client: S3Client;
   private bucket: string;
+  private prefix: string;
 
   constructor() {
     if (!env.AWS_S3_BUCKET) throw new Error('AWS_S3_BUCKET is required when STORAGE_PROVIDER=s3');
     this.bucket = env.AWS_S3_BUCKET;
+    this.prefix = env.AWS_S3_KEY_PREFIX ? env.AWS_S3_KEY_PREFIX.replace(/^\/+|\/+$/g, '') + '/' : '';
     this.client = new S3Client({
       region: env.AWS_REGION,
       endpoint: env.AWS_S3_ENDPOINT, // undefined = real AWS S3
@@ -29,16 +31,22 @@ export class S3Provider implements StorageProvider {
     });
   }
 
+  /** Actual S3 object key for a logical `key` - namespaced by env when AWS_S3_KEY_PREFIX is set. */
+  private objectKey(key: string): string {
+    return this.prefix + key;
+  }
+
   async put(input: PutObjectInput): Promise<StoredObjectRef> {
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
-        Key: input.key,
+        Key: this.objectKey(input.key),
         Body: input.body,
         ContentType: input.contentType,
         ServerSideEncryption: 'AES256',
       }),
     );
+    // The logical key (no env prefix) is what gets stored in Mongo and signed later.
     return { key: input.key, size: input.body.length, contentType: input.contentType };
   }
 
@@ -53,18 +61,18 @@ export class S3Provider implements StorageProvider {
   }
 
   async getBuffer(key: string): Promise<Buffer> {
-    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: this.objectKey(key) }));
     const bytes = await res.Body!.transformToByteArray();
     return Buffer.from(bytes);
   }
 
   async delete(key: string): Promise<void> {
-    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: this.objectKey(key) }));
   }
 
   async exists(key: string): Promise<boolean> {
     try {
-      await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+      await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: this.objectKey(key) }));
       return true;
     } catch {
       return false;
