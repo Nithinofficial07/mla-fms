@@ -5,7 +5,7 @@ export function StatCard({
   label,
   value,
   icon,
-  color = '#0b3d91',
+  color = '#4F46E5',
   loading,
   onClick,
 }: {

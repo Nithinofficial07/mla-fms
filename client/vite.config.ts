@@ -12,8 +12,8 @@ export default defineConfig({
       manifest: {
         name: 'MLA File Management System',
         short_name: 'MLA FMS',
-        theme_color: '#0b3d91',
-        background_color: '#f4f6fb',
+        theme_color: '#4F46E5',
+        background_color: '#F6F5FC',
         display: 'standalone',
         start_url: '/',
         icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }],

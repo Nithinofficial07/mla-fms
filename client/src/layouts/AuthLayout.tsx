@@ -9,17 +9,17 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
         display: 'grid',
         placeItems: 'center',
         p: 2,
-        background: 'radial-gradient(1200px 600px at 10% -10%, #dbe6ff 0%, transparent 60%), radial-gradient(1000px 500px at 110% 110%, #d7f2ee 0%, transparent 55%), #f4f6fb',
+        background: 'radial-gradient(1200px 600px at 10% -10%, #e0defc 0%, transparent 60%), radial-gradient(1000px 500px at 110% 110%, #fbd7ea 0%, transparent 55%), #F6F5FC',
       }}
     >
-      <Card sx={{ width: '100%', maxWidth: 420, boxShadow: '0 20px 50px -20px rgba(11,61,145,0.35)' }}>
+      <Card sx={{ width: '100%', maxWidth: 420, boxShadow: '0 24px 60px -24px rgba(79,70,229,0.45)' }}>
         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
           <Stack spacing={1} sx={{ mb: 3 }}>
             <Box
               component="img"
               src="/favicon.svg"
               alt=""
-              sx={{ width: 44, height: 44 }}
+              sx={{ width: 44, height: 44, borderRadius: 1.5, boxShadow: '0 4px 14px rgba(79,70,229,0.35)' }}
             />
             <Typography variant="h5">{title}</Typography>
             {subtitle && (

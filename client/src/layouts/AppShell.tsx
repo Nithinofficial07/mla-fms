@@ -11,6 +11,7 @@ import { NAV, type NavItem } from '@/routes/nav';
 import { useAuth } from '@/app/AuthProvider';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import { api } from '@/api/client';
+import { gradient } from '@/theme';
 
 const DRAWER_WIDTH = 264;
 
@@ -50,7 +51,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                       component={NavLink}
                       to={child.to!}
                       onClick={onNavigate}
-                      sx={{ pl: 6, borderRadius: 2, '&.active': { bgcolor: 'primary.light', color: 'primary.contrastText' } }}
+                      sx={{ pl: 6, borderRadius: 2, '&.active': { backgroundImage: gradient.brand, color: '#fff' } }}
                     >
                       <ListItemText primaryTypographyProps={{ variant: 'body2' }} primary={child.label} />
                     </ListItemButton>
@@ -68,7 +69,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             end={item.to === '/'}
             onClick={onNavigate}
             selected={location.pathname === item.to}
-            sx={{ borderRadius: 2, '&.active': { bgcolor: 'primary.main', color: 'primary.contrastText', '& .MuiListItemIcon-root': { color: 'inherit' } } }}
+            sx={{ borderRadius: 2, '&.active': { backgroundImage: gradient.brand, color: '#fff', '& .MuiListItemIcon-root': { color: 'inherit' } } }}
           >
             <ListItemIcon sx={{ minWidth: 36 }}>
               <Icon name={item.icon} />
@@ -94,8 +95,8 @@ export function AppShell() {
 
   const drawer = (
     <Box>
-      <Toolbar sx={{ gap: 1.5 }}>
-        <Avatar src="/favicon.svg" variant="rounded" sx={{ width: 32, height: 32 }} />
+      <Toolbar sx={{ gap: 1.5, backgroundImage: gradient.brandSoft }}>
+        <Avatar src="/favicon.svg" variant="rounded" sx={{ width: 34, height: 34, boxShadow: '0 2px 8px rgba(79,70,229,0.35)' }} />
         <Typography variant="subtitle1" fontWeight={800} noWrap>
           {brandName}
         </Typography>
@@ -109,26 +110,30 @@ export function AppShell() {
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
       <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
         <Toolbar sx={{ gap: { xs: 0.25, sm: 1 }, px: { xs: 1, sm: 3 } }}>
-          <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ display: { md: 'none' } }}>
+          <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ display: { md: 'none' }, color: '#fff' }}>
             <Icon name="Menu" />
           </IconButton>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1, fontSize: { xs: '0.95rem', sm: '1rem' } }} noWrap>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1, fontSize: { xs: '0.95rem', sm: '1rem' }, color: '#fff' }} noWrap>
             {settings?.constituencyName || 'Constituency'}
           </Typography>
           <Chip
             size="small"
-            icon={<Icon name={online ? 'CloudDone' : 'CloudOff'} />}
+            icon={<Icon name={online ? 'CloudDone' : 'CloudOff'} sx={{ color: 'inherit !important' }} />}
             label={online ? 'Online' : 'Offline'}
-            color={online ? 'success' : 'warning'}
             variant="outlined"
-            sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+            sx={{
+              display: { xs: 'none', sm: 'inline-flex' },
+              color: '#fff',
+              borderColor: 'rgba(255,255,255,0.55)',
+              bgcolor: 'rgba(255,255,255,0.12)',
+            }}
           />
           {!online && (
-            <Icon name="CloudOff" sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: 'warning.main' }} />
+            <Icon name="CloudOff" sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#FDE68A' }} />
           )}
           <NotificationBell />
           <IconButton onClick={(e) => setAnchor(e.currentTarget)}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 700, border: '1px solid rgba(255,255,255,0.4)' }}>
               {user?.name?.[0]?.toUpperCase() ?? '?'}
             </Avatar>
           </IconButton>
@@ -160,7 +165,7 @@ export function AppShell() {
         <Drawer
           variant="permanent"
           open
-          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, borderRight: '1px solid rgba(11,61,145,0.1)' } }}
+          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, borderRight: '1px solid', borderColor: 'divider' } }}
         >
           {drawer}
         </Drawer>
