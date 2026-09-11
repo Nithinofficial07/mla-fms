@@ -1,0 +1,76 @@
+name: Promote dev to production
+
+# Manual, one-click promotion of `dev` -> `main`. NEVER runs on push - only a
+# human clicking "Run workflow" (Actions tab -> this workflow -> Run
+# workflow) and typing the confirmation phrase can trigger a prod deploy.
+# main only fast-forwards (no merge commits, no auto-resolved conflicts) -
+# if dev and main have diverged, this fails on purpose and a human has to
+# sort it out. The exact commit being promoted is re-tested before it's
+# pushed, so a red dev can never reach prod through this path.
+#
+# Pushing to `main` is what actually deploys: Render's mla-fms service has
+# autoDeploy: true on that branch, so it picks the new commit up on its own
+# right after this workflow pushes it.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type PROMOTE (all caps) to push dev -> main'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: promote-to-prod
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.event.inputs.confirm == 'PROMOTE'
+    name: Fast-forward main to dev, then push
+    runs-on: ubuntu-latest
+    environment: production   # optional extra gate - see docs/ENVIRONMENTS.md
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fast-forward main onto dev (no merge commit)
+        run: |
+          git fetch origin dev
+          git merge --ff-only origin/dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Re-verify the exact commit being promoted
+        run: |
+          npm ci
+          npm run typecheck
+          npm run test
+          npm run build
+
+      - name: Push main (this triggers Render's prod deploy)
+        run: |
+          git config user.name "mla-fms-ci"
+          git config user.email "ci@mla-fms.local"
+          git push origin main
+
+      - name: Summary
+        run: |
+          echo "### 🚀 Promoted to production" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`main\` fast-forwarded to \`dev\` @ \`$(git rev-parse --short HEAD)\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "Render's **mla-fms** service will redeploy automatically." >> "$GITHUB_STEP_SUMMARY"
+
+  guard:
+    if: github.event.inputs.confirm != 'PROMOTE'
+    name: Rejected - confirmation phrase did not match
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::Nothing was promoted. Re-run and type PROMOTE (all caps, no quotes) in the confirm field."
+          exit 1

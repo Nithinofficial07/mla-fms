@@ -63,3 +63,55 @@ it directly instead:
 
 After that, every push to `dev` redeploys `mla-fms-dev` automatically, same
 as prod does from `main`.
+
+## CI/CD (GitHub Actions)
+
+Two workflows in `.github/workflows/`:
+
+### `ci.yml` — runs automatically
+
+On every push or pull request to `dev` or `main`:
+- `npm run typecheck` (shared + server + client)
+- `npm run test` (server + client, in-memory Mongo — no external DB needed)
+- `npm run build` (production build, same as the Dockerfile's build stage)
+- `docker build` of the actual `Dockerfile` Render deploys from — this is
+  what would have caught the very first Render crash this project hit
+  (a dependency that only broke once `npm prune --omit=dev` ran).
+
+This is a check, not a deploy. Render does the actual deploying, per-branch,
+on its own (`autoDeploy: true` on both services) — CI just has to be green
+before you'd want to promote (see below).
+
+### `promote-to-prod.yml` — runs only when you click it
+
+**This never runs on a push.** It's `workflow_dispatch`-only: GitHub →
+**Actions** tab → **Promote dev to production** → **Run workflow** → type
+`PROMOTE` (all caps) in the confirm box → **Run workflow**. That is the "push
+prod" trigger — nothing else pushes to `main`.
+
+What it does, in order, aborting if any step fails:
+1. Checks out `main`, fetches `dev`, and fast-forwards `main` onto `dev`
+   **locally, not yet pushed**. If the branches have diverged (a direct hot
+   fix was made on `main` without being merged back into `dev`) this step
+   fails on purpose — decide by hand how to reconcile rather than have the
+   workflow guess.
+2. Re-runs typecheck, test, and build against that exact merged commit —
+   so a broken `dev` can never be promoted, even accidentally.
+3. Only then pushes `main`. Render's `mla-fms` service picks up the new
+   commit and redeploys automatically within seconds.
+
+To get a second confirmation gate (someone else has to approve the run
+before it executes, not just start it), add required reviewers once:
+GitHub repo → **Settings → Environments → New environment** → name it
+exactly `production` → **Required reviewers** → add yourself/whoever should
+approve. The workflow already targets an environment named `production`; if
+it doesn't exist yet, the run just proceeds without that extra gate.
+
+One-time repo setting this depends on: **Settings → Actions → General →
+Workflow permissions → Read and write permissions** (needed so the workflow
+can `git push` to `main` with the built-in token).
+
+Until the first promotion happens, these workflow files only exist on
+`dev`, so `ci.yml` won't yet run on pushes to `main` — that fixes itself
+automatically the first time `promote-to-prod.yml` fast-forwards `main` to
+`dev`, since the workflow files come along with everything else.
