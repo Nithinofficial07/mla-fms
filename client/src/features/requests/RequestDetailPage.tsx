@@ -106,6 +106,7 @@ export function RequestDetailPage() {
         <Tab label="Actions" />
       </Tabs>
 
+      <Box key={tab} sx={{ animation: 'fadeInUp .3s ease both' }}>
       {tab === 0 && (
         <Card><CardContent>
           <Grid container spacing={2}>
@@ -208,6 +209,7 @@ export function RequestDetailPage() {
           )}
         </Grid>
       )}
+      </Box>
     </Box>
   );
 }

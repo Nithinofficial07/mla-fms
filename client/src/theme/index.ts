@@ -2,14 +2,20 @@ import { createTheme, responsiveFontSizes, alpha } from '@mui/material/styles';
 
 /**
  * Government Navy + Gold - a formal, civic palette matched to official
- * portal conventions: solid navy chrome, a muted gold accent used sparingly
- * for emphasis (active nav, drawer headers), flat surfaces (no gradients).
- * Used app-wide via ThemeProvider.
+ * portal conventions: navy chrome with a muted gold accent used sparingly
+ * for emphasis (active nav, drawer headers). Surfaces use soft shadows
+ * ("soft-UI") instead of flat borders, cards lift gently on hover, the
+ * AppBar and quick-view drawer header are frosted glass, and skeletons
+ * shimmer instead of pulsing flat. Used app-wide via ThemeProvider.
  */
 const navy = '#0B3450';
 const navyLight = '#2C5578';
 const navyDark = '#06202F';
 const gold = '#B8860B';
+
+/** Soft-UI shadow pair: a tight contact shadow + a broad ambient one. */
+const softShadow = `0 1px 2px ${alpha(navy, 0.06)}, 0 10px 28px ${alpha(navy, 0.08)}`;
+const softShadowHover = `0 2px 4px ${alpha(navy, 0.08)}, 0 20px 40px ${alpha(navy, 0.14)}`;
 
 const base = createTheme({
   palette: {
@@ -34,18 +40,33 @@ const base = createTheme({
     button: { fontWeight: 600, textTransform: 'none' },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: `
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes countPulse {
+          0% { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+      `,
+    },
     MuiPaper: {
       styleOverrides: {
         root: { backgroundImage: 'none' },
         outlined: { borderColor: alpha(navy, 0.14) },
       },
     },
+    // Soft-UI: gentle ambient shadow instead of a flat outline, lifts on hover.
     MuiCard: {
-      defaultProps: { elevation: 0, variant: 'outlined' },
+      defaultProps: { elevation: 0 },
       styleOverrides: {
         root: {
-          transition: 'box-shadow .2s ease, transform .2s ease, border-color .2s ease',
-          '&:hover': { borderColor: alpha(navy, 0.3) },
+          boxShadow: softShadow,
+          border: `1px solid ${alpha(navy, 0.05)}`,
+          transition: 'box-shadow .25s ease, transform .25s ease, border-color .25s ease',
+          '&:hover': { boxShadow: softShadowHover, transform: 'translateY(-3px)', borderColor: alpha(navy, 0.12) },
         },
       },
     },
@@ -60,11 +81,14 @@ const base = createTheme({
     },
     MuiTab: { styleOverrides: { root: { minHeight: 46, textTransform: 'none', fontWeight: 600 } } },
     MuiDialog: { styleOverrides: { paper: ({ theme }) => ({ [theme.breakpoints.down('sm')]: { margin: 12, width: 'calc(100% - 24px)', maxHeight: 'calc(100% - 24px)' } }) } },
+    // Glassmorphism: translucent navy + backdrop blur instead of a flat fill.
     MuiAppBar: {
       defaultProps: { elevation: 0 },
       styleOverrides: {
         root: {
-          backgroundColor: navy,
+          backgroundColor: alpha(navy, 0.82),
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
           color: '#ffffff',
           borderBottom: `3px solid ${gold}`,
         },
@@ -75,6 +99,8 @@ const base = createTheme({
     MuiDrawer: {
       styleOverrides: { paper: { borderColor: alpha(navy, 0.1) } },
     },
+    // Shimmer sweep instead of a flat pulse while content loads.
+    MuiSkeleton: { defaultProps: { animation: 'wave' } },
   },
 });
 

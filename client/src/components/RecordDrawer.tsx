@@ -3,6 +3,7 @@ import {
   Box, Button, Divider, Drawer, IconButton, Skeleton, Stack, Typography,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
 import { Icon } from './Icon';
 
 export interface RecordField {
@@ -49,7 +50,18 @@ export function RecordDrawer({
       onClose={onClose}
       sx={{ '& .MuiDrawer-paper': { width: { xs: '100%', sm: 440 }, display: 'flex', flexDirection: 'column' } }}
     >
-      <Box sx={{ bgcolor: 'primary.main', color: '#fff', px: 3, py: 2.5, borderBottom: '3px solid', borderBottomColor: 'secondary.main' }}>
+      <Box
+        sx={{
+          bgcolor: (t) => alpha(t.palette.primary.main, 0.86),
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          color: '#fff',
+          px: 3,
+          py: 2.5,
+          borderBottom: '3px solid',
+          borderBottomColor: 'secondary.main',
+        }}
+      >
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="overline" sx={{ opacity: 0.85, letterSpacing: 1 }}>{eyebrow}</Typography>

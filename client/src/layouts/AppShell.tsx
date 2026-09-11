@@ -95,6 +95,7 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const online = useOnlineStatus();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
 
@@ -192,7 +193,9 @@ export function AppShell() {
         }}
       >
         <Toolbar />
-        <Outlet />
+        <Box key={location.pathname} sx={{ animation: 'fadeInUp .35s ease both' }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );
