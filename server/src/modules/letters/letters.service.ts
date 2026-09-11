@@ -27,6 +27,7 @@ export const lettersService = {
         villageId: body.location.villageId ?? null,
         subVillageId: body.location.subVillageId ?? null,
         addressText: body.location.addressText ?? null,
+        otherPlaceName: body.location.otherPlaceName ?? null,
       },
       referredBy: body.referredBy,
       departmentId: body.departmentId ?? null,

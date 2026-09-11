@@ -35,6 +35,8 @@ const requestSchema = new Schema(
       // Free-text street / landmark address, used for urban (ward) requests
       // instead of the village / sub-village hierarchy.
       addressText: { type: String, trim: true },
+      // Free-text ward / Gram Panchayat name when it isn't in the master list.
+      otherPlaceName: { type: String, trim: true },
     },
 
     primaryDepartmentId: { type: Schema.Types.ObjectId, ref: 'Department', default: null, index: true },

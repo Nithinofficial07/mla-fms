@@ -11,9 +11,10 @@ const location = z
     villageId: objectId.nullable().optional(),
     subVillageId: objectId.nullable().optional(),
     addressText: z.string().max(500).optional(),
+    otherPlaceName: z.string().max(200).optional(),
   })
-  .refine((l) => l.wardId || l.gramPanchayatId, {
-    message: 'Select a Ward or a Gram Panchayat',
+  .refine((l) => l.wardId || l.gramPanchayatId || l.otherPlaceName?.trim(), {
+    message: 'Select a Ward or a Gram Panchayat, or enter "Other"',
     path: ['wardId'],
   });
 

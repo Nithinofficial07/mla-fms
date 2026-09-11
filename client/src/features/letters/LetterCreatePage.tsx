@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { api, errorMessage } from '@/api/client';
 import { useDepartments } from '@/hooks/useOptions';
 import { CascadingLocationPicker, type LocationValue } from '@/features/requests/CascadingLocationPicker';
+import { buildLocationPayload, isLocationComplete } from '@/features/requests/locationPayload';
 
 interface FormState {
   subject: string;
@@ -48,17 +49,7 @@ export function LetterCreatePage() {
       altMobile: form.applicant.altMobile || undefined,
       address: form.applicant.address || undefined,
     },
-    location:
-      form.location.branch === 'URBAN'
-        ? {
-            wardId: form.location.wardId,
-            addressText: form.location.addressText?.trim() || undefined,
-          }
-        : {
-            gramPanchayatId: form.location.gramPanchayatId,
-            villageId: form.location.villageId || undefined,
-            subVillageId: form.location.subVillageId || undefined,
-          },
+    location: buildLocationPayload(form.location),
     referredBy: form.referredBy || undefined,
     departmentId: form.departmentId || undefined,
     departmentLetterNo: form.departmentLetterNo || undefined,
@@ -77,7 +68,7 @@ export function LetterCreatePage() {
   const valid = form.subject.length > 2
     && form.applicant.name.length > 1
     && /^[6-9]\d{9}$/.test(form.applicant.mobile)
-    && !!(form.location.wardId || form.location.gramPanchayatId);
+    && isLocationComplete(form.location);
 
   return (
     <Box>

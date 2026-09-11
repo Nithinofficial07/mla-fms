@@ -31,6 +31,8 @@ const letterSchema = new Schema(
       subVillageId: { type: Schema.Types.ObjectId, ref: 'SubVillage', default: null },
       // Free-text address for urban (ward) entries in place of village / sub-village.
       addressText: { type: String, trim: true },
+      // Free-text ward / Gram Panchayat name when it isn't in the master list.
+      otherPlaceName: { type: String, trim: true },
     },
 
     referredBy: { type: String, trim: true },

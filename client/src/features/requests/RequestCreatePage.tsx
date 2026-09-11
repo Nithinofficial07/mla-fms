@@ -12,6 +12,7 @@ import { Icon } from '@/components/Icon';
 import { api, errorMessage } from '@/api/client';
 import { useCategories, useDepartments, useGramPanchayats, useLookup, usePriorities, useWards } from '@/hooks/useOptions';
 import { CascadingLocationPicker, type LocationValue } from './CascadingLocationPicker';
+import { buildLocationPayload, isLocationComplete, locationSummary } from './locationPayload';
 
 const STEPS = ['Applicant', 'Location', 'Request', 'Department', 'Review'];
 
@@ -54,15 +55,6 @@ export function RequestCreatePage() {
   const requestTypes = useLookup('REQUEST_TYPE');
   const idTypes = useLookup('ID_TYPE');
 
-  const locationSummary = () => {
-    const l = form.location;
-    if (l.branch === 'URBAN') {
-      const ward = wards.data?.find((w) => w.id === l.wardId)?.name;
-      return [ward ? `Ward: ${ward}` : 'Ward', l.addressText?.trim()].filter(Boolean).join(' — ') || 'Urban';
-    }
-    const gp = gramPanchayats.data?.find((g) => g.id === l.gramPanchayatId)?.name;
-    return gp ? `GP: ${gp}` : 'Rural';
-  };
 
   const dup = useQuery({
     queryKey: ['dupes', form.applicant.mobile, form.subject],
@@ -92,17 +84,7 @@ export function RequestCreatePage() {
       idType: form.applicant.idType || undefined,
       idNumber: form.applicant.idNumber || undefined,
     },
-    location:
-      form.location.branch === 'URBAN'
-        ? {
-            wardId: form.location.wardId,
-            addressText: form.location.addressText?.trim() || undefined,
-          }
-        : {
-            gramPanchayatId: form.location.gramPanchayatId,
-            villageId: form.location.villageId || undefined,
-            subVillageId: form.location.subVillageId || undefined,
-          },
+    location: buildLocationPayload(form.location),
     submit,
   });
 
@@ -117,7 +99,7 @@ export function RequestCreatePage() {
 
   const canNext = () => {
     if (step === 0) return form.applicant.name.length > 1 && /^[6-9]\d{9}$/.test(form.applicant.mobile);
-    if (step === 1) return !!(form.location.wardId || form.location.gramPanchayatId);
+    if (step === 1) return isLocationComplete(form.location);
     if (step === 2) return form.subject.length > 2 && !!form.priorityId;
     return true;
   };
@@ -221,7 +203,14 @@ export function RequestCreatePage() {
                 {[
                   ['Applicant', form.applicant.name],
                   ['Mobile', form.applicant.mobile],
-                  ['Location', locationSummary()],
+                  [
+                    'Location',
+                    locationSummary(
+                      form.location,
+                      wards.data?.find((w) => w.id === form.location.wardId)?.name,
+                      gramPanchayats.data?.find((g) => g.id === form.location.gramPanchayatId)?.name,
+                    ),
+                  ],
                   ['Subject', form.subject],
                   ['Priority', priorities.data?.find((p) => p.id === form.priorityId)?.name ?? '—'],
                   ['Department', departments.data?.find((d) => d.id === form.primaryDepartmentId)?.name ?? 'Unassigned'],
