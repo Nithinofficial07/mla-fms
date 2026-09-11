@@ -1,4 +1,6 @@
-import { Grid, Box, Card, CardContent, CardHeader } from '@mui/material';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { Box, Card, CardContent, CardHeader } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -11,28 +13,43 @@ import { ChartCard } from '@/components/ChartCard';
 import { ConstituencyMap } from '@/components/ConstituencyMap';
 import { DataTable } from '@/components/DataTable';
 import { StatusChip, PriorityChip } from '@/components/chips';
+import { RequestQuickView } from '@/features/requests/RequestQuickView';
 import { api } from '@/api/client';
 
-const PIE_COLORS = ['#0b3d91', '#00897b', '#ed6c02', '#7b1fa2', '#2e7d32', '#c62828', '#0288d1', '#455a64'];
+const PIE_COLORS = ['#0B3450', '#B8860B', '#1565C0', '#2E7D32', '#6D4C41', '#00695C', '#E65100', '#455A64'];
+
+/** One cell of the bento grid. `md` is the 12-col span on desktop; sm/xs fall back wider. */
+function Bento({ md, sm = 6, children }: { md: number; sm?: number; children: ReactNode }) {
+  return (
+    <Box sx={{ gridColumn: { xs: 'span 12', sm: `span ${sm}`, md: `span ${md}` } }}>
+      {children}
+    </Box>
+  );
+}
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const stats = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: () => api.get('/dashboard/stats').then((r) => r.data) });
   const charts = useQuery({ queryKey: ['dashboard', 'charts'], queryFn: () => api.get('/dashboard/charts').then((r) => r.data) });
   const recent = useQuery({ queryKey: ['dashboard', 'recent'], queryFn: () => api.get('/dashboard/recent').then((r) => r.data) });
 
   const s = stats.data ?? {};
-  const cards = [
-    { label: 'Total Files', key: 'totalFiles', icon: 'FolderCopy', color: '#0b3d91', to: '/requests' },
-    { label: 'New Requests', key: 'newRequests', icon: 'FiberNew', color: '#1976d2', to: '/requests?statusCode=SUBMITTED' },
-    { label: 'Pending', key: 'pending', icon: 'HourglassEmpty', color: '#ed6c02', to: '/requests?bucket=pending' },
-    { label: 'In Progress', key: 'inProgress', icon: 'Autorenew', color: '#5e35b1', to: '/requests?bucket=in-progress' },
-    { label: 'Completed', key: 'completed', icon: 'TaskAlt', color: '#2e7d32', to: '/requests?bucket=completed' },
-    { label: 'Rejected', key: 'rejected', icon: 'Cancel', color: '#c62828', to: '/requests?statusCode=REJECTED' },
-    { label: 'Overdue', key: 'overdue', icon: 'ReportProblem', color: '#d32f2f', to: '/requests?overdue=true' },
-    { label: 'Urgent', key: 'urgent', icon: 'PriorityHigh', color: '#7b1fa2', to: '/requests' },
-    { label: 'Dept Pending', key: 'departmentPending', icon: 'AccountBalance', color: '#00897b', to: '/requests?bucket=pending' },
-    { label: "Today's Requests", key: 'todayRequests', icon: 'Today', color: '#0288d1', to: '/requests' },
+  const hero = [
+    { label: 'Total Files', key: 'totalFiles', icon: 'FolderCopy', color: '#0B3450', to: '/requests' },
+    { label: 'New Requests', key: 'newRequests', icon: 'FiberNew', color: '#1565C0', to: '/requests?statusCode=SUBMITTED' },
+    { label: "Today's Requests", key: 'todayRequests', icon: 'Today', color: '#0277BD', to: '/requests' },
+  ];
+  const secondary = [
+    { label: 'Pending', key: 'pending', icon: 'HourglassEmpty', color: '#B8860B', to: '/requests?bucket=pending' },
+    { label: 'In Progress', key: 'inProgress', icon: 'Autorenew', color: '#00695C', to: '/requests?bucket=in-progress' },
+    { label: 'Completed', key: 'completed', icon: 'TaskAlt', color: '#2E7D32', to: '/requests?bucket=completed' },
+    { label: 'Rejected', key: 'rejected', icon: 'Cancel', color: '#B71C1C', to: '/requests?statusCode=REJECTED' },
+  ];
+  const tertiary = [
+    { label: 'Overdue', key: 'overdue', icon: 'ReportProblem', color: '#D84315', to: '/requests?overdue=true' },
+    { label: 'Urgent', key: 'urgent', icon: 'PriorityHigh', color: '#7B241C', to: '/requests' },
+    { label: 'Dept Pending', key: 'departmentPending', icon: 'AccountBalance', color: '#455A64', to: '/requests?bucket=pending' },
   ];
 
   const recentColumns = [
@@ -56,9 +73,24 @@ export function DashboardPage() {
     <Box>
       <PageHeader title="Dashboard" subtitle="Live overview of constituency requests and files" />
 
-      <Grid container spacing={2}>
-        {cards.map((c) => (
-          <Grid key={c.key} item xs={6} sm={4} md={2.4}>
+      {/* Bento grid: varied tile widths instead of a uniform row/column layout. */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 2 }}>
+        {hero.map((c) => (
+          <Bento key={c.key} md={4}>
+            <StatCard
+              size="hero"
+              label={c.label}
+              value={s[c.key]}
+              icon={c.icon}
+              color={c.color}
+              loading={stats.isLoading}
+              onClick={() => navigate(c.to)}
+            />
+          </Bento>
+        ))}
+
+        {secondary.map((c) => (
+          <Bento key={c.key} md={3}>
             <StatCard
               label={c.label}
               value={s[c.key]}
@@ -67,12 +99,23 @@ export function DashboardPage() {
               loading={stats.isLoading}
               onClick={() => navigate(c.to)}
             />
-          </Grid>
+          </Bento>
         ))}
-      </Grid>
 
-      <Grid container spacing={2} sx={{ mt: 0.5 }}>
-        <Grid item xs={12} md={7}>
+        {tertiary.map((c) => (
+          <Bento key={c.key} md={4}>
+            <StatCard
+              label={c.label}
+              value={s[c.key]}
+              icon={c.icon}
+              color={c.color}
+              loading={stats.isLoading}
+              onClick={() => navigate(c.to)}
+            />
+          </Bento>
+        ))}
+
+        <Bento md={8}>
           <ChartCard title="Department-wise Requests" loading={charts.isLoading}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={charts.data?.byDepartment ?? []}>
@@ -80,12 +123,12 @@ export function DashboardPage() {
                 <XAxis dataKey="label" hide />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#0b3d91" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="#0B3450" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
-        </Grid>
-        <Grid item xs={12} md={5}>
+        </Bento>
+        <Bento md={4}>
           <ChartCard title="Request Status" loading={charts.isLoading}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -99,8 +142,9 @@ export function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
           </ChartCard>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Bento>
+
+        <Bento md={6}>
           <ChartCard title="Monthly Requests" loading={charts.isLoading}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={charts.data?.monthly ?? []}>
@@ -108,43 +152,47 @@ export function DashboardPage() {
                 <XAxis dataKey="label" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#00897b" strokeWidth={2} />
+                <Line type="monotone" dataKey="value" stroke="#B8860B" strokeWidth={2.5} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Bento>
+        <Bento md={6}>
           <ChartCard title="Ward-wise Requests" loading={charts.isLoading}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={charts.data?.byWard ?? []} layout="vertical">
                 <XAxis type="number" allowDecimals={false} />
                 <YAxis type="category" dataKey="label" width={90} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#5e35b1" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="value" fill="#00695C" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
-        </Grid>
-      </Grid>
+        </Bento>
 
-      <Box sx={{ mt: 2 }}>
-        <ConstituencyMap />
+        <Bento md={12}>
+          <ConstituencyMap />
+        </Bento>
+
+        <Bento md={12}>
+          <Card>
+            <CardHeader title="Recent Requests" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+            <CardContent>
+              <DataTable
+                rows={recent.data ?? []}
+                columns={recentColumns as never}
+                loading={recent.isLoading}
+                rowCount={recent.data?.length ?? 0}
+                hideFooter
+                onRowClick={(p) => setQuickViewId(String(p.id))}
+                sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
+              />
+            </CardContent>
+          </Card>
+        </Bento>
       </Box>
 
-      <Card sx={{ mt: 2 }}>
-        <CardHeader title="Recent Requests" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
-        <CardContent>
-          <DataTable
-            rows={recent.data ?? []}
-            columns={recentColumns as never}
-            loading={recent.isLoading}
-            rowCount={recent.data?.length ?? 0}
-            hideFooter
-            onRowClick={(p) => navigate(`/requests/${p.id}`)}
-            sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
-          />
-        </CardContent>
-      </Card>
+      <RequestQuickView id={quickViewId} onClose={() => setQuickViewId(null)} />
     </Box>
   );
 }

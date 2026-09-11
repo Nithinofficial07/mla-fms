@@ -51,6 +51,10 @@ const schema = z.object({
   AWS_S3_ENDPOINT: z.string().url().optional(),
   AWS_S3_FORCE_PATH_STYLE: z.coerce.boolean().default(false),
   S3_SIGNED_URL_TTL: z.coerce.number().default(300),
+  // Lets a second environment (e.g. dev) share the same bucket as prod without
+  // colliding: every S3 call is namespaced under this prefix, but the "key"
+  // stored in Mongo and handed to the browser stays prefix-free.
+  AWS_S3_KEY_PREFIX: z.string().optional(),
 
   OCR_PROVIDER: z.enum(['none', 'tesseract', 'textract']).default('none'),
 

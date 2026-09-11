@@ -14,6 +14,7 @@ import { api, errorMessage } from '@/api/client';
 import { downloadViaApi } from '@/lib/download';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments, useStatuses, usePriorities } from '@/hooks/useOptions';
+import { RequestQuickView } from './RequestQuickView';
 import { PERMISSIONS } from '@mla/shared';
 
 const BUCKETS: Record<string, string[]> = {
@@ -33,6 +34,7 @@ export function RequestListPage() {
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [quickViewId, setQuickViewId] = useState<string | null>(null);
 
   const departments = useDepartments();
   const statuses = useStatuses();
@@ -87,7 +89,11 @@ export function RequestListPage() {
     { field: 'dueDate', headerName: 'Due', width: 110, valueGetter: (_v: unknown, r: any) => (r.dueDate ? dayjs(r.dueDate).format('DD MMM YY') : '—') },
     {
       field: 'actions', headerName: '', width: 90, sortable: false,
-      renderCell: (p: any) => <Button size="small" onClick={() => navigate(`/requests/${p.row.id}`)}>Open</Button>,
+      renderCell: (p: any) => (
+        <Button size="small" onClick={(e) => { e.stopPropagation(); navigate(`/requests/${p.row.id}`); }}>
+          Open
+        </Button>
+      ),
     },
   ];
 
@@ -178,10 +184,12 @@ export function RequestListPage() {
           rowCount={data?.total ?? 0}
           paginationModel={page}
           onPaginationModelChange={setPage}
-          onRowClick={(p) => navigate(`/requests/${p.id}`)}
+          onRowClick={(p) => setQuickViewId(String(p.id))}
           sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
         />
       )}
+
+      <RequestQuickView id={quickViewId} onClose={() => setQuickViewId(null)} />
     </Box>
   );
 }

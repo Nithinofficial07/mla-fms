@@ -11,6 +11,7 @@ import { Icon } from '@/components/Icon';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments } from '@/hooks/useOptions';
+import { LetterQuickView } from './LetterQuickView';
 
 const STATUS_COLOR: Record<string, 'default' | 'info' | 'primary' | 'success' | 'warning'> = {
   DRAFT: 'default', ISSUED: 'info', DISPATCHED: 'primary', REPLIED: 'warning', CLOSED: 'success',
@@ -23,6 +24,7 @@ export function LetterListPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [departmentId, setDepartmentId] = useState('');
+  const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const departments = useDepartments();
 
   const params: Record<string, string | number> = { page: page.page + 1, pageSize: page.pageSize, sort: '-date' };
@@ -45,7 +47,14 @@ export function LetterListPage() {
     { field: 'department', headerName: 'Department', width: 170, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? '—' },
     { field: 'departmentLetterNo', headerName: 'Dept. Letter No', width: 150 },
     { field: 'status', headerName: 'Status', width: 130, renderCell: (p: any) => <Chip size="small" color={STATUS_COLOR[p.row.status] ?? 'default'} label={p.row.status} /> },
-    { field: 'actions', headerName: '', width: 90, sortable: false, renderCell: (p: any) => <Button size="small" onClick={() => navigate(`/letters/${p.row.id}`)}>Open</Button> },
+    {
+      field: 'actions', headerName: '', width: 90, sortable: false,
+      renderCell: (p: any) => (
+        <Button size="small" onClick={(e) => { e.stopPropagation(); navigate(`/letters/${p.row.id}`); }}>
+          Open
+        </Button>
+      ),
+    },
   ];
 
   return (
@@ -81,10 +90,12 @@ export function LetterListPage() {
           rowCount={data?.total ?? 0}
           paginationModel={page}
           onPaginationModelChange={setPage}
-          onRowClick={(p) => navigate(`/letters/${p.id}`)}
+          onRowClick={(p) => setQuickViewId(String(p.id))}
           sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
         />
       )}
+
+      <LetterQuickView id={quickViewId} onClose={() => setQuickViewId(null)} />
     </Box>
   );
 }

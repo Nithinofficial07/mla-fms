@@ -41,7 +41,7 @@ export function NotificationBell() {
   return (
     <>
       <Tooltip title="Notifications">
-        <IconButton onClick={(e) => setAnchor(e.currentTarget)}>
+        <IconButton onClick={(e) => setAnchor(e.currentTarget)} sx={{ color: '#fff' }}>
           <Badge color="error" badgeContent={unread.data ?? 0} max={99}>
             <Icon name="Notifications" />
           </Badge>

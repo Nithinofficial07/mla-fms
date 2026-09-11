@@ -24,9 +24,9 @@ interface GeoFeature {
 }
 
 const RAMP: Record<Metric, [string, string]> = {
-  total: ['#e8eef9', '#0b3d91'],
-  pending: ['#fff1e0', '#ed6c02'],
-  overdue: ['#fde7e7', '#c62828'],
+  total: ['#E6ECF1', '#0B3450'],
+  pending: ['#FBF0DA', '#B8860B'],
+  overdue: ['#FBE3E3', '#B71C1C'],
 };
 
 function lerpColor(a: string, b: string, t: number) {
