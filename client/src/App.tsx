@@ -32,6 +32,7 @@ import { AuditLogPage } from '@/features/audit/AuditLogPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ProfilePage } from '@/features/profile/ProfilePage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
+import { TrackRequestPage } from '@/features/public/TrackRequestPage';
 
 export function App() {
   return (
@@ -40,6 +41,7 @@ export function App() {
       <Route path="/forgot-password" element={<PublicOnly><ForgotPasswordPage /></PublicOnly>} />
       <Route path="/reset-password" element={<PublicOnly><ResetPasswordPage /></PublicOnly>} />
       <Route path="/setup" element={<SetupWizardPage />} />
+      <Route path="/track" element={<TrackRequestPage />} />
       <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
       <Route path="/403" element={<ForbiddenPage />} />
 

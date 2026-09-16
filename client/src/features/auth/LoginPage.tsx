@@ -58,6 +58,11 @@ export function LoginPage() {
             <Link href="/forgot-password" variant="body2">Forgot password?</Link>
             <Link href="/setup" variant="body2">First-time setup</Link>
           </Stack>
+          <Stack alignItems="center" sx={{ pt: 1 }}>
+            <Link href="/track" variant="body2" underline="hover">
+              Not staff? Track your request here
+            </Link>
+          </Stack>
         </Stack>
       </Box>
     </AuthLayout>

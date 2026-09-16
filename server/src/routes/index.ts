@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authRoutes from '../modules/auth/auth.routes.js';
 import setupRoutes from '../modules/setup/setup.routes.js';
+import publicRoutes from '../modules/public/public.routes.js';
 import usersRoutes from '../modules/users/users.routes.js';
 import roleRoutes from '../modules/masters/role.routes.js';
 import departmentRoutes from '../modules/masters/department.routes.js';
@@ -27,6 +28,7 @@ api.get('/health', (_req, res) => res.json({ status: 'ok', time: new Date().toIS
 
 api.use('/auth', authRoutes);
 api.use('/setup', setupRoutes);
+api.use('/public', publicRoutes);
 api.use('/users', usersRoutes);
 api.use('/roles', roleRoutes);
 api.use('/departments', departmentRoutes);

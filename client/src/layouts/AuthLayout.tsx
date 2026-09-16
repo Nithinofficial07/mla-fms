@@ -1,7 +1,18 @@
 import type { ReactNode } from 'react';
 import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
 
-export function AuthLayout({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+export function AuthLayout({
+  title,
+  subtitle,
+  children,
+  maxWidth = 420,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  /** Wider cards (e.g. the public tracking page, which shows a result + timeline) can override this. */
+  maxWidth?: number;
+}) {
   return (
     <Box
       sx={{
@@ -12,7 +23,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
         background: 'radial-gradient(1200px 600px at 10% -10%, #dde6ee 0%, transparent 60%), radial-gradient(1000px 500px at 110% 110%, #f3e6c8 0%, transparent 55%), #F4F5F7',
       }}
     >
-      <Card sx={{ width: '100%', maxWidth: 420, boxShadow: '0 24px 60px -24px rgba(11,52,80,0.45)', borderTop: '4px solid', borderTopColor: 'secondary.main' }}>
+      <Card sx={{ width: '100%', maxWidth, boxShadow: '0 24px 60px -24px rgba(11,52,80,0.45)', borderTop: '4px solid', borderTopColor: 'secondary.main' }}>
         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
           <Stack spacing={1} sx={{ mb: 3 }}>
             <Box
