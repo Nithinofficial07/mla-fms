@@ -7,16 +7,15 @@ import QRCode from 'qrcode';
 import { PERMISSIONS } from '@mla/shared';
 import { authenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
-import { asyncHandler, ok } from '../../utils/http.js';
-import { AppError } from '../../utils/AppError.js';
-import { makeQrToken, qrTargetUrl, readQrToken } from '../../utils/qrToken.js';
+import { asyncHandler } from '../../utils/http.js';
+import { makeQrToken, qrTargetUrl } from '../../utils/qrToken.js';
 import { requestsService } from './requests.service.js';
 import { DocumentModel } from '../../models/Document.js';
 import { listTimeline } from '../workflow/timeline.service.js';
 
 /**
- * Mounted at /api/requests BEFORE the main router so `/resolve/:token`
- * and `/:id/cover.pdf` are matched ahead of the `/:id` param route.
+ * Mounted at /api/requests BEFORE the main router so `/:id/cover.pdf`
+ * is matched ahead of the `/:id` param route.
  */
 const router = Router();
 router.use(authenticate);
@@ -46,21 +45,6 @@ const INK = '#1A2233';
 const MUTED = '#6B7280';
 const LINE = '#E5E7EB';
 const PANEL = '#F4F5F7';
-
-/** Resolve a scanned QR token -> request id (for the SPA redirect). */
-router.get(
-  '/resolve/:token',
-  requirePermission(PERMISSIONS.REQUEST_VIEW),
-  asyncHandler(async (req, res) => {
-    try {
-      const id = readQrToken(req.params.token);
-      const doc = await requestsService.getDetail(id);
-      ok(res, { id, fileId: (doc as { fileId: string }).fileId });
-    } catch {
-      throw AppError.badRequest('Invalid or expired QR code');
-    }
-  }),
-);
 
 /** Printable A4 file cover with a QR that encodes only a signed reference. */
 router.get(

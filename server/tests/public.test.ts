@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { auth, login, seedCore } from './helpers.js';
 import { GramPanchayat, Constituency } from '../src/models/location.js';
+import { makeQrToken } from '../src/utils/qrToken.js';
 
 const app = createApp();
 
@@ -31,7 +32,7 @@ describe('public tracking', () => {
         location: { gramPanchayatId: gpId },
         submit: true,
       });
-    return res.body as { fileId: string };
+    return res.body as { id: string; fileId: string };
   };
 
   it('finds a request by fileId + matching mobile, without auth', async () => {
@@ -67,5 +68,55 @@ describe('public tracking', () => {
   it('validates the mobile number shape before hitting the database', async () => {
     const res = await request(app).post('/api/public/track').send({ fileId: 'MLA/2026/000001', mobile: '123' });
     expect(res.status).toBe(400);
+  });
+
+  describe('QR scan tracking', () => {
+    it('resolves a scanned QR token to the live status, without auth', async () => {
+      const created = await createSubmitted();
+      const qrToken = makeQrToken(created.id);
+      const res = await request(app).get(`/api/public/qr/${qrToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.fileId).toBe(created.fileId);
+      expect(res.body.statusCode).toBe('SUBMITTED');
+      expect(Array.isArray(res.body.timeline)).toBe(true);
+    });
+
+    it('reflects a status change made after the cover sheet was printed - not a snapshot from scan time', async () => {
+      const created = await createSubmitted();
+      const qrToken = makeQrToken(created.id);
+
+      const first = await request(app).get(`/api/public/qr/${qrToken}`);
+      expect(first.body.statusCode).toBe('SUBMITTED');
+
+      await request(app)
+        .post(`/api/requests/${created.id}/status`)
+        .set(auth(token))
+        .send({ toStatusCode: 'UNDER_REVIEW' });
+
+      const second = await request(app).get(`/api/public/qr/${qrToken}`);
+      expect(second.body.statusCode).toBe('UNDER_REVIEW');
+      expect(second.body.timeline.length).toBeGreaterThan(first.body.timeline.length);
+    });
+
+    it('never leaks remarks, applicant details, or internal actor names', async () => {
+      const created = await createSubmitted();
+      const qrToken = makeQrToken(created.id);
+      const res = await request(app).get(`/api/public/qr/${qrToken}`);
+      const text = JSON.stringify(res.body);
+      expect(text).not.toContain('Admin');
+      expect(res.body.applicant).toBeUndefined();
+      expect(res.body.timeline.every((t: Record<string, unknown>) => !('remark' in t) && !('actorName' in t))).toBe(true);
+    });
+
+    it('rejects a garbage or tampered token with a generic 400, not a 500', async () => {
+      const res = await request(app).get('/api/public/qr/not-a-real-token');
+      expect(res.status).toBe(400);
+    });
+
+    it('404s a well-formed token whose request no longer exists', async () => {
+      const qrToken = makeQrToken('000000000000000000000000');
+      const res = await request(app).get(`/api/public/qr/${qrToken}`);
+      expect(res.status).toBe(404);
+    });
   });
 });

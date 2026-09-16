@@ -12,7 +12,6 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { RequestListPage } from '@/features/requests/RequestListPage';
 import { RequestCreatePage } from '@/features/requests/RequestCreatePage';
 import { RequestDetailPage } from '@/features/requests/RequestDetailPage';
-import { FileResolvePage } from '@/features/requests/FileResolvePage';
 import { LetterListPage } from '@/features/letters/LetterListPage';
 import { LetterCreatePage } from '@/features/letters/LetterCreatePage';
 import { LetterDetailPage } from '@/features/letters/LetterDetailPage';
@@ -33,6 +32,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ProfilePage } from '@/features/profile/ProfilePage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 import { TrackRequestPage } from '@/features/public/TrackRequestPage';
+import { QrTrackPage } from '@/features/public/QrTrackPage';
 
 export function App() {
   return (
@@ -42,12 +42,12 @@ export function App() {
       <Route path="/reset-password" element={<PublicOnly><ResetPasswordPage /></PublicOnly>} />
       <Route path="/setup" element={<SetupWizardPage />} />
       <Route path="/track" element={<TrackRequestPage />} />
+      <Route path="/f/:token" element={<QrTrackPage />} />
       <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
       <Route path="/403" element={<ForbiddenPage />} />
 
       <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
         <Route index element={<RequirePermission permission={PERMISSIONS.DASHBOARD_VIEW}><DashboardPage /></RequirePermission>} />
-        <Route path="f/:token" element={<FileResolvePage />} />
 
         <Route path="requests">
           <Route index element={<RequirePermission permission={PERMISSIONS.REQUEST_VIEW}><RequestListPage /></RequirePermission>} />
