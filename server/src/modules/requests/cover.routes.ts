@@ -57,7 +57,8 @@ router.get(
       listTimeline({ requestId: req.params.id }),
     ]);
     const token = makeQrToken(req.params.id);
-    const qrPng = await QRCode.toBuffer(qrTargetUrl(token), { width: 200, margin: 1 });
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const qrPng = await QRCode.toBuffer(qrTargetUrl(token, origin), { width: 200, margin: 1 });
 
     const doc = new PDFDocument({ size: 'A4', margin: 0 });
     const chunks: Buffer[] = [];

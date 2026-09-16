@@ -3,8 +3,8 @@ import { env } from '../config/env.js';
 
 /**
  * QR tokens carry ONLY an opaque signed reference to a request id - never
- * applicant data. Scanning resolves the token server-side after the viewer
- * authenticates, then redirects to the file page.
+ * applicant data. Scanning opens a public, unauthenticated tracking page
+ * (GET /api/public/qr/:token) that resolves the token fresh on every scan.
  */
 export function makeQrToken(requestId: string): string {
   return jwt.sign({ rid: requestId, purpose: 'file-qr' }, env.JWT_SECRET, { expiresIn: '365d' });
@@ -16,6 +16,13 @@ export function readQrToken(token: string): string {
   return decoded.rid;
 }
 
-export function qrTargetUrl(token: string): string {
-  return new URL(`/f/${token}`, env.FRONTEND_URL).toString();
+/**
+ * Builds the URL embedded in the QR image. Prefers the origin the cover
+ * sheet was actually generated from (the real host the staff member is
+ * using - dev, prod, a LAN IP, whatever) over the FRONTEND_URL env var, so a
+ * missing/stale env var can't bake a dead "localhost" link into a printed
+ * cover sheet's QR code.
+ */
+export function qrTargetUrl(token: string, origin?: string): string {
+  return new URL(`/f/${token}`, origin || env.FRONTEND_URL).toString();
 }
