@@ -109,6 +109,12 @@ async function handleUpload(owner: DocOwner, req: Request, res: Response) {
       label: `${docs.length} document(s) uploaded`, actorId: req.auth!.userId, actorName: req.auth!.name,
       attachments: docs.map((d) => String(d._id)),
     });
+  } else if (owner.kind === 'letter') {
+    await addTimeline({
+      letterId: owner.id, action: 'DOCUMENT_UPLOADED',
+      label: `${docs.length} document(s) uploaded`, actorId: req.auth!.userId, actorName: req.auth!.name,
+      attachments: docs.map((d) => String(d._id)),
+    });
   }
   await notifyUsers(meta.notify, {
     type: 'DOCUMENT_UPLOADED', title: `Document(s) added to ${meta.label}`, link: meta.link,
@@ -134,6 +140,11 @@ async function handleScan(owner: DocOwner, req: Request, res: Response) {
   if (owner.kind === 'request') {
     await addTimeline({
       requestId: owner.id, action: 'DOCUMENT_SCAN', label: `Scanned document added (${doc.pageCount} page(s))`,
+      actorId: req.auth!.userId, actorName: req.auth!.name, attachments: [String(doc._id)],
+    });
+  } else if (owner.kind === 'letter') {
+    await addTimeline({
+      letterId: owner.id, action: 'DOCUMENT_SCAN', label: `Scanned document added (${doc.pageCount} page(s))`,
       actorId: req.auth!.userId, actorName: req.auth!.name, attachments: [String(doc._id)],
     });
   }

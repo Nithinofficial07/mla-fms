@@ -56,7 +56,7 @@ router.get(
 router.get(
   '/:id/timeline',
   requirePermission(PERMISSIONS.REQUEST_VIEW),
-  asyncHandler(async (req, res) => ok(res, withId(await listTimeline(req.params.id)))),
+  asyncHandler(async (req, res) => ok(res, withId(await listTimeline({ requestId: req.params.id })))),
 );
 
 /* ------------------------------- mutations ------------------------------- */

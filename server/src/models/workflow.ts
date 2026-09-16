@@ -22,10 +22,11 @@ applyCommonPlugins(assignmentSchema);
 export type Assignment = InferSchemaType<typeof assignmentSchema>;
 export const Assignment = model('RequestAssignment', assignmentSchema);
 
-/** Internal remark / department response thread entry. */
+/** Internal remark / department response thread entry. Belongs to a request OR a letter. */
 const remarkSchema = new Schema(
   {
-    requestId: { type: Schema.Types.ObjectId, ref: 'Request', required: true, index: true },
+    requestId: { type: Schema.Types.ObjectId, ref: 'Request', default: null, index: true },
+    letterId: { type: Schema.Types.ObjectId, ref: 'Letter', default: null, index: true },
     body: { type: String, required: true, trim: true },
     kind: { type: String, enum: ['INTERNAL', 'DEPARTMENT_RESPONSE'], default: 'INTERNAL' },
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -38,10 +39,11 @@ applyCommonPlugins(remarkSchema);
 export type Remark = InferSchemaType<typeof remarkSchema>;
 export const Remark = model('RequestRemark', remarkSchema);
 
-/** Append-only timeline entry powering the request history view. */
+/** Append-only timeline entry powering the request/letter history view. */
 const timelineSchema = new Schema(
   {
-    requestId: { type: Schema.Types.ObjectId, ref: 'Request', required: true, index: true },
+    requestId: { type: Schema.Types.ObjectId, ref: 'Request', default: null, index: true },
+    letterId: { type: Schema.Types.ObjectId, ref: 'Letter', default: null, index: true },
     action: { type: String, required: true }, // e.g. 'FILE_CREATED', 'STATUS_CHANGE'
     label: { type: String, required: true }, // human sentence
     actorId: { type: Schema.Types.ObjectId, ref: 'User', default: null },

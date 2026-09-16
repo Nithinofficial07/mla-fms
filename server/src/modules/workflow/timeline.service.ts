@@ -1,7 +1,8 @@
 import { TimelineEvent } from '../../models/workflow.js';
 
-export interface TimelineInput {
-  requestId: string;
+export type TimelineOwner = { requestId: string; letterId?: never } | { letterId: string; requestId?: never };
+
+export type TimelineInput = TimelineOwner & {
   action: string;
   label: string;
   actorId?: string | null;
@@ -11,12 +12,13 @@ export interface TimelineInput {
   remark?: string | null;
   attachments?: string[];
   meta?: unknown;
-}
+};
 
-/** Appends one immutable entry to a request's timeline. */
+/** Appends one immutable entry to a request's or letter's timeline. */
 export function addTimeline(input: TimelineInput): Promise<unknown> {
   return TimelineEvent.create({
-    requestId: input.requestId,
+    requestId: input.requestId ?? null,
+    letterId: input.letterId ?? null,
     action: input.action,
     label: input.label,
     actorId: input.actorId ?? null,
@@ -29,6 +31,7 @@ export function addTimeline(input: TimelineInput): Promise<unknown> {
   });
 }
 
-export function listTimeline(requestId: string) {
-  return TimelineEvent.find({ requestId }).sort('createdAt').lean();
+export function listTimeline(owner: TimelineOwner) {
+  const filter = 'requestId' in owner && owner.requestId ? { requestId: owner.requestId } : { letterId: owner.letterId };
+  return TimelineEvent.find(filter).sort('createdAt').lean();
 }

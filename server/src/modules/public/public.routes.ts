@@ -49,7 +49,7 @@ router.post(
     // Deliberately vague - never reveal whether the File ID or the mobile number was the mismatch.
     if (!doc) throw AppError.notFound('No matching request found. Check the File ID and mobile number and try again.');
 
-    const events = await listTimeline(String((doc as { _id: unknown })._id));
+    const events = await listTimeline({ requestId: String((doc as { _id: unknown })._id) });
     const timeline = events
       .filter((e) => PUBLIC_TIMELINE_ACTIONS.has(e.action as string))
       .map((e) => ({ action: e.action, label: e.label, toStatus: e.toStatus ?? null, at: e.createdAt }));

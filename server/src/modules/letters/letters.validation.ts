@@ -39,4 +39,9 @@ export const updateLetterSchema = createLetterSchema.partial().omit({ issue: tru
 
 export const letterStatusSchema = z.object({
   status: z.enum(LETTER_STATUSES),
+  remark: z.string().optional(),
+});
+
+export const letterRemarkSchema = z.object({
+  body: z.string().min(1),
 });

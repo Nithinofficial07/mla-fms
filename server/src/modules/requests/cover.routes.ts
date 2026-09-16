@@ -70,7 +70,7 @@ router.get(
     const r = (await requestsService.getDetail(req.params.id)) as any;
     const [docs, timeline] = await Promise.all([
       DocumentModel.find({ requestId: req.params.id }).lean(),
-      listTimeline(req.params.id),
+      listTimeline({ requestId: req.params.id }),
     ]);
     const token = makeQrToken(req.params.id);
     const qrPng = await QRCode.toBuffer(qrTargetUrl(token), { width: 200, margin: 1 });
