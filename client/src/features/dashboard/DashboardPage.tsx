@@ -16,8 +16,15 @@ import { DataTable } from '@/components/DataTable';
 import { StatusChip, PriorityChip } from '@/components/chips';
 import { RequestQuickView } from '@/features/requests/RequestQuickView';
 import { api } from '@/api/client';
+import { useAuth } from '@/app/AuthProvider';
 
 const PIE_COLORS = ['#0B3450', '#B8860B', '#1565C0', '#2E7D32', '#6D4C41', '#00695C', '#E65100', '#455A64'];
+
+function greeting(hour: number) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 /** One cell of the bento grid. `md` is the 12-col span on desktop; sm/xs fall back wider. */
 function Bento({ md, sm = 6, children }: { md: number; sm?: number; children: ReactNode }) {
@@ -31,6 +38,8 @@ function Bento({ md, sm = 6, children }: { md: number; sm?: number; children: Re
 export function DashboardPage() {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
+  const firstName = user?.name?.split(' ')[0];
   const tooltipProps = {
     contentStyle: {
       background: theme.palette.background.paper,
@@ -83,7 +92,10 @@ export function DashboardPage() {
 
   return (
     <Box>
-      <PageHeader title="Dashboard" subtitle="Live overview of constituency requests and files" />
+      <PageHeader
+        title={firstName ? `${greeting(new Date().getHours())}, ${firstName}` : 'Dashboard'}
+        subtitle="Live overview of constituency requests and files"
+      />
 
       {/* Bento grid: varied tile widths instead of a uniform row/column layout. */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 2 }}>

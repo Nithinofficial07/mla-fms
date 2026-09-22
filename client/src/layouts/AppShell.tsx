@@ -13,6 +13,8 @@ import { useAuth } from '@/app/AuthProvider';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import { useThemeMode } from '@/app/ThemeModeProvider';
 import { CommandPalette, openCommandPalette } from '@/components/CommandPalette';
+import { ShortcutsDialog, openShortcuts } from '@/components/ShortcutsDialog';
+import { TopProgressBar } from '@/components/TopProgressBar';
 import { api } from '@/api/client';
 import { chrome } from '@/theme';
 
@@ -26,6 +28,8 @@ const activeNavSx = (theme: import('@mui/material/styles').Theme) => ({
 });
 
 const DRAWER_WIDTH = 264;
+const RAIL_WIDTH = 76;
+const SIDEBAR_COLLAPSE_KEY = 'mla-fms:sidebar-collapsed';
 
 function filterNav(items: NavItem[], can: (p: string) => boolean): NavItem[] {
   return items
@@ -34,7 +38,7 @@ function filterNav(items: NavItem[], can: (p: string) => boolean): NavItem[] {
     .filter((i) => i.to || (i.children && i.children.length));
 }
 
-function NavList({ onNavigate }: { onNavigate?: () => void }) {
+function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () => void; collapsed?: boolean; onExpandRequest?: () => void }) {
   const { can } = useAuth();
   const location = useLocation();
   const items = useMemo(() => filterNav(NAV, can), [can]);
@@ -46,6 +50,15 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
     <List sx={{ px: 1 }}>
       {items.map((item) => {
         if (item.children?.length) {
+          if (collapsed) {
+            return (
+              <Tooltip key={item.label} title={item.label} placement="right">
+                <ListItemButton onClick={onExpandRequest} sx={{ justifyContent: 'center', px: 1.5, borderRadius: 2, mb: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 0 }}><Icon name={item.icon} /></ListItemIcon>
+                </ListItemButton>
+              </Tooltip>
+            );
+          }
           return (
             <Box key={item.label}>
               <ListItemButton onClick={() => setOpen((s) => ({ ...s, [item.label]: !s[item.label] }))}>
@@ -71,6 +84,27 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                 </List>
               </Collapse>
             </Box>
+          );
+        }
+        if (collapsed) {
+          return (
+            <Tooltip key={item.label} title={item.label} placement="right">
+              <ListItemButton
+                component={NavLink}
+                to={item.to!}
+                end={item.to === '/'}
+                onClick={onNavigate}
+                sx={{
+                  justifyContent: 'center',
+                  px: 1.5,
+                  borderRadius: 2,
+                  mb: 0.25,
+                  '&.active': (theme) => ({ ...activeNavSx(theme), '& .MuiListItemIcon-root': { color: 'inherit' } }),
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 0 }}><Icon name={item.icon} /></ListItemIcon>
+              </ListItemButton>
+            </Tooltip>
           );
         }
         return (
@@ -105,12 +139,29 @@ export function AppShell() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const setCollapsedPersist = (next: boolean) => {
+    setCollapsed(next);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSE_KEY, next ? '1' : '0');
+    } catch {
+      /* private browsing / storage disabled - the choice just won't persist */
+    }
+  };
 
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => api.get('/settings').then((r) => r.data) });
 
   const brandName = settings?.appName ?? 'MLA FMS';
+  const railWidth = collapsed ? RAIL_WIDTH : DRAWER_WIDTH;
 
-  const drawer = (
+  const mobileDrawer = (
     <Box>
       <Toolbar sx={{ gap: 1.5 }}>
         <Avatar src="/favicon.svg" variant="rounded" sx={{ width: 34, height: 34, boxShadow: '0 2px 8px rgba(11,52,80,0.35)' }} />
@@ -123,8 +174,35 @@ export function AppShell() {
     </Box>
   );
 
+  const railDrawer = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Toolbar sx={{ gap: 1.5, justifyContent: collapsed ? 'center' : 'flex-start', px: collapsed ? 1 : 2 }}>
+        <Avatar src="/favicon.svg" variant="rounded" sx={{ width: 34, height: 34, boxShadow: '0 2px 8px rgba(11,52,80,0.35)', flexShrink: 0 }} />
+        {!collapsed && (
+          <Typography variant="subtitle1" fontWeight={800} noWrap>
+            {brandName}
+          </Typography>
+        )}
+      </Toolbar>
+      <Divider />
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <NavList collapsed={collapsed} onExpandRequest={() => setCollapsedPersist(false)} />
+      </Box>
+      <Divider />
+      <Tooltip title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} placement="right">
+        <IconButton
+          onClick={() => setCollapsedPersist(!collapsed)}
+          sx={{ m: 1, alignSelf: collapsed ? 'center' : 'flex-end' }}
+        >
+          <Icon name={collapsed ? 'KeyboardDoubleArrowRight' : 'KeyboardDoubleArrowLeft'} fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
+      <TopProgressBar />
       <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
         <Toolbar sx={{ gap: { xs: 0.25, sm: 1 }, px: { xs: 1, sm: 3 } }}>
           <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ display: { md: 'none' }, color: '#fff' }}>
@@ -160,6 +238,11 @@ export function AppShell() {
           <IconButton onClick={openCommandPalette} sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#fff' }}>
             <Icon name="Search" />
           </IconButton>
+          <Tooltip title="Keyboard shortcuts (?)">
+            <IconButton onClick={openShortcuts} sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: '#fff' }}>
+              <Icon name="Keyboard" />
+            </IconButton>
+          </Tooltip>
           <Chip
             size="small"
             icon={<Icon name={online ? 'CloudDone' : 'CloudOff'} sx={{ color: 'inherit !important' }} />}
@@ -201,7 +284,7 @@ export function AppShell() {
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+      <Box component="nav" sx={{ width: { md: railWidth }, flexShrink: { md: 0 }, transition: 'width .2s ease' }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -209,14 +292,17 @@ export function AppShell() {
           ModalProps={{ keepMounted: true }}
           sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}
         >
-          {drawer}
+          {mobileDrawer}
         </Drawer>
         <Drawer
           variant="permanent"
           open
-          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, borderRight: '1px solid', borderColor: 'divider' } }}
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': { width: railWidth, borderRight: '1px solid', borderColor: 'divider', overflowX: 'hidden', transition: 'width .2s ease' },
+          }}
         >
-          {drawer}
+          {railDrawer}
         </Drawer>
       </Box>
 
@@ -225,10 +311,11 @@ export function AppShell() {
         sx={{
           flexGrow: 1,
           minWidth: 0,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { md: `calc(100% - ${railWidth}px)` },
           px: { xs: 1.5, sm: 3 },
           py: { xs: 2, sm: 3 },
           pb: 'calc(env(safe-area-inset-bottom) + 16px)',
+          transition: 'width .2s ease',
         }}
       >
         <Toolbar />
@@ -238,6 +325,7 @@ export function AppShell() {
       </Box>
 
       <CommandPalette />
+      <ShortcutsDialog />
     </Box>
   );
 }

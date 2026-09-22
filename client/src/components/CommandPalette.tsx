@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PERMISSIONS } from '@mla/shared';
 import { Icon } from './Icon';
+import { openShortcuts } from './ShortcutsDialog';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 import { useThemeMode } from '@/app/ThemeModeProvider';
@@ -100,6 +101,7 @@ export function CommandPalette() {
       { id: 'qa-theme', group: 'Quick actions', icon: mode === 'dark' ? 'LightMode' : 'DarkMode', label: mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode', run: () => { toggleThemeMode(); close(); } },
       { id: 'qa-notif', group: 'Quick actions', icon: 'Notifications', label: 'Open notifications', run: () => go('/notifications') },
       { id: 'qa-profile', group: 'Quick actions', icon: 'AssignmentInd', label: 'My profile', run: () => go('/profile') },
+      { id: 'qa-shortcuts', group: 'Quick actions', icon: 'Keyboard', label: 'Keyboard shortcuts', run: () => { close(); openShortcuts(); } },
     ];
     if (can(PERMISSIONS.REQUEST_CREATE)) items.push({ id: 'qa-new-req', group: 'Quick actions', icon: 'Add', label: 'New Request', run: () => go('/requests/new') });
     if (can(PERMISSIONS.LETTER_CREATE)) items.push({ id: 'qa-new-letter', group: 'Quick actions', icon: 'Add', label: 'New MLA Letter', run: () => go('/letters/new') });
