@@ -1,11 +1,20 @@
 import { useState } from 'react';
-import { Box, MenuItem, Stack, TextField } from '@mui/material';
+import { Avatar, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { api } from '@/api/client';
 import { AUDIT_ACTIONS } from '@mla/shared';
+
+/** Loose match on the action name - covers CREATE/DELETE/STATUS_CHANGE/etc. across every entity. */
+function actionColor(action: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+  if (/CREATE|ISSUE/.test(action)) return 'success';
+  if (/DELETE|REMOVE/.test(action)) return 'error';
+  if (/STATUS_CHANGE|ASSIGN|FORWARD/.test(action)) return 'warning';
+  if (/UPDATE|SETTINGS/.test(action)) return 'info';
+  return 'default';
+}
 
 export function AuditLogPage() {
   const [page, setPage] = useState({ page: 0, pageSize: 50 });
@@ -25,9 +34,24 @@ export function AuditLogPage() {
 
   const columns = [
     { field: 'createdAt', headerName: 'Time', width: 170, valueGetter: (_v: unknown, r: any) => dayjs(r.createdAt).format('DD MMM YYYY, hh:mm:ss A') },
-    { field: 'actorName', headerName: 'Actor', width: 160 },
-    { field: 'actorRole', headerName: 'Role', width: 150 },
-    { field: 'action', headerName: 'Action', width: 150 },
+    {
+      field: 'actorName', headerName: 'Actor', width: 190,
+      renderCell: (p: any) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Avatar sx={{ width: 26, height: 26, fontSize: 13, bgcolor: 'primary.main' }}>
+            {(p.row.actorName?.[0] ?? '?').toUpperCase()}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" noWrap>{p.row.actorName ?? '—'}</Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>{p.row.actorRole}</Typography>
+          </Box>
+        </Stack>
+      ),
+    },
+    {
+      field: 'action', headerName: 'Action', width: 170,
+      renderCell: (p: any) => <Chip size="small" color={actionColor(p.row.action)} label={p.row.action} />,
+    },
     { field: 'entity', headerName: 'Entity', width: 140 },
     { field: 'entityId', headerName: 'Entity ID', width: 200 },
     { field: 'message', headerName: 'Message', flex: 1, minWidth: 160 },
@@ -52,6 +76,7 @@ export function AuditLogPage() {
         rowCount={data?.total ?? 0}
         paginationModel={page}
         onPaginationModelChange={setPage}
+        viewStorageKey="audit-logs"
       />
     </Box>
   );

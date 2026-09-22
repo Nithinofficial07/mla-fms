@@ -15,8 +15,16 @@ export function EmptyState({
 }) {
   return (
     <Box sx={{ textAlign: 'center', py: 8, px: 2, color: 'text.secondary' }}>
-      <Icon name={icon} sx={{ fontSize: 48, opacity: 0.4 }} />
-      <Typography variant="h6" sx={{ mt: 1, color: 'text.primary' }}>
+      <Box
+        sx={{
+          width: 64, height: 64, mx: 'auto', mb: 1.5, borderRadius: '50%',
+          display: 'grid', placeItems: 'center',
+          bgcolor: (t) => `${t.palette.primary.main}14`, color: 'primary.main',
+        }}
+      >
+        <Icon name={icon} sx={{ fontSize: 30 }} />
+      </Box>
+      <Typography variant="h6" sx={{ color: 'text.primary' }}>
         {title}
       </Typography>
       {description && (

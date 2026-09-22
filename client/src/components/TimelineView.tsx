@@ -16,6 +16,7 @@ interface Entry {
 
 const ICONS: Record<string, string> = {
   FILE_CREATED: 'NoteAdd',
+  LETTER_CREATED: 'NoteAdd',
   REQUEST_SUBMIT: 'Send',
   STATUS_CHANGE: 'SwapHoriz',
   REQUEST_ASSIGN: 'AssignmentInd',

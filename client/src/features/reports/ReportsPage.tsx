@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Box, Button, Card, CardContent, MenuItem, Stack, Table, TableBody, TableCell,
+  Box, Button, Card, CardContent, CardHeader, Chip, Divider, MenuItem, Stack, Table, TableBody, TableCell,
   TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -13,16 +13,16 @@ import { downloadViaApi } from '@/lib/download';
 import { useDepartments } from '@/hooks/useOptions';
 
 const REPORTS = [
-  { key: 'department', label: 'Department' },
-  { key: 'ward', label: 'Ward' },
-  { key: 'gram-panchayat', label: 'Gram Panchayat' },
-  { key: 'village', label: 'Village' },
-  { key: 'status', label: 'Status' },
-  { key: 'priority', label: 'Priority' },
-  { key: 'monthly', label: 'Monthly' },
-  { key: 'officer', label: 'Officer performance' },
-  { key: 'pending', label: 'Pending files' },
-  { key: 'overdue', label: 'Overdue files' },
+  { key: 'department', label: 'Department', icon: 'AccountBalance' },
+  { key: 'ward', label: 'Ward', icon: 'Apartment' },
+  { key: 'gram-panchayat', label: 'Gram Panchayat', icon: 'Cottage' },
+  { key: 'village', label: 'Village', icon: 'Grass' },
+  { key: 'status', label: 'Status', icon: 'SwapHoriz' },
+  { key: 'priority', label: 'Priority', icon: 'Flag' },
+  { key: 'monthly', label: 'Monthly', icon: 'Today' },
+  { key: 'officer', label: 'Officer performance', icon: 'AssignmentInd' },
+  { key: 'pending', label: 'Pending files', icon: 'HourglassEmpty' },
+  { key: 'overdue', label: 'Overdue files', icon: 'ReportProblem' },
 ];
 
 export function ReportsPage() {
@@ -59,11 +59,20 @@ export function ReportsPage() {
     <Box>
       <PageHeader title="Reports" subtitle="Filter, view and export. Exports respect the active filters." crumbs={[{ label: 'Home', to: '/' }, { label: 'Reports' }]} />
 
-      <ToggleButtonGroup exclusive value={key} onChange={(_e, v) => v && setKey(v)} size="small" sx={{ mb: 2, flexWrap: 'wrap' }}>
-        {REPORTS.map((r) => (
-          <ToggleButton key={r.key} value={r.key}>{r.label}</ToggleButton>
-        ))}
-      </ToggleButtonGroup>
+      <Card sx={{ mb: 2 }}>
+        <CardHeader title="Choose a report" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+        <Divider />
+        <CardContent>
+          <ToggleButtonGroup exclusive value={key} onChange={(_e, v) => v && setKey(v)} size="small" sx={{ flexWrap: 'wrap', gap: 1 }}>
+            {REPORTS.map((r) => (
+              <ToggleButton key={r.key} value={r.key} sx={{ border: '1px solid', borderColor: 'divider !important', borderRadius: '8px !important' }}>
+                <Icon name={r.icon} sx={{ mr: 0.75 }} fontSize="small" />
+                {r.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </CardContent>
+      </Card>
 
       <Card sx={{ mb: 2 }}>
         <CardContent>
@@ -83,6 +92,13 @@ export function ReportsPage() {
       </Card>
 
       <Card>
+        <CardHeader
+          avatar={<Icon name={REPORTS.find((r) => r.key === key)?.icon ?? 'BarChart'} sx={{ color: 'primary.main' }} />}
+          title={`${REPORTS.find((r) => r.key === key)?.label ?? key} report`}
+          action={report.data && <Chip size="small" label={`${report.data.rows.length} row${report.data.rows.length === 1 ? '' : 's'}`} sx={{ mr: 1, mt: 1 }} />}
+          titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }}
+        />
+        <Divider />
         <CardContent>
           {report.data && report.data.rows.length === 0 ? (
             <EmptyState icon="BarChart" title="No data for this report" description="Adjust the date range or filters." />
@@ -98,7 +114,7 @@ export function ReportsPage() {
                 </TableHead>
                 <TableBody>
                   {(report.data?.rows ?? []).map((row: Record<string, unknown>, i: number) => (
-                    <TableRow key={i}>
+                    <TableRow key={i} sx={{ bgcolor: i % 2 ? 'action.hover' : 'transparent' }}>
                       {(report.data?.columns ?? []).map((c: string) => (
                         <TableCell key={c}>{String(row[c] ?? '')}</TableCell>
                       ))}
