@@ -1,14 +1,14 @@
 import { useState } from 'react';
 
-export type ViewMode = 'table' | 'cards';
+export type ViewMode = 'table' | 'cards' | 'board';
 
-/** Remembers a list's table/cards choice per-browser, keyed so different lists don't clash. */
+/** Remembers a list's table/cards/board choice per-browser, keyed so different lists don't clash. */
 export function useViewMode(key: string, initial: ViewMode = 'table') {
   const storageKey = `view-mode:${key}`;
   const [mode, setMode] = useState<ViewMode>(() => {
     try {
       const saved = localStorage.getItem(storageKey);
-      return saved === 'table' || saved === 'cards' ? saved : initial;
+      return saved === 'table' || saved === 'cards' || saved === 'board' ? saved : initial;
     } catch {
       return initial;
     }

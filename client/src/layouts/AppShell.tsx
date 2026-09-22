@@ -18,13 +18,25 @@ import { TopProgressBar } from '@/components/TopProgressBar';
 import { api } from '@/api/client';
 import { chrome } from '@/theme';
 
-/** Formal left-accent-bar treatment for the active nav item (navy tint + gold edge). */
+/** Formal accent-bar and pill treatment for the active nav item */
 const activeNavSx = (theme: import('@mui/material/styles').Theme) => ({
-  bgcolor: alpha(chrome[theme.palette.mode], theme.palette.mode === 'dark' ? 0.25 : 0.08),
-  color: 'primary.main',
+  bgcolor: theme.palette.mode === 'dark' ? alpha('#38BDF8', 0.12) : alpha('#0A2540', 0.08),
+  color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0A2540',
   fontWeight: 700,
-  borderLeft: '3px solid',
-  borderLeftColor: 'secondary.main',
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: '18%',
+    bottom: '18%',
+    width: 3.5,
+    borderRadius: '0 4px 4px 0',
+    backgroundColor: theme.palette.mode === 'dark' ? '#F59E0B' : '#C99700',
+  },
+  '& .MuiListItemIcon-root': {
+    color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0A2540',
+  },
 });
 
 const DRAWER_WIDTH = 264;
@@ -217,22 +229,39 @@ export function AppShell() {
               sx={{
                 display: { xs: 'none', sm: 'flex' },
                 alignItems: 'center',
-                gap: 1,
+                gap: 1.25,
                 cursor: 'pointer',
-                bgcolor: 'rgba(255,255,255,0.12)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: 2,
-                px: 1.5,
-                py: 0.5,
+                bgcolor: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 2.5,
+                px: 1.75,
+                py: 0.6,
                 color: 'rgba(255,255,255,0.85)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                transition: 'all .2s ease',
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.16)',
+                  borderColor: 'rgba(255,255,255,0.3)',
+                  boxShadow: '0 0 16px rgba(255,255,255,0.12)',
+                },
               }}
             >
               <Icon name="Search" fontSize="small" />
-              <Typography variant="caption">Search…</Typography>
-              <Typography variant="caption" sx={{ border: '1px solid rgba(255,255,255,0.4)', borderRadius: 0.75, px: 0.5, ml: 1 }}>
+              <Typography variant="caption" sx={{ fontWeight: 500 }}>Search anything…</Typography>
+              <Box
+                component="span"
+                sx={{
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: 1,
+                  px: 0.6,
+                  py: 0.1,
+                  fontSize: '0.675rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                }}
+              >
                 Ctrl K
-              </Typography>
+              </Box>
             </Box>
           </Tooltip>
           <IconButton onClick={openCommandPalette} sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#fff' }}>

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import axios from 'axios';
 import { AuthLayout } from '@/layouts/AuthLayout';
+import { Icon } from '@/components/Icon';
 import { TrackingResult } from './TrackingResult';
 import type { TrackResult } from './trackTypes';
 
@@ -44,6 +45,9 @@ export function TrackRequestPage() {
             {...register('fileId')}
             error={!!formState.errors.fileId}
             helperText={formState.errors.fileId?.message}
+            InputProps={{
+              startAdornment: <Icon name="FolderShared" sx={{ mr: 1, color: 'text.secondary', opacity: 0.7 }} />,
+            }}
           />
           <TextField
             label="Mobile number"
@@ -51,6 +55,9 @@ export function TrackRequestPage() {
             {...register('mobile')}
             error={!!formState.errors.mobile}
             helperText={formState.errors.mobile?.message}
+            InputProps={{
+              startAdornment: <Icon name="Phone" sx={{ mr: 1, color: 'text.secondary', opacity: 0.7 }} />,
+            }}
           />
           {track.isError && (
             <Alert severity="error">
