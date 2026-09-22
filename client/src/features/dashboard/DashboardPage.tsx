@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Box, Card, CardContent, CardHeader } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -29,6 +30,17 @@ function Bento({ md, sm = 6, children }: { md: number; sm?: number; children: Re
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const tooltipProps = {
+    contentStyle: {
+      background: theme.palette.background.paper,
+      border: `1px solid ${theme.palette.divider}`,
+      borderRadius: 8,
+      color: theme.palette.text.primary,
+    },
+    labelStyle: { color: theme.palette.text.secondary },
+    itemStyle: { color: theme.palette.text.primary },
+  };
   const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const stats = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: () => api.get('/dashboard/stats').then((r) => r.data) });
   const charts = useQuery({ queryKey: ['dashboard', 'charts'], queryFn: () => api.get('/dashboard/charts').then((r) => r.data) });
@@ -121,8 +133,8 @@ export function DashboardPage() {
               <BarChart data={charts.data?.byDepartment ?? []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="label" hide />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
+                <YAxis allowDecimals={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
+                <Tooltip {...tooltipProps} />
                 <Bar dataKey="value" fill="#0B3450" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -138,7 +150,7 @@ export function DashboardPage() {
                   ))}
                 </Pie>
                 <Legend />
-                <Tooltip />
+                <Tooltip {...tooltipProps} />
               </PieChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -149,9 +161,9 @@ export function DashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={charts.data?.monthly ?? []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
+                <XAxis dataKey="label" tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
+                <Tooltip {...tooltipProps} />
                 <Line type="monotone" dataKey="value" stroke="#B8860B" strokeWidth={2.5} />
               </LineChart>
             </ResponsiveContainer>
@@ -161,9 +173,9 @@ export function DashboardPage() {
           <ChartCard title="Ward-wise Requests" loading={charts.isLoading}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={charts.data?.byWard ?? []} layout="vertical">
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis type="category" dataKey="label" width={90} />
-                <Tooltip />
+                <XAxis type="number" allowDecimals={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
+                <YAxis type="category" dataKey="label" width={90} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
+                <Tooltip {...tooltipProps} />
                 <Bar dataKey="value" fill="#00695C" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

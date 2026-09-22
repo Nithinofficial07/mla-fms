@@ -5,6 +5,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
 import { Icon } from './Icon';
+import { chrome } from '@/theme';
 
 export interface RecordField {
   label: string;
@@ -52,7 +53,7 @@ export function RecordDrawer({
     >
       <Box
         sx={{
-          bgcolor: (t) => alpha(t.palette.primary.main, 0.86),
+          bgcolor: (t) => alpha(chrome[t.palette.mode], 0.86),
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           color: '#fff',

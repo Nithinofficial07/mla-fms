@@ -11,16 +11,18 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { NAV, type NavItem } from '@/routes/nav';
 import { useAuth } from '@/app/AuthProvider';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
+import { useThemeMode } from '@/app/ThemeModeProvider';
 import { api } from '@/api/client';
+import { chrome } from '@/theme';
 
 /** Formal left-accent-bar treatment for the active nav item (navy tint + gold edge). */
-const activeNavSx = {
-  bgcolor: alpha('#0B3450', 0.08),
+const activeNavSx = (theme: import('@mui/material/styles').Theme) => ({
+  bgcolor: alpha(chrome[theme.palette.mode], theme.palette.mode === 'dark' ? 0.25 : 0.08),
   color: 'primary.main',
   fontWeight: 700,
   borderLeft: '3px solid',
   borderLeftColor: 'secondary.main',
-};
+});
 
 const DRAWER_WIDTH = 264;
 
@@ -78,7 +80,10 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             end={item.to === '/'}
             onClick={onNavigate}
             selected={location.pathname === item.to}
-            sx={{ borderRadius: 2, '&.active': { ...activeNavSx, '& .MuiListItemIcon-root': { color: 'inherit' } } }}
+            sx={{
+              borderRadius: 2,
+              '&.active': (theme) => ({ ...activeNavSx(theme), '& .MuiListItemIcon-root': { color: 'inherit' } }),
+            }}
           >
             <ListItemIcon sx={{ minWidth: 36 }}>
               <Icon name={item.icon} />
@@ -94,6 +99,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 export function AppShell() {
   const { user, logout } = useAuth();
   const online = useOnlineStatus();
+  const { mode, toggle: toggleThemeMode } = useThemeMode();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -141,6 +147,11 @@ export function AppShell() {
           {!online && (
             <Icon name="CloudOff" sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#FDE68A' }} />
           )}
+          <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+            <IconButton onClick={toggleThemeMode} sx={{ color: '#fff' }}>
+              <Icon name={mode === 'dark' ? 'LightMode' : 'DarkMode'} />
+            </IconButton>
+          </Tooltip>
           <NotificationBell />
           <IconButton onClick={(e) => setAnchor(e.currentTarget)}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 700, border: '1px solid rgba(255,255,255,0.4)' }}>
