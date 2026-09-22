@@ -13,6 +13,7 @@ import { storage } from '../../storage/index.js';
 import { verifyRawToken } from '../../storage/rawUrl.js';
 import { RequestModel } from '../../models/Request.js';
 import { Letter } from '../../models/Letter.js';
+import { FundingRequest } from '../../models/FundingRequest.js';
 import { addTimeline } from '../workflow/timeline.service.js';
 import { notifyUsers } from '../notifications/notify.js';
 import { documentsService, type DocOwner } from './documents.service.js';
@@ -78,9 +79,14 @@ async function ownerLabel(owner: DocOwner): Promise<{ label: string; link: strin
       notify: [r.assignedOfficerId ? String(r.assignedOfficerId) : ''].filter(Boolean),
     };
   }
-  const l = await Letter.findById(owner.id).lean();
-  if (!l) throw AppError.notFound('Letter not found');
-  return { label: l.letterNo, link: `/letters/${owner.id}`, notify: [String(l.createdBy)] };
+  if (owner.kind === 'letter') {
+    const l = await Letter.findById(owner.id).lean();
+    if (!l) throw AppError.notFound('Letter not found');
+    return { label: l.letterNo, link: `/letters/${owner.id}`, notify: [String(l.createdBy)] };
+  }
+  const f = await FundingRequest.findById(owner.id).lean();
+  if (!f) throw AppError.notFound('Funding request not found');
+  return { label: f.fundingRequestId, link: `/funding/${owner.id}`, notify: [String(f.createdBy)] };
 }
 
 async function handleUpload(owner: DocOwner, req: Request, res: Response) {
@@ -199,6 +205,29 @@ router.post(
   upload.single('file'),
   validate({ body: scanBody }),
   asyncHandler((req, res) => handleScan({ kind: 'letter', id: req.params.letterId }, req, res)),
+);
+
+/* ------------------------------ funding docs ---------------------------- */
+router.get(
+  '/funding/:fundingRequestId',
+  requirePermission(PERMISSIONS.DOCUMENT_VIEW),
+  asyncHandler(async (req, res) =>
+    ok(res, withId(await documentsService.listForOwner({ kind: 'funding', id: req.params.fundingRequestId }))),
+  ),
+);
+router.post(
+  '/funding/:fundingRequestId',
+  requirePermission(PERMISSIONS.DOCUMENT_UPLOAD),
+  upload.array('files', 20),
+  validate({ body: uploadBody }),
+  asyncHandler((req, res) => handleUpload({ kind: 'funding', id: req.params.fundingRequestId }, req, res)),
+);
+router.post(
+  '/funding/:fundingRequestId/scan',
+  requirePermission(PERMISSIONS.DOCUMENT_UPLOAD),
+  upload.single('file'),
+  validate({ body: scanBody }),
+  asyncHandler((req, res) => handleScan({ kind: 'funding', id: req.params.fundingRequestId }, req, res)),
 );
 
 /* --------------------------- shared by id ----------------------------- */

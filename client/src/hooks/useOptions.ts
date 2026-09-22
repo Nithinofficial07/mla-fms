@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
 
-interface Opt { id: string; name: string; code?: string; order?: number }
+interface Opt { id: string; name: string; code?: string; order?: number; ministryName?: string }
 
 const listFetcher = (path: string, params?: Record<string, unknown>) =>
   api.get(path, { params }).then((r) => (Array.isArray(r.data) ? r.data : r.data.data)) as Promise<Opt[]>;

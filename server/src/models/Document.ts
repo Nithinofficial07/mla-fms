@@ -24,6 +24,7 @@ const documentSchema = new Schema(
     // Exactly one owner is set (validated below).
     requestId: { type: Schema.Types.ObjectId, ref: 'Request', default: null, index: true },
     letterId: { type: Schema.Types.ObjectId, ref: 'Letter', default: null, index: true },
+    fundingRequestId: { type: Schema.Types.ObjectId, ref: 'FundingRequest', default: null, index: true },
 
     documentType: { type: String, required: true }, // from Lookup group DOCUMENT_TYPE
     description: { type: String, default: '' },
@@ -42,8 +43,9 @@ const documentSchema = new Schema(
 );
 
 documentSchema.pre('validate', function (next) {
-  if (!this.requestId === !this.letterId) {
-    next(new Error('A document must belong to exactly one of a request or a letter'));
+  const owners = [this.requestId, this.letterId, this.fundingRequestId].filter(Boolean);
+  if (owners.length !== 1) {
+    next(new Error('A document must belong to exactly one of a request, a letter, or a funding request'));
   } else {
     next();
   }

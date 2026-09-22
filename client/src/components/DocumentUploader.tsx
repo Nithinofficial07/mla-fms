@@ -8,7 +8,7 @@ import { Icon } from './Icon';
 import { ScannerDialog } from './scanner/ScannerDialog';
 import { useLookup } from '@/hooks/useOptions';
 
-export type DocOwner = { kind: 'request' | 'letter'; id: string };
+export type DocOwner = { kind: 'request' | 'letter' | 'funding'; id: string };
 
 /**
  * Drag-and-drop + Take Photo + Scan Document uploader. Posts multipart to

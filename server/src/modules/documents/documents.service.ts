@@ -3,6 +3,7 @@ import { formatId } from '@mla/shared';
 import { DocumentModel } from '../../models/Document.js';
 import { RequestModel } from '../../models/Request.js';
 import { Letter } from '../../models/Letter.js';
+import { FundingRequest } from '../../models/FundingRequest.js';
 import { Department } from '../../models/Department.js';
 import { SystemSettings } from '../../models/config.js';
 import { AppError } from '../../utils/AppError.js';
@@ -11,7 +12,7 @@ import { buildDocumentKey, storage } from '../../storage/index.js';
 import { runOcr } from './ocr.service.js';
 
 /** Which record a document hangs off. */
-export type DocOwner = { kind: 'request' | 'letter'; id: string };
+export type DocOwner = { kind: 'request' | 'letter' | 'funding'; id: string };
 
 interface AddFileInput {
   owner: DocOwner;
@@ -31,10 +32,14 @@ async function deptCodeForOwner(owner: DocOwner): Promise<string> {
     const req = await RequestModel.findById(owner.id).lean();
     if (!req) throw AppError.notFound('Request not found');
     departmentId = req.primaryDepartmentId;
-  } else {
+  } else if (owner.kind === 'letter') {
     const letter = await Letter.findById(owner.id).lean();
     if (!letter) throw AppError.notFound('Letter not found');
     departmentId = letter.departmentId;
+  } else {
+    const funding = await FundingRequest.findById(owner.id).lean();
+    if (!funding) throw AppError.notFound('Funding request not found');
+    departmentId = funding.departmentId;
   }
   if (!departmentId) return 'unassigned';
   const dept = await Department.findById(departmentId as string).lean();
@@ -42,13 +47,15 @@ async function deptCodeForOwner(owner: DocOwner): Promise<string> {
 }
 
 function ownerFields(owner: DocOwner) {
-  return owner.kind === 'request' ? { requestId: owner.id } : { letterId: owner.id };
+  if (owner.kind === 'request') return { requestId: owner.id };
+  if (owner.kind === 'letter') return { letterId: owner.id };
+  return { fundingRequestId: owner.id };
 }
 
-function ownerOf(doc: { requestId?: unknown; letterId?: unknown }): DocOwner {
-  return doc.requestId
-    ? { kind: 'request', id: String(doc.requestId) }
-    : { kind: 'letter', id: String(doc.letterId) };
+function ownerOf(doc: { requestId?: unknown; letterId?: unknown; fundingRequestId?: unknown }): DocOwner {
+  if (doc.requestId) return { kind: 'request', id: String(doc.requestId) };
+  if (doc.letterId) return { kind: 'letter', id: String(doc.letterId) };
+  return { kind: 'funding', id: String(doc.fundingRequestId) };
 }
 
 export const documentsService = {

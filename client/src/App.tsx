@@ -16,6 +16,10 @@ import { LetterListPage } from '@/features/letters/LetterListPage';
 import { LetterCreatePage } from '@/features/letters/LetterCreatePage';
 import { LetterDetailPage } from '@/features/letters/LetterDetailPage';
 import { DepartmentsPage } from '@/features/departments/DepartmentsPage';
+import { FundingDepartmentsPage } from '@/features/funding/FundingDepartmentsPage';
+import { FundingCreatePage } from '@/features/funding/FundingCreatePage';
+import { FundingDetailPage } from '@/features/funding/FundingDetailPage';
+import { FundingListPage } from '@/features/funding/FundingListPage';
 import { ImportPage } from '@/features/imports/ImportPage';
 import {
   AreaTypesPage, WardsPage, GramPanchayatsPage, VillagesPage, SubVillagesPage,
@@ -64,6 +68,13 @@ export function App() {
         <Route path="departments">
           <Route index element={<DepartmentsPage />} />
           <Route path="import" element={<RequirePermission permission={PERMISSIONS.DEPARTMENT_MANAGE}><ImportPage kind="DEPARTMENT" /></RequirePermission>} />
+        </Route>
+
+        <Route path="funding">
+          <Route index element={<RequirePermission permission={PERMISSIONS.LETTER_VIEW}><FundingDepartmentsPage /></RequirePermission>} />
+          <Route path="requests" element={<RequirePermission permission={PERMISSIONS.LETTER_VIEW}><FundingListPage /></RequirePermission>} />
+          <Route path="new/:departmentId" element={<RequirePermission permission={PERMISSIONS.LETTER_CREATE}><FundingCreatePage /></RequirePermission>} />
+          <Route path=":id" element={<RequirePermission permission={PERMISSIONS.LETTER_VIEW}><FundingDetailPage /></RequirePermission>} />
         </Route>
 
         <Route path="locations">

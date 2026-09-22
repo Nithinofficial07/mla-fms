@@ -24,7 +24,7 @@ function humanSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export type DocOwner = { kind: 'request' | 'letter'; id: string };
+export type DocOwner = { kind: 'request' | 'letter' | 'funding'; id: string };
 
 export function DocumentList({ owner }: { owner: DocOwner }) {
   const { data, isLoading } = useQuery({

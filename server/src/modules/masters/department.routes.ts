@@ -18,6 +18,7 @@ const base = {
   email: z.string().email().optional().or(z.literal('')),
   officeAddress: z.string().optional(),
   logoKey: z.string().nullable().optional(),
+  ministryName: z.string().optional(),
   isActive: z.boolean().optional(),
 };
 

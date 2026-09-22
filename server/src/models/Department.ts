@@ -16,6 +16,10 @@ const departmentSchema = new Schema(
     email: { type: String, lowercase: true, trim: true },
     officeAddress: { type: String, trim: true },
     logoKey: { type: String, default: null }, // storage key, optional
+    // The Karnataka state ministry/minister this line department reports to
+    // (e.g. "Hon'ble Minister for Agriculture, Government of Karnataka") -
+    // shown on the department's Funding card and used as the letter salutation.
+    ministryName: { type: String, trim: true, default: '' },
 
     isDemo: { type: Boolean, default: false }, // seed rows flagged as DEMO
   },

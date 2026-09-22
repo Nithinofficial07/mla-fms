@@ -44,6 +44,15 @@ export const NAV: NavItem[] = [
     ],
   },
   {
+    label: 'Funding',
+    icon: 'AttachMoney',
+    permission: PERMISSIONS.LETTER_VIEW,
+    children: [
+      { label: 'Departments', to: '/funding', icon: 'AccountBalance' },
+      { label: 'All Funding Requests', to: '/funding/requests', icon: 'ListAlt' },
+    ],
+  },
+  {
     label: 'Locations',
     icon: 'Place',
     permission: PERMISSIONS.LOCATION_MANAGE,

@@ -12,6 +12,7 @@ const fields: FieldDef[] = [
   { name: 'contactNumber', label: 'Contact number' },
   { name: 'email', label: 'Email' },
   { name: 'officeAddress', label: 'Office address' },
+  { name: 'ministryName', label: 'Ministry (Government of Karnataka)', helperText: 'e.g. "Hon\'ble Minister for Agriculture" — shown on the Funding card and letter salutation' },
 ];
 
 export function DepartmentsPage() {
@@ -27,6 +28,7 @@ export function DepartmentsPage() {
       columns={[
         { field: 'name', headerName: 'Department', flex: 1, minWidth: 200 },
         { field: 'code', headerName: 'Code', width: 110 },
+        { field: 'ministryName', headerName: 'Ministry', width: 220 },
         { field: 'headName', headerName: 'Head', width: 160 },
         { field: 'contactNumber', headerName: 'Contact', width: 140 },
         {
