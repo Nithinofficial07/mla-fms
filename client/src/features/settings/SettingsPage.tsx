@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, Card, CardContent, CardHeader, Divider, FormControlLabel, Grid, Stack,
+  Alert, Box, Button, Card, CardContent, CardHeader, Divider, FormControlLabel, Stack,
   Switch, TextField, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { PageHeader } from '@/components/PageHeader';
+import { Icon } from '@/components/Icon';
 import { api, errorMessage } from '@/api/client';
 
 export function SettingsPage() {
@@ -65,22 +66,52 @@ export function SettingsPage() {
 
   return (
     <Box>
-      <PageHeader title="Settings" subtitle="Application-wide configuration" crumbs={[{ label: 'Home', to: '/' }, { label: 'Settings' }]} />
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardHeader title="General" />
+      <PageHeader
+        title="Settings"
+        subtitle="Application-wide configuration"
+        crumbs={[{ label: 'Home', to: '/' }, { label: 'Settings' }]}
+        action={
+          <Button variant="contained" startIcon={<Icon name="TaskAlt" />} onClick={submit} disabled={save.isPending}>
+            {save.isPending ? 'Saving…' : 'Save changes'}
+          </Button>
+        }
+      />
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 2 }}>
+        <Box sx={{ gridColumn: { xs: 'span 12', md: 'span 6' } }}>
+          <Card sx={{ height: '100%' }}>
+            <CardHeader title="Branding" subheader="What staff see in the top bar and sidebar" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+            <Divider />
             <CardContent>
               <Stack spacing={2}>
                 <TextField label="Application name" value={form.appName ?? ''} onChange={(e) => set('appName', e.target.value)} />
                 <TextField label="Constituency name" value={form.constituencyName ?? ''} onChange={(e) => set('constituencyName', e.target.value)} />
-                <Divider />
-                <Typography variant="subtitle2">ID formats</Typography>
-                <TextField label="File ID format" value={form.fileIdFormat ?? ''} onChange={(e) => set('fileIdFormat', e.target.value)} helperText="Tokens: {YYYY} {YY} {MM} {SEQ:n}. e.g. MLA/{YYYY}/{SEQ:6}" />
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Box sx={{ gridColumn: { xs: 'span 12', md: 'span 6' } }}>
+          <Card sx={{ height: '100%' }}>
+            <CardHeader title="ID Formats" subheader="Tokens: {YYYY} {YY} {MM} {SEQ:n}" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+            <Divider />
+            <CardContent>
+              <Stack spacing={2}>
+                <TextField label="File ID format" value={form.fileIdFormat ?? ''} onChange={(e) => set('fileIdFormat', e.target.value)} helperText="e.g. MLA/{YYYY}/{SEQ:6}" />
                 <TextField label="Request ID format" value={form.requestIdFormat ?? ''} onChange={(e) => set('requestIdFormat', e.target.value)} />
                 <TextField label="Document ID format" value={form.documentIdFormat ?? ''} onChange={(e) => set('documentIdFormat', e.target.value)} />
                 <TextField label="MLA Letter no. format" value={form.letterNoFormat ?? ''} onChange={(e) => set('letterNoFormat', e.target.value)} helperText="e.g. MLA-LTR/{YYYY}/{SEQ:4}" />
-                <Divider />
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Box sx={{ gridColumn: { xs: 'span 12', md: 'span 8' } }}>
+          <Card>
+            <CardHeader title="Regional & Limits" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+            <Divider />
+            <CardContent>
+              <Stack spacing={2}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <TextField fullWidth label="Date format" value={form.dateFormat ?? ''} onChange={(e) => set('dateFormat', e.target.value)} />
                   <TextField fullWidth label="Timezone" value={form.timezone ?? ''} onChange={(e) => set('timezone', e.target.value)} />
@@ -94,15 +125,31 @@ export function SettingsPage() {
                   value={Array.isArray(form.allowedFileTypes) ? form.allowedFileTypes.join(', ') : form.allowedFileTypes ?? ''}
                   onChange={(e) => set('allowedFileTypes', e.target.value)}
                 />
-                <Box>
-                  <Button variant="contained" onClick={submit} disabled={save.isPending}>Save settings</Button>
-                </Box>
               </Stack>
             </CardContent>
           </Card>
+        </Box>
 
-          <Card sx={{ mt: 2 }}>
-            <CardHeader title="Notifications" subheader="How departments and officers are alerted when a request is routed to them" />
+        <Box sx={{ gridColumn: { xs: 'span 12', md: 'span 4' } }}>
+          <Card sx={{ height: '100%' }}>
+            <CardHeader title="Backup status" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+            <Divider />
+            <CardContent>
+              <Typography variant="body2">Last backup: <b>{backup.data?.lastBackupAt ? new Date(backup.data.lastBackupAt).toLocaleString() : 'Never'}</b></Typography>
+              <Typography variant="body2">Status: <b>{backup.data?.lastBackupStatus ?? '—'}</b></Typography>
+              {!backup.data?.configured && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  {backup.data?.note ?? 'Automated backup is not configured.'}
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Box sx={{ gridColumn: 'span 12' }}>
+          <Card>
+            <CardHeader title="Notifications" subheader="How departments and officers are alerted when a request is routed to them" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+            <Divider />
             <CardContent>
               <Stack spacing={1}>
                 <FormControlLabel
@@ -148,22 +195,12 @@ export function SettingsPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
+        </Box>
+
+        <Box sx={{ gridColumn: 'span 12' }}>
           <Card>
-            <CardHeader title="Backup status" />
-            <CardContent>
-              <Typography variant="body2">Last backup: <b>{backup.data?.lastBackupAt ? new Date(backup.data.lastBackupAt).toLocaleString() : 'Never'}</b></Typography>
-              <Typography variant="body2">Status: <b>{backup.data?.lastBackupStatus ?? '—'}</b></Typography>
-              {!backup.data?.configured && (
-                <Alert severity="warning" sx={{ mt: 2 }}>
-                  {backup.data?.note ?? 'Automated backup is not configured.'}
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-          <Card sx={{ mt: 2 }}>
-            <CardHeader title="Masters" />
+            <CardHeader title="Masters" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
+            <Divider />
             <CardContent>
               <Typography variant="body2" color="text.secondary">
                 Departments, wards, Gram Panchayats, villages, categories, statuses and priorities are all managed from their own
@@ -171,8 +208,8 @@ export function SettingsPage() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 }

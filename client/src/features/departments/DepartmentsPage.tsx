@@ -22,10 +22,11 @@ export function DepartmentsPage() {
       path="/departments"
       writePermission={PERMISSIONS.DEPARTMENT_MANAGE}
       crumbs={[{ label: 'Home', to: '/' }, { label: 'Departments' }]}
+      viewStorageKey="departments"
       fields={fields}
       columns={[
-        { field: 'code', headerName: 'Code', width: 110 },
         { field: 'name', headerName: 'Department', flex: 1, minWidth: 200 },
+        { field: 'code', headerName: 'Code', width: 110 },
         { field: 'headName', headerName: 'Head', width: 160 },
         { field: 'contactNumber', headerName: 'Contact', width: 140 },
         {

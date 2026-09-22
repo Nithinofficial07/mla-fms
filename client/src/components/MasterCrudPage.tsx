@@ -32,10 +32,12 @@ interface Props {
   writePermission: string;
   baseFilter?: Record<string, string>;
   crumbs?: { label: string; to?: string }[];
+  /** Offers a Table/Cards toggle above the list (persisted under this key). Omit to stay table-only. */
+  viewStorageKey?: string;
 }
 
 export function MasterCrudPage({
-  title, subtitle, path, columns, fields, writePermission, baseFilter = {}, crumbs,
+  title, subtitle, path, columns, fields, writePermission, baseFilter = {}, crumbs, viewStorageKey,
 }: Props) {
   const { can } = useAuth();
   const canWrite = can(writePermission);
@@ -148,6 +150,7 @@ export function MasterCrudPage({
           rowCount={list.data?.total ?? 0}
           paginationModel={page}
           onPaginationModelChange={setPage}
+          viewStorageKey={viewStorageKey}
         />
       )}
 

@@ -92,6 +92,7 @@ export function LetterListPage() {
           onPaginationModelChange={setPage}
           onRowClick={(p) => setQuickViewId(String(p.id))}
           sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
+          viewStorageKey="letters"
         />
       )}
 

@@ -10,7 +10,7 @@ import {
   HourglassEmpty, Inbox, Label, ListAlt, Mail, Menu, NoteAdd, Notifications, NotificationsNone,
   PersonAdd, PhotoCamera, PhotoLibrary, PictureAsPdf, Place, PriorityHigh, Print,
   ReportProblem, Rotate90DegreesCw, Search, SearchOff, Send, Settings, Spa, SwapHoriz,
-  TableView, TaskAlt, Timeline, Today, Tune, UploadFile, Videocam, ViewList, Visibility,
+  TableView, TaskAlt, Timeline, Today, Tune, UploadFile, Videocam, ViewList, ViewModule, Visibility,
 } from '@mui/icons-material';
 
 /** Explicit registry — keeps the production bundle from pulling every MUI icon. */
@@ -24,7 +24,7 @@ const REGISTRY: Record<string, ComponentType<SvgIconProps>> = {
   HourglassEmpty, Inbox, Label, ListAlt, Mail, Menu, NoteAdd, Notifications, NotificationsNone,
   PersonAdd, PhotoCamera, PhotoLibrary, PictureAsPdf, Place, PriorityHigh, Print,
   ReportProblem, Rotate90DegreesCw, Search, SearchOff, Send, Settings, Spa, SwapHoriz,
-  TableView, TaskAlt, Timeline, Today, Tune, UploadFile, Videocam, ViewList, Visibility,
+  TableView, TaskAlt, Timeline, Today, Tune, UploadFile, Videocam, ViewList, ViewModule, Visibility,
 };
 
 export function Icon({ name, ...props }: { name: string } & SvgIconProps) {

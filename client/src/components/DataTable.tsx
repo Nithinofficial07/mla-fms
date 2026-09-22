@@ -2,9 +2,11 @@ import { Fragment, type ReactNode } from 'react';
 import { DataGrid, type DataGridProps, type GridColDef } from '@mui/x-data-grid';
 import {
   Box, Card, CardActionArea, CardActions, CardContent, Divider, Paper, Skeleton,
-  Stack, TablePagination, Typography, useMediaQuery,
+  Stack, TablePagination, ToggleButton, ToggleButtonGroup, Tooltip, Typography, useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { Icon } from './Icon';
+import { useViewMode, type ViewMode } from '@/hooks/useViewMode';
 
 type Row = { id?: string; _id?: string } & Record<string, unknown>;
 
@@ -30,11 +32,14 @@ function cell(col: GridColDef, row: Row): ReactNode {
 }
 
 /**
- * On phones a horizontally-scrolling grid is unusable, so each row becomes a
- * tap-through card: the first column is the title, the rest are label/value
- * pairs, and any action column drops to a footer.
+ * Renders rows as tap-through cards instead of a grid: the first column is
+ * the title, the rest are label/value pairs, and any action column drops to
+ * a footer. Used unconditionally on phones (a horizontally-scrolling grid is
+ * unusable there) and as the opt-in "Cards" view everywhere else - a
+ * responsive CSS grid gives one column on a narrow viewport and several on
+ * a wide one, so the same rendering serves both cases.
  */
-function MobileList<R extends Row>({
+function CardListView<R extends Row>({
   rows, columns, loading, hideFooter, rowCount, paginationModel, onPaginationModelChange, onRowClick,
 }: {
   rows: R[];
@@ -52,9 +57,9 @@ function MobileList<R extends Row>({
 
   if (loading && rows.length === 0) {
     return (
-      <Stack spacing={1.5}>
-        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} variant="rounded" height={104} />)}
-      </Stack>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1.5 }}>
+        {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} variant="rounded" height={104} />)}
+      </Box>
     );
   }
 
@@ -68,11 +73,11 @@ function MobileList<R extends Row>({
 
   return (
     <Box>
-      <Stack spacing={1.25}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1.5 }}>
         {rows.map((row) => {
           const id = rowId(row);
           const body = (
-            <CardContent sx={{ pb: actionCols.length ? 1 : 1.5 }}>
+            <CardContent sx={{ pb: actionCols.length ? 1 : 1.5, height: '100%' }}>
               {titleCol && (
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: restCols.length ? 1 : 0, wordBreak: 'break-word' }}>
                   {cell(titleCol, row) || '—'}
@@ -102,9 +107,9 @@ function MobileList<R extends Row>({
           );
 
           return (
-            <Card key={id} variant="outlined">
+            <Card key={id} variant="outlined" sx={{ display: 'flex', flexDirection: 'column' }}>
               {onRowClick ? (
-                <CardActionArea onClick={() => onRowClick({ id, row } as never, {} as never, {} as never)}>
+                <CardActionArea onClick={() => onRowClick({ id, row } as never, {} as never, {} as never)} sx={{ flex: 1 }}>
                   {body}
                 </CardActionArea>
               ) : (
@@ -123,7 +128,7 @@ function MobileList<R extends Row>({
             </Card>
           );
         })}
-      </Stack>
+      </Box>
 
       {!hideFooter && paginationModel && onPaginationModelChange && (
         <TablePagination
@@ -145,47 +150,78 @@ function MobileList<R extends Row>({
 /**
  * Thin wrapper over MUI X DataGrid tuned for server-side paginated lists.
  * Pass `rowCount`, `paginationModel`, `onPaginationModelChange`, `loading`.
- * On screens below `sm` it renders a stacked card list instead of the grid.
+ * On screens below `sm` it always renders a stacked card list instead of the
+ * grid. Pass `viewStorageKey` to also offer a Table/Cards toggle on wider
+ * screens (persisted per-browser under that key) - omit it to keep a list
+ * table-only above the mobile breakpoint, as before.
  */
 export function DataTable<R extends Row>(
-  props: Omit<DataGridProps<R>, 'columns'> & { columns: GridColDef<R>[] },
+  props: Omit<DataGridProps<R>, 'columns'> & { columns: GridColDef<R>[]; viewStorageKey?: string },
 ) {
+  const { viewStorageKey, ...gridProps } = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [viewMode, setViewMode] = useViewMode(viewStorageKey ?? 'unset');
 
-  if (isMobile) {
+  const showCards = isMobile || (!!viewStorageKey && viewMode === 'cards');
+
+  const toggle = viewStorageKey && !isMobile && (
+    <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
+      <ToggleButtonGroup
+        size="small"
+        exclusive
+        value={viewMode}
+        onChange={(_e, v: ViewMode | null) => v && setViewMode(v)}
+      >
+        <ToggleButton value="table">
+          <Tooltip title="Table view"><Icon name="ViewList" /></Tooltip>
+        </ToggleButton>
+        <ToggleButton value="cards">
+          <Tooltip title="Card view"><Icon name="ViewModule" /></Tooltip>
+        </ToggleButton>
+      </ToggleButtonGroup>
+    </Stack>
+  );
+
+  if (showCards) {
     return (
-      <MobileList
-        rows={(props.rows ?? []) as R[]}
-        columns={props.columns}
-        loading={props.loading}
-        hideFooter={props.hideFooter}
-        rowCount={props.rowCount}
-        paginationModel={props.paginationModel as { page: number; pageSize: number } | undefined}
-        onPaginationModelChange={props.onPaginationModelChange as never}
-        onRowClick={props.onRowClick}
-      />
+      <Box>
+        {toggle}
+        <CardListView
+          rows={(gridProps.rows ?? []) as R[]}
+          columns={gridProps.columns}
+          loading={gridProps.loading}
+          hideFooter={gridProps.hideFooter}
+          rowCount={gridProps.rowCount}
+          paginationModel={gridProps.paginationModel as { page: number; pageSize: number } | undefined}
+          onPaginationModelChange={gridProps.onPaginationModelChange as never}
+          onRowClick={gridProps.onRowClick}
+        />
+      </Box>
     );
   }
 
   return (
-    <Paper variant="outlined" sx={{ height: 620, width: '100%' }}>
-      <DataGrid
-        getRowId={(row) => (row.id ?? row._id) as string}
-        disableColumnMenu
-        disableRowSelectionOnClick
-        pageSizeOptions={[10, 25, 50, 100]}
-        paginationMode="server"
-        sortingMode="server"
-        filterMode="server"
-        density="standard"
-        sx={{
-          border: 0,
-          '& .MuiDataGrid-columnHeaders': { bgcolor: 'background.default' },
-          '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': { outline: 'none' },
-        }}
-        {...props}
-      />
-    </Paper>
+    <Box>
+      {toggle}
+      <Paper variant="outlined" sx={{ height: 620, width: '100%' }}>
+        <DataGrid
+          getRowId={(row) => (row.id ?? row._id) as string}
+          disableColumnMenu
+          disableRowSelectionOnClick
+          pageSizeOptions={[10, 25, 50, 100]}
+          paginationMode="server"
+          sortingMode="server"
+          filterMode="server"
+          density="standard"
+          sx={{
+            border: 0,
+            '& .MuiDataGrid-columnHeaders': { bgcolor: 'background.default' },
+            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': { outline: 'none' },
+          }}
+          {...gridProps}
+        />
+      </Paper>
+    </Box>
   );
 }
