@@ -69,6 +69,15 @@ function buildTheme(mode: 'light' | 'dark'): Theme {
             0% { opacity: 0.4; }
             100% { opacity: 1; }
           }
+          @keyframes confettiFall {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--dx, 0px), 220px) rotate(var(--dr, 180deg)); opacity: 0; }
+          }
+          @keyframes checkPop {
+            0% { transform: scale(0.4); opacity: 0; }
+            60% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+          }
         `,
       },
       MuiPaper: {

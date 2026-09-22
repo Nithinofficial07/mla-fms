@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  AppBar, Avatar, Badge, Box, Chip, Collapse, Divider, Drawer, IconButton, List,
+  AppBar, Avatar, Box, Chip, Collapse, Divider, Drawer, IconButton, List,
   ListItemButton, ListItemIcon, ListItemText, Menu, MenuItem, Toolbar, Tooltip, Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
@@ -12,6 +12,7 @@ import { NAV, type NavItem } from '@/routes/nav';
 import { useAuth } from '@/app/AuthProvider';
 import { useOnlineStatus } from '@/app/useOnlineStatus';
 import { useThemeMode } from '@/app/ThemeModeProvider';
+import { CommandPalette, openCommandPalette } from '@/components/CommandPalette';
 import { api } from '@/api/client';
 import { chrome } from '@/theme';
 
@@ -132,6 +133,33 @@ export function AppShell() {
           <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1, fontSize: { xs: '0.95rem', sm: '1rem' }, color: '#fff' }} noWrap>
             {settings?.constituencyName || 'Constituency'}
           </Typography>
+          <Tooltip title="Search everything (Ctrl+K)">
+            <Box
+              onClick={openCommandPalette}
+              sx={{
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'center',
+                gap: 1,
+                cursor: 'pointer',
+                bgcolor: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: 2,
+                px: 1.5,
+                py: 0.5,
+                color: 'rgba(255,255,255,0.85)',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+              }}
+            >
+              <Icon name="Search" fontSize="small" />
+              <Typography variant="caption">Search…</Typography>
+              <Typography variant="caption" sx={{ border: '1px solid rgba(255,255,255,0.4)', borderRadius: 0.75, px: 0.5, ml: 1 }}>
+                Ctrl K
+              </Typography>
+            </Box>
+          </Tooltip>
+          <IconButton onClick={openCommandPalette} sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#fff' }}>
+            <Icon name="Search" />
+          </IconButton>
           <Chip
             size="small"
             icon={<Icon name={online ? 'CloudDone' : 'CloudOff'} sx={{ color: 'inherit !important' }} />}
@@ -208,6 +236,8 @@ export function AppShell() {
           <Outlet />
         </Box>
       </Box>
+
+      <CommandPalette />
     </Box>
   );
 }

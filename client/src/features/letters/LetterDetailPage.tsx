@@ -14,12 +14,15 @@ import { DetailField } from '@/components/DetailField';
 import { DocumentUploader } from '@/components/DocumentUploader';
 import { DocumentList } from '@/components/DocumentList';
 import { TimelineView } from '@/components/TimelineView';
+import { Confetti } from '@/components/Confetti';
 import { api, errorMessage } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 
 const STATUS_COLOR: Record<string, 'default' | 'info' | 'primary' | 'success' | 'warning'> = {
   DRAFT: 'default', ISSUED: 'info', DISPATCHED: 'primary', REPLIED: 'warning', CLOSED: 'success',
 };
+
+const CELEBRATE_STATUSES = ['ISSUED', 'CLOSED'];
 
 export function LetterDetailPage() {
   const { id = '' } = useParams();
@@ -29,6 +32,7 @@ export function LetterDetailPage() {
   const [tab, setTab] = useState(0);
   const [status, setStatus] = useState('');
   const [remark, setRemark] = useState('');
+  const [celebrate, setCelebrate] = useState(false);
 
   const detail = useQuery({ queryKey: ['letters', 'one', id], queryFn: () => api.get(`/letters/${id}`).then((r) => r.data) });
   const timeline = useQuery({ queryKey: ['letters', id, 'timeline'], queryFn: () => api.get(`/letters/${id}/timeline`).then((r) => r.data) });
@@ -43,7 +47,11 @@ export function LetterDetailPage() {
 
   const setStatusM = useMutation({
     mutationFn: (s: string) => api.post(`/letters/${id}/status`, { status: s }),
-    onSuccess: () => { enqueueSnackbar('Status updated', { variant: 'success' }); refresh(); },
+    onSuccess: (_data, s) => {
+      enqueueSnackbar('Status updated', { variant: 'success' });
+      if (CELEBRATE_STATUSES.includes(s)) setCelebrate(true);
+      refresh();
+    },
     onError: (e) => enqueueSnackbar(errorMessage(e), { variant: 'error' }),
   });
   const addRemark = useMutation({
@@ -194,6 +202,7 @@ export function LetterDetailPage() {
         </Card>
       )}
       </Box>
+      {celebrate && <Confetti onDone={() => setCelebrate(false)} />}
     </Box>
   );
 }

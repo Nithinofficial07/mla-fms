@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { EmptyState } from '@/components/EmptyState';
+import { EmptyBoxIllustration } from '@/components/illustrations/Illustrations';
 import { Icon } from '@/components/Icon';
 import { StatusChip, PriorityChip } from '@/components/chips';
 import { api, errorMessage } from '@/api/client';
@@ -171,7 +172,7 @@ export function RequestListPage() {
 
       {data && data.total === 0 ? (
         <EmptyState
-          icon="SearchOff"
+          illustration={EmptyBoxIllustration}
           title="No requests found"
           description="Try clearing filters, or create a new request."
           action={can(PERMISSIONS.REQUEST_CREATE) && <Button variant="contained" onClick={() => navigate('/requests/new')}>New Request</Button>}

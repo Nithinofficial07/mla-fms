@@ -7,6 +7,7 @@ import { LETTER_STATUSES, PERMISSIONS } from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { EmptyState } from '@/components/EmptyState';
+import { EmptyBoxIllustration } from '@/components/illustrations/Illustrations';
 import { Icon } from '@/components/Icon';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
@@ -81,7 +82,7 @@ export function LetterListPage() {
       </Stack>
 
       {data && data.total === 0 ? (
-        <EmptyState icon="Drafts" title="No letters yet" description="Create the first MLA letter." action={can(PERMISSIONS.LETTER_CREATE) && <Button variant="contained" onClick={() => navigate('/letters/new')}>New Letter</Button>} />
+        <EmptyState illustration={EmptyBoxIllustration} title="No letters yet" description="Create the first MLA letter." action={can(PERMISSIONS.LETTER_CREATE) && <Button variant="contained" onClick={() => navigate('/letters/new')}>New Letter</Button>} />
       ) : (
         <DataTable
           rows={data?.data ?? []}

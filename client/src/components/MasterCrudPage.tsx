@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from './PageHeader';
 import { DataTable } from './DataTable';
 import { EmptyState } from './EmptyState';
+import { EmptyBoxIllustration } from './illustrations/Illustrations';
 import { Icon } from './Icon';
 import { useConfirm } from './ConfirmDialog';
 import { useResource } from '@/hooks/useResourceList';
@@ -137,7 +138,7 @@ export function MasterCrudPage({
 
       {list.data && list.data.total === 0 && !search ? (
         <EmptyState
-          icon="Inbox"
+          illustration={EmptyBoxIllustration}
           title={`No ${title.toLowerCase()} yet`}
           description="Add the first record, or use bulk import where available."
           action={canWrite && <Button variant="contained" onClick={openCreate}>Add {title.replace(/s$/, '')}</Button>}

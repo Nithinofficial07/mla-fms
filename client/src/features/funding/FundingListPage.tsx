@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { EmptyState } from '@/components/EmptyState';
+import { EmptyBoxIllustration } from '@/components/illustrations/Illustrations';
 import { Icon } from '@/components/Icon';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
@@ -67,7 +68,7 @@ export function FundingListPage() {
 
       {data && data.total === 0 ? (
         <EmptyState
-          icon="AttachMoney"
+          illustration={EmptyBoxIllustration}
           title="No funding requests yet"
           description="Pick a department from the Funding page to submit the first one."
           action={<Button variant="contained" onClick={() => navigate('/funding')}>Go to Funding</Button>}

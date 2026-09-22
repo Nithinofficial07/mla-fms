@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { PageHeader } from '@/components/PageHeader';
 import { Icon } from '@/components/Icon';
+import { Confetti } from '@/components/Confetti';
 import { api, errorMessage } from '@/api/client';
 import { useDepartments } from '@/hooks/useOptions';
 
@@ -16,6 +17,7 @@ export function FundingCreatePage() {
   const [subject, setSubject] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
 
   const department = departments.data?.find((d) => d.id === departmentId);
 
@@ -23,7 +25,8 @@ export function FundingCreatePage() {
     mutationFn: () => api.post('/funding', { departmentId, subject, address }).then((r) => r.data),
     onSuccess: (data) => {
       enqueueSnackbar(`Created ${data.fundingRequestId}`, { variant: 'success' });
-      navigate(`/funding/${data.id}`);
+      setCelebrate(true);
+      setTimeout(() => navigate(`/funding/${data.id}`), 700);
     },
     onError: (e) => setError(errorMessage(e)),
   });
@@ -96,6 +99,7 @@ export function FundingCreatePage() {
           </CardContent>
         </Card>
       )}
+      {celebrate && <Confetti onDone={() => setCelebrate(false)} />}
     </Box>
   );
 }

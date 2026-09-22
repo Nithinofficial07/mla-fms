@@ -14,11 +14,14 @@ import { StatusChip, PriorityChip } from '@/components/chips';
 import { DocumentUploader } from '@/components/DocumentUploader';
 import { DocumentList } from '@/components/DocumentList';
 import { TimelineView } from '@/components/TimelineView';
+import { Confetti } from '@/components/Confetti';
 import { api, errorMessage } from '@/api/client';
 import { openViaApi } from '@/lib/download';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments, useStatuses } from '@/hooks/useOptions';
 import { PERMISSIONS } from '@mla/shared';
+
+const CELEBRATE_STATUSES = ['COMPLETED', 'APPROVED', 'CLOSED'];
 
 export function RequestDetailPage() {
   const { id = '' } = useParams();
@@ -29,6 +32,7 @@ export function RequestDetailPage() {
   const [remark, setRemark] = useState('');
   const [nextStatus, setNextStatus] = useState('');
   const [assignDept, setAssignDept] = useState('');
+  const [celebrate, setCelebrate] = useState(false);
 
   const departments = useDepartments();
   const statuses = useStatuses();
@@ -53,7 +57,15 @@ export function RequestDetailPage() {
     });
 
   const addRemark = useAct(() => api.post(`/requests/${id}/remarks`, { body: remark }), 'Remark added');
-  const changeStatus = useAct(() => api.post(`/requests/${id}/status`, { toStatusCode: nextStatus, remark: remark || undefined }), 'Status updated');
+  const changeStatus = useMutation({
+    mutationFn: () => api.post(`/requests/${id}/status`, { toStatusCode: nextStatus, remark: remark || undefined }),
+    onSuccess: () => {
+      enqueueSnackbar('Status updated', { variant: 'success' });
+      if (CELEBRATE_STATUSES.includes(nextStatus)) setCelebrate(true);
+      refresh();
+    },
+    onError: (e) => enqueueSnackbar(errorMessage(e), { variant: 'error' }),
+  });
   const assign = useAct(() => api.post(`/requests/${id}/assign`, { departmentId: assignDept, remark: remark || undefined }), 'Assigned');
   const forward = useAct(() => api.post(`/requests/${id}/forward`, { departmentId: assignDept, remark: remark || undefined }), 'Forwarded');
 
@@ -252,6 +264,7 @@ export function RequestDetailPage() {
         </Grid>
       )}
       </Box>
+      {celebrate && <Confetti onDone={() => setCelebrate(false)} />}
     </Box>
   );
 }
