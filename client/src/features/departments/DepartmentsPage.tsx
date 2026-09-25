@@ -1,6 +1,10 @@
-import { Chip } from '@mui/material';
+import { useState } from 'react';
+import { Button, Chip } from '@mui/material';
 import { PERMISSIONS } from '@mla/shared';
 import { MasterCrudPage, type FieldDef } from '@/components/MasterCrudPage';
+import { Icon } from '@/components/Icon';
+import { useAuth } from '@/app/AuthProvider';
+import { SetMinistriesDialog } from './SetMinistriesDialog';
 
 const fields: FieldDef[] = [
   { name: 'code', label: 'Department code', required: true },
@@ -16,6 +20,9 @@ const fields: FieldDef[] = [
 ];
 
 export function DepartmentsPage() {
+  const { can } = useAuth();
+  const [ministriesOpen, setMinistriesOpen] = useState(false);
+
   return (
     <MasterCrudPage
       title="Departments"
@@ -24,6 +31,16 @@ export function DepartmentsPage() {
       writePermission={PERMISSIONS.DEPARTMENT_MANAGE}
       crumbs={[{ label: 'Home', to: '/' }, { label: 'Departments' }]}
       viewStorageKey="departments"
+      extraAction={
+        can(PERMISSIONS.DEPARTMENT_MANAGE) && (
+          <>
+            <Button variant="outlined" startIcon={<Icon name="AccountBalance" />} onClick={() => setMinistriesOpen(true)}>
+              Set Ministries (Govt. of Karnataka)
+            </Button>
+            <SetMinistriesDialog open={ministriesOpen} onClose={() => setMinistriesOpen(false)} />
+          </>
+        )
+      }
       fields={fields}
       columns={[
         { field: 'name', headerName: 'Department', flex: 1, minWidth: 200 },

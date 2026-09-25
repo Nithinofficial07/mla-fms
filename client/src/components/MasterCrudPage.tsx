@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
   MenuItem, Stack, Switch, TextField,
@@ -35,10 +35,12 @@ interface Props {
   crumbs?: { label: string; to?: string }[];
   /** Offers a Table/Cards toggle above the list (persisted under this key). Omit to stay table-only. */
   viewStorageKey?: string;
+  /** Extra button(s) rendered next to "Add" in the page header (e.g. a bulk utility specific to this resource). */
+  extraAction?: ReactNode;
 }
 
 export function MasterCrudPage({
-  title, subtitle, path, columns, fields, writePermission, baseFilter = {}, crumbs, viewStorageKey,
+  title, subtitle, path, columns, fields, writePermission, baseFilter = {}, crumbs, viewStorageKey, extraAction,
 }: Props) {
   const { can } = useAuth();
   const canWrite = can(writePermission);
@@ -119,10 +121,15 @@ export function MasterCrudPage({
         subtitle={subtitle}
         crumbs={crumbs}
         action={
-          canWrite && (
-            <Button variant="contained" startIcon={<Icon name="Add" />} onClick={openCreate}>
-              Add {title.replace(/s$/, '')}
-            </Button>
+          (canWrite || extraAction) && (
+            <Stack direction="row" spacing={1}>
+              {extraAction}
+              {canWrite && (
+                <Button variant="contained" startIcon={<Icon name="Add" />} onClick={openCreate}>
+                  Add {title.replace(/s$/, '')}
+                </Button>
+              )}
+            </Stack>
           )
         }
       />
