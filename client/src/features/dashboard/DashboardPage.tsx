@@ -13,9 +13,10 @@ import { StatCard } from '@/components/StatCard';
 import { ChartCard } from '@/components/ChartCard';
 import { ConstituencyMap } from '@/components/ConstituencyMap';
 import { DataTable } from '@/components/DataTable';
+import { DateRangeQuickFilter } from '@/components/DateRangeQuickFilter';
 import { StatusChip, PriorityChip } from '@/components/chips';
 import { Icon } from '@/components/Icon';
-import { RequestQuickView } from '@/features/requests/RequestQuickView';
+import { RequestDetailDialog } from '@/features/requests/RequestDetailDialog';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 
@@ -57,10 +58,16 @@ export function DashboardPage() {
     itemStyle: { color: theme.palette.text.primary, fontWeight: 600 },
   };
 
-  const [quickViewId, setQuickViewId] = useState<string | null>(null);
-  const stats = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: () => api.get('/dashboard/stats').then((r) => r.data) });
-  const charts = useQuery({ queryKey: ['dashboard', 'charts'], queryFn: () => api.get('/dashboard/charts').then((r) => r.data) });
-  const recent = useQuery({ queryKey: ['dashboard', 'recent'], queryFn: () => api.get('/dashboard/recent').then((r) => r.data) });
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const dateParams: Record<string, string> = {};
+  if (from) dateParams.from = from;
+  if (to) dateParams.to = to;
+
+  const stats = useQuery({ queryKey: ['dashboard', 'stats', dateParams], queryFn: () => api.get('/dashboard/stats', { params: dateParams }).then((r) => r.data) });
+  const charts = useQuery({ queryKey: ['dashboard', 'charts', dateParams], queryFn: () => api.get('/dashboard/charts', { params: dateParams }).then((r) => r.data) });
+  const recent = useQuery({ queryKey: ['dashboard', 'recent', dateParams], queryFn: () => api.get('/dashboard/recent', { params: dateParams }).then((r) => r.data) });
 
   const s = stats.data ?? {};
   const monthlyData: { label: string; value: number }[] = charts.data?.monthly ?? [];
@@ -164,6 +171,10 @@ export function DashboardPage() {
           </Stack>
         }
       />
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 2.5 }}>
+        <DateRangeQuickFilter from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
+      </Stack>
 
       {/* Needs Immediate Attention (Priority Triage) Banner */}
       {hasUrgentAttention && (
@@ -382,7 +393,7 @@ export function DashboardPage() {
                 loading={recent.isLoading}
                 rowCount={recent.data?.length ?? 0}
                 hideFooter
-                onRowClick={(p) => setQuickViewId(String(p.id))}
+                onRowClick={(p) => setDetailId(String(p.id))}
                 sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
               />
             </CardContent>
@@ -390,7 +401,7 @@ export function DashboardPage() {
         </Bento>
       </Box>
 
-      <RequestQuickView id={quickViewId} onClose={() => setQuickViewId(null)} />
+      <RequestDetailDialog id={detailId} onClose={() => setDetailId(null)} />
     </Box>
   );
 }

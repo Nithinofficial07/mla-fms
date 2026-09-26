@@ -14,25 +14,32 @@ const PENDING_CODES = ['SUBMITTED', 'UNDER_REVIEW', 'ASSIGNED', 'FORWARDED', 'IN
 const router = Router();
 router.use(authenticate, requirePermission(PERMISSIONS.DASHBOARD_VIEW));
 
-/** Officer scoping: department officers see only their department's slice. */
-function scope(auth: Express.AuthContext): Record<string, unknown> {
+/** Officer scoping: department officers see only their department's slice, plus an optional date-range filter shared by all dashboard widgets. */
+function scope(auth: Express.AuthContext, query: Record<string, unknown> = {}): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
   if (auth.roleCode === 'DEPARTMENT_OFFICER' && auth.departmentId) {
-    return {
-      $or: [
-        { primaryDepartmentId: auth.departmentId },
-        { secondaryDepartmentId: auth.departmentId },
-        { assignedOfficerId: auth.userId },
-      ],
-    };
+    filter.$or = [
+      { primaryDepartmentId: auth.departmentId },
+      { secondaryDepartmentId: auth.departmentId },
+      { assignedOfficerId: auth.userId },
+    ];
   }
-  return {};
+  const from = query.from ? new Date(String(query.from)) : undefined;
+  const to = query.to ? new Date(String(query.to)) : undefined;
+  if (from || to) {
+    const createdAt: Record<string, Date> = {};
+    if (from && !Number.isNaN(from.getTime())) createdAt.$gte = from;
+    if (to && !Number.isNaN(to.getTime())) createdAt.$lte = to;
+    if (Object.keys(createdAt).length) filter.createdAt = createdAt;
+  }
+  return filter;
 }
 
 /** GET /api/dashboard/stats - all numbers come from live aggregation. */
 router.get(
   '/stats',
   asyncHandler(async (req, res) => {
-    const base = scope(req.auth!);
+    const base = scope(req.auth!, req.query as Record<string, unknown>);
     const startOfToday = dayjs().startOf('day').toDate();
     const terminal = (await RequestStatus.find({ isTerminal: true }).select('code').lean()).map((s) => s.code);
 
@@ -72,7 +79,7 @@ router.get(
 router.get(
   '/charts',
   asyncHandler(async (req, res) => {
-    const base = scope(req.auth!);
+    const base = scope(req.auth!, req.query as Record<string, unknown>);
     const [byDepartment, byStatus, monthly, byWard, byGramPanchayat] = await Promise.all([
       RequestModel.aggregate([
         { $match: base },
@@ -122,7 +129,7 @@ router.get(
 router.get(
   '/recent',
   asyncHandler(async (req, res) => {
-    const rows = await RequestModel.find(scope(req.auth!))
+    const rows = await RequestModel.find(scope(req.auth!, req.query as Record<string, unknown>))
       .sort('-createdAt')
       .limit(10)
       .populate(['statusId', 'priorityId', 'primaryDepartmentId'])

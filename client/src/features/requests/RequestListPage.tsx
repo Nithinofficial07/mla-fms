@@ -10,6 +10,7 @@ import { useSnackbar } from 'notistack';
 import dayjs from 'dayjs';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
+import { DateRangeQuickFilter } from '@/components/DateRangeQuickFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { EmptyBoxIllustration } from '@/components/illustrations/Illustrations';
 import { Icon } from '@/components/Icon';
@@ -19,7 +20,7 @@ import { downloadViaApi } from '@/lib/download';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments, useStatuses, usePriorities } from '@/hooks/useOptions';
 import { useViewMode, type ViewMode } from '@/hooks/useViewMode';
-import { RequestQuickView } from './RequestQuickView';
+import { RequestDetailDialog } from './RequestDetailDialog';
 import { RequestKanbanView } from './RequestKanbanView';
 import { PERMISSIONS } from '@mla/shared';
 
@@ -42,7 +43,7 @@ export function RequestListPage() {
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [quickViewId, setQuickViewId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const departments = useDepartments();
   const statuses = useStatuses();
@@ -56,7 +57,7 @@ export function RequestListPage() {
       sort: '-createdAt',
     };
     if (search) p.search = search;
-    for (const k of ['statusCode', 'priorityId', 'departmentId', 'wardId', 'gramPanchayatId', 'overdue']) {
+    for (const k of ['statusCode', 'priorityId', 'departmentId', 'wardId', 'gramPanchayatId', 'overdue', 'from', 'to']) {
       const v = sp.get(k);
       if (v) p[k] = v;
     }
@@ -88,7 +89,7 @@ export function RequestListPage() {
     setSp(next);
   };
 
-  const FILTER_KEYS = ['statusCode', 'priorityId', 'departmentId', 'wardId', 'gramPanchayatId', 'overdue', 'bucket'];
+  const FILTER_KEYS = ['statusCode', 'priorityId', 'departmentId', 'wardId', 'gramPanchayatId', 'overdue', 'bucket', 'from', 'to'];
   const activeFilters = FILTER_KEYS.filter((k) => sp.get(k)).length;
   const clearFilters = () => {
     const next = new URLSearchParams(sp);
@@ -109,7 +110,7 @@ export function RequestListPage() {
     {
       field: 'actions', headerName: '', width: 90, sortable: false,
       renderCell: (p: any) => (
-        <Button size="small" onClick={(e) => { e.stopPropagation(); navigate(`/requests/${p.row.id}`); }}>
+        <Button size="small" onClick={(e) => { e.stopPropagation(); setDetailId(p.row.id); }}>
           Open
         </Button>
       ),
@@ -197,6 +198,17 @@ export function RequestListPage() {
             <MenuItem value="">All Priorities</MenuItem>
             {(priorities.data ?? []).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
+          <DateRangeQuickFilter
+            from={sp.get('from') ?? ''}
+            to={sp.get('to') ?? ''}
+            onApply={(f, t) => {
+              const next = new URLSearchParams(sp);
+              if (f) next.set('from', f); else next.delete('from');
+              if (t) next.set('to', t); else next.delete('to');
+              next.delete('bucket');
+              setSp(next);
+            }}
+          />
           <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', md: 'auto' } }}>
             {activeFilters > 0 && (
               <Button onClick={clearFilters} color="inherit" startIcon={<Icon name="Close" />}>Clear</Button>
@@ -219,7 +231,7 @@ export function RequestListPage() {
         <RequestKanbanView
           rows={data?.data ?? []}
           loading={isFetching}
-          onSelect={(id) => setQuickViewId(id)}
+          onSelect={(id) => setDetailId(id)}
           onStatusChange={(id, toStatus) => updateStatus.mutate({ id, toStatusCode: toStatus })}
         />
       ) : (
@@ -230,12 +242,12 @@ export function RequestListPage() {
           rowCount={data?.total ?? 0}
           paginationModel={page}
           onPaginationModelChange={setPage}
-          onRowClick={(p) => setQuickViewId(String(p.id))}
+          onRowClick={(p) => setDetailId(String(p.id))}
           sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
         />
       )}
 
-      <RequestQuickView id={quickViewId} onClose={() => setQuickViewId(null)} />
+      <RequestDetailDialog id={detailId} onClose={() => setDetailId(null)} />
     </Box>
   );
 }

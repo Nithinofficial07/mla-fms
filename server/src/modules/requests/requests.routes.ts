@@ -139,7 +139,7 @@ async function doAssignOrForward(kind: 'ASSIGN' | 'FORWARD', req: any, res: any)
   if (!doc) throw AppError.notFound('Request not found');
   const dept = await Department.findById(req.body.departmentId).lean();
   if (!dept) throw AppError.badRequest('Unknown department');
-  let officerId: string | null = req.body.officerId ?? null;
+  const officerId: string | null = req.body.officerId ?? null;
   if (officerId) {
     const officer = await User.findById(officerId).lean();
     if (!officer || String(officer.departmentId) !== String(dept._id)) {

@@ -29,6 +29,7 @@ export function RecordDrawer({
   fullHref,
   fullLabel = 'Open full file',
   footerExtra,
+  bodyExtra,
 }: {
   open: boolean;
   onClose: () => void;
@@ -41,6 +42,8 @@ export function RecordDrawer({
   fullHref?: string;
   fullLabel?: string;
   footerExtra?: ReactNode;
+  /** Extra content rendered below the field grid, inside the scrollable body - e.g. remarks, documents, assign. */
+  bodyExtra?: ReactNode;
 }) {
   const navigate = useNavigate();
 
@@ -103,6 +106,7 @@ export function RecordDrawer({
             ))}
           </Box>
         )}
+        {!loading && bodyExtra && <Box sx={{ mt: 3 }}>{bodyExtra}</Box>}
       </Box>
 
       {(fullHref || footerExtra) && (

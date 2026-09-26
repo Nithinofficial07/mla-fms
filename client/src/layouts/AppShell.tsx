@@ -43,6 +43,12 @@ const DRAWER_WIDTH = 264;
 const RAIL_WIDTH = 76;
 const SIDEBAR_COLLAPSE_KEY = 'mla-fms:sidebar-collapsed';
 
+/** The MLA's own login gets a deliberately minimal nav - just the two tabs they use day to day. */
+const MLA_NAV: NavItem[] = [
+  { label: 'Dashboard', to: '/', icon: 'Dashboard' },
+  { label: 'Requests', to: '/requests', icon: 'FolderShared' },
+];
+
 function filterNav(items: NavItem[], can: (p: string) => boolean): NavItem[] {
   return items
     .filter((i) => !i.permission || can(i.permission))
@@ -51,9 +57,9 @@ function filterNav(items: NavItem[], can: (p: string) => boolean): NavItem[] {
 }
 
 function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () => void; collapsed?: boolean; onExpandRequest?: () => void }) {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const location = useLocation();
-  const items = useMemo(() => filterNav(NAV, can), [can]);
+  const items = useMemo(() => (user?.roleCode === 'MLA' ? MLA_NAV : filterNav(NAV, can)), [can, user?.roleCode]);
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(items.filter((i) => i.children).map((i) => [i.label, true])),
   );
