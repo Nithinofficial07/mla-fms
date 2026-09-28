@@ -9,7 +9,9 @@ import { recordAudit } from '../../utils/audit.js';
 import { parseListParams, paginate, withId } from '../../utils/queryFeatures.js';
 import { nextSequence, yearlyKey } from '../../utils/sequence.js';
 import { FundingRequest } from '../../models/FundingRequest.js';
-import { createFundingSchema } from './funding.validation.js';
+import { Remark } from '../../models/workflow.js';
+import { addTimeline, listTimeline } from '../workflow/timeline.service.js';
+import { createFundingSchema, fundingRemarkSchema, fundingStatusSchema, updateFundingSchema } from './funding.validation.js';
 
 /**
  * Funding requests: MLA-authored correspondence to a department's ministry
@@ -31,6 +33,7 @@ router.get(
     const filter: Record<string, unknown> = {};
     const departmentId = req.query.departmentId;
     if (departmentId) filter.departmentId = departmentId;
+    if (req.query.status) filter.status = req.query.status;
     ok(res, await paginate(FundingRequest, filter, params, { populate: ['departmentId', 'createdBy'] }));
   }),
 );
@@ -45,6 +48,12 @@ router.get(
   }),
 );
 
+router.get(
+  '/:id/timeline',
+  requirePermission(PERMISSIONS.LETTER_VIEW),
+  asyncHandler(async (req, res) => ok(res, withId(await listTimeline({ fundingRequestId: req.params.id })))),
+);
+
 router.post(
   '/',
   requirePermission(PERMISSIONS.LETTER_CREATE),
@@ -56,10 +65,80 @@ router.post(
       departmentId: req.body.departmentId,
       subject: req.body.subject,
       address: req.body.address,
+      letterNo: req.body.letterNo,
+      pointPersonName: req.body.pointPersonName,
+      pointPersonNumber: req.body.pointPersonNumber,
       createdBy: req.auth!.userId,
     });
     recordAudit(req, { action: 'CREATE', entity: 'FundingRequest', entityId: String(doc._id), after: { fundingRequestId: doc.fundingRequestId } });
+    await addTimeline({
+      fundingRequestId: String(doc._id), action: 'FUNDING_CREATED', label: `Funding request ${doc.fundingRequestId} created`,
+      actorId: req.auth!.userId, actorName: req.auth!.name, toStatus: doc.status,
+    });
     created(res, doc);
+  }),
+);
+
+router.patch(
+  '/:id',
+  requirePermission(PERMISSIONS.LETTER_EDIT),
+  validate({ body: updateFundingSchema }),
+  asyncHandler(async (req, res) => {
+    const before = await FundingRequest.findById(req.params.id).lean();
+    if (!before) throw AppError.notFound('Funding request not found');
+    const doc = await FundingRequest.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate(['departmentId', 'createdBy']);
+    recordAudit(req, { action: 'UPDATE', entity: 'FundingRequest', entityId: req.params.id, before, after: doc!.toJSON() });
+    ok(res, doc);
+  }),
+);
+
+router.post(
+  '/:id/status',
+  requirePermission(PERMISSIONS.LETTER_EDIT),
+  validate({ body: fundingStatusSchema }),
+  asyncHandler(async (req, res) => {
+    const before = await FundingRequest.findById(req.params.id).lean();
+    if (!before) throw AppError.notFound('Funding request not found');
+    const doc = await FundingRequest.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+    recordAudit(req, { action: 'STATUS_CHANGE', entity: 'FundingRequest', entityId: req.params.id, after: { status: doc!.status } });
+    if (before.status !== doc!.status) {
+      await addTimeline({
+        fundingRequestId: req.params.id, action: 'STATUS_CHANGE',
+        label: `Status changed from ${before.status} to ${doc!.status}`,
+        actorId: req.auth!.userId, actorName: req.auth!.name,
+        fromStatus: before.status, toStatus: doc!.status, remark: req.body.remark ?? null,
+      });
+    }
+    ok(res, doc);
+  }),
+);
+
+/* -------------------------------- remarks -------------------------------- */
+router.get(
+  '/:id/remarks',
+  requirePermission(PERMISSIONS.LETTER_VIEW),
+  asyncHandler(async (req, res) => {
+    ok(res, withId(await Remark.find({ fundingRequestId: req.params.id }).sort('-createdAt').lean()));
+  }),
+);
+
+router.post(
+  '/:id/remarks',
+  requirePermission(PERMISSIONS.REMARK_ADD),
+  validate({ body: fundingRemarkSchema }),
+  asyncHandler(async (req, res) => {
+    const doc = await FundingRequest.findById(req.params.id).lean();
+    if (!doc) throw AppError.notFound('Funding request not found');
+    const remark = await Remark.create({
+      fundingRequestId: req.params.id, body: req.body.body, kind: 'INTERNAL',
+      authorId: req.auth!.userId, authorName: req.auth!.name,
+    });
+    await addTimeline({
+      fundingRequestId: req.params.id, action: 'REMARK_ADD', label: 'Remark added',
+      actorId: req.auth!.userId, actorName: req.auth!.name, remark: req.body.body,
+    });
+    recordAudit(req, { action: 'REMARK_ADD', entity: 'FundingRequest', entityId: req.params.id });
+    created(res, remark);
   }),
 );
 

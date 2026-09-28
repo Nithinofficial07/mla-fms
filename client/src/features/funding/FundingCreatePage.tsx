@@ -16,13 +16,16 @@ export function FundingCreatePage() {
   const departments = useDepartments();
   const [subject, setSubject] = useState('');
   const [address, setAddress] = useState('');
+  const [letterNo, setLetterNo] = useState('');
+  const [pointPersonName, setPointPersonName] = useState('');
+  const [pointPersonNumber, setPointPersonNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
 
   const department = departments.data?.find((d) => d.id === departmentId);
 
   const create = useMutation({
-    mutationFn: () => api.post('/funding', { departmentId, subject, address }).then((r) => r.data),
+    mutationFn: () => api.post('/funding', { departmentId, subject, address, letterNo, pointPersonName, pointPersonNumber }).then((r) => r.data),
     onSuccess: (data) => {
       enqueueSnackbar(`Created ${data.fundingRequestId}`, { variant: 'success' });
       setCelebrate(true);
@@ -82,6 +85,29 @@ export function FundingCreatePage() {
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Site / location address this funding request is for"
               />
+              <TextField
+                label="Letter No"
+                fullWidth
+                value={letterNo}
+                onChange={(e) => setLetterNo(e.target.value)}
+                placeholder="Outgoing office letter number (if already assigned)"
+              />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Point Person Name"
+                  fullWidth
+                  value={pointPersonName}
+                  onChange={(e) => setPointPersonName(e.target.value)}
+                  placeholder="Contact at the minister's office"
+                />
+                <TextField
+                  label="Number"
+                  fullWidth
+                  value={pointPersonNumber}
+                  onChange={(e) => setPointPersonNumber(e.target.value)}
+                  placeholder="Point person's phone number"
+                />
+              </Stack>
               <Alert severity="info">
                 Photos and scanned supporting documents are attached on the next page, right after this.
               </Alert>

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
+import { Box, Button, Chip, MenuItem, Stack, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { FUNDING_STATUSES, PERMISSIONS } from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { EmptyState } from '@/components/EmptyState';
@@ -11,17 +12,28 @@ import { Icon } from '@/components/Icon';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments } from '@/hooks/useOptions';
-import { PERMISSIONS } from '@mla/shared';
+
+const STATUS_COLOR: Record<string, 'default' | 'info' | 'primary' | 'success' | 'warning' | 'error'> = {
+  SUBMITTED: 'default', SENT_TO_MINISTER: 'info', UNDER_REVIEW: 'warning',
+  APPROVED: 'primary', REJECTED: 'error', FUNDS_RELEASED: 'success',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  SUBMITTED: 'Submitted', SENT_TO_MINISTER: 'Sent to Minister', UNDER_REVIEW: 'Under Review',
+  APPROVED: 'Approved', REJECTED: 'Rejected', FUNDS_RELEASED: 'Funds Released',
+};
 
 export function FundingListPage() {
   const navigate = useNavigate();
   const { can } = useAuth();
   const [page, setPage] = useState({ page: 0, pageSize: 25 });
   const [departmentId, setDepartmentId] = useState('');
+  const [status, setStatus] = useState('');
   const departments = useDepartments();
 
   const params: Record<string, string | number> = { page: page.page + 1, pageSize: page.pageSize, sort: '-createdAt' };
   if (departmentId) params.departmentId = departmentId;
+  if (status) params.status = status;
 
   const { data, isFetching } = useQuery({
     queryKey: ['funding', params],
@@ -34,6 +46,13 @@ export function FundingListPage() {
     { field: 'department', headerName: 'Department', width: 220, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? '—' },
     { field: 'subject', headerName: 'Subject', flex: 1, minWidth: 200 },
     { field: 'address', headerName: 'Address', flex: 1, minWidth: 200 },
+    { field: 'letterNo', headerName: 'Letter No', width: 150, valueGetter: (_v: unknown, r: any) => r.letterNo || '—' },
+    { field: 'pointPersonName', headerName: 'Point Person', width: 160, valueGetter: (_v: unknown, r: any) => r.pointPersonName || '—' },
+    { field: 'pointPersonNumber', headerName: 'Number', width: 140, valueGetter: (_v: unknown, r: any) => r.pointPersonNumber || '—' },
+    {
+      field: 'status', headerName: 'Status', width: 150,
+      renderCell: (p: any) => <Chip size="small" color={STATUS_COLOR[p.row.status] ?? 'default'} label={STATUS_LABEL[p.row.status] ?? p.row.status} />,
+    },
     {
       field: 'actions', headerName: '', width: 90, sortable: false,
       renderCell: (p: any) => (
@@ -63,6 +82,10 @@ export function FundingListPage() {
         <TextField size="small" select label="Department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} sx={{ minWidth: 220 }}>
           <MenuItem value="">All</MenuItem>
           {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
+        </TextField>
+        <TextField size="small" select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 180 }}>
+          <MenuItem value="">All</MenuItem>
+          {FUNDING_STATUSES.map((s) => <MenuItem key={s} value={s}>{STATUS_LABEL[s]}</MenuItem>)}
         </TextField>
       </Stack>
 

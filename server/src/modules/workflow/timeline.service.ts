@@ -1,6 +1,9 @@
 import { TimelineEvent } from '../../models/workflow.js';
 
-export type TimelineOwner = { requestId: string; letterId?: never } | { letterId: string; requestId?: never };
+export type TimelineOwner =
+  | { requestId: string; letterId?: never; fundingRequestId?: never }
+  | { letterId: string; requestId?: never; fundingRequestId?: never }
+  | { fundingRequestId: string; requestId?: never; letterId?: never };
 
 export type TimelineInput = TimelineOwner & {
   action: string;
@@ -14,11 +17,12 @@ export type TimelineInput = TimelineOwner & {
   meta?: unknown;
 };
 
-/** Appends one immutable entry to a request's or letter's timeline. */
+/** Appends one immutable entry to a request's, letter's, or funding request's timeline. */
 export function addTimeline(input: TimelineInput): Promise<unknown> {
   return TimelineEvent.create({
     requestId: input.requestId ?? null,
     letterId: input.letterId ?? null,
+    fundingRequestId: input.fundingRequestId ?? null,
     action: input.action,
     label: input.label,
     actorId: input.actorId ?? null,
@@ -32,6 +36,10 @@ export function addTimeline(input: TimelineInput): Promise<unknown> {
 }
 
 export function listTimeline(owner: TimelineOwner) {
-  const filter = 'requestId' in owner && owner.requestId ? { requestId: owner.requestId } : { letterId: owner.letterId };
+  const filter = 'requestId' in owner && owner.requestId
+    ? { requestId: owner.requestId }
+    : 'letterId' in owner && owner.letterId
+      ? { letterId: owner.letterId }
+      : { fundingRequestId: owner.fundingRequestId };
   return TimelineEvent.find(filter).sort('createdAt').lean();
 }

@@ -38,3 +38,9 @@ export const DEFAULT_LETTER_NO_FORMAT = 'MLA-LTR/{YYYY}/{SEQ:4}';
 /** Fixed lifecycle for an MLA letter (kept simple - no configurable workflow). */
 export const LETTER_STATUSES = ['DRAFT', 'ISSUED', 'DISPATCHED', 'REPLIED', 'CLOSED'] as const;
 export type LetterStatus = (typeof LETTER_STATUSES)[number];
+
+/** Lifecycle for a funding request after it's handed to the department minister. */
+export const FUNDING_STATUSES = [
+  'SUBMITTED', 'SENT_TO_MINISTER', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'FUNDS_RELEASED',
+] as const;
+export type FundingStatus = (typeof FUNDING_STATUSES)[number];
