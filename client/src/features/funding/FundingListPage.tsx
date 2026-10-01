@@ -42,6 +42,7 @@ export function FundingListPage() {
 
   const columns = [
     { field: 'fundingRequestId', headerName: 'Funding ID', width: 160 },
+    { field: 'principal', headerName: 'Principal', width: 100, valueGetter: (_v: unknown, r: any) => r.principalId?.code ?? '—' },
     { field: 'date', headerName: 'Date', width: 110, valueGetter: (_v: unknown, r: any) => dayjs(r.createdAt).format('DD MMM YY') },
     { field: 'department', headerName: 'Department', width: 220, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? '—' },
     { field: 'subject', headerName: 'Subject', flex: 1, minWidth: 200 },

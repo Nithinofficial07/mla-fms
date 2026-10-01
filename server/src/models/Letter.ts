@@ -10,6 +10,7 @@ import { applyCommonPlugins, softDeleteFields } from './plugins.js';
 const letterSchema = new Schema(
   {
     ...softDeleteFields,
+    principalId: { type: Schema.Types.ObjectId, ref: 'Principal', required: true, index: true },
     letterNo: { type: String, required: true, unique: true },
     date: { type: Date, default: () => new Date() },
 

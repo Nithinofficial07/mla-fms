@@ -10,6 +10,13 @@ export const DEFAULT_AREA_TYPES = [
   { code: 'RURAL', name: 'Rural (Gram Panchayat)', childLabel: 'Gram Panchayat' },
 ] as const;
 
+/** The office's three principals - casework is always filed on behalf of one of these. */
+export const DEFAULT_PRINCIPALS = [
+  { code: 'MLA_S', label: 'MLA – South', idPrefix: 'MLA-S' },
+  { code: 'MLA_N', label: 'MLA – North', idPrefix: 'MLA-N' },
+  { code: 'MP', label: 'Member of Parliament', idPrefix: 'MP' },
+] as const;
+
 export const DEFAULT_PRIORITIES = [
   { code: 'LOW', name: 'Low', slaDays: 30, color: '#2e7d32', order: 1 },
   { code: 'MEDIUM', name: 'Medium', slaDays: 15, color: '#ed6c02', order: 2 },

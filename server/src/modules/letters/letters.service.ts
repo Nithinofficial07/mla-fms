@@ -1,22 +1,20 @@
-import { formatId } from '@mla/shared';
+import { formatId, PERMISSIONS } from '@mla/shared';
 import { Letter } from '../../models/Letter.js';
 import { DocumentModel } from '../../models/Document.js';
-import { SystemSettings } from '../../models/config.js';
+import { Principal } from '../../models/Principal.js';
 import { AppError } from '../../utils/AppError.js';
 import { nextSequence, yearlyKey } from '../../utils/sequence.js';
 import { escapeRegex, withId } from '../../utils/queryFeatures.js';
 
-async function letterNoFormat(): Promise<string> {
-  const cfg = await SystemSettings.findById('app').lean();
-  return cfg?.letterNoFormat ?? 'MLA-LTR/{YYYY}/{SEQ:4}';
-}
-
 export const lettersService = {
   async create(body: Record<string, any>, actorId: string) {
-    const seq = await nextSequence(yearlyKey('letterNo'));
+    const principal = await Principal.findById(body.principalId).lean();
+    if (!principal) throw AppError.badRequest('Unknown principal');
+    const seq = await nextSequence(yearlyKey(`letterNo:${principal.code}`));
     const now = body.date ? new Date(body.date) : new Date();
     const doc = await Letter.create({
-      letterNo: formatId({ format: await letterNoFormat(), seq, date: now }),
+      principalId: principal._id,
+      letterNo: formatId({ format: `${principal.idPrefix}-LTR/{SEQ:5}`, seq, date: now }),
       date: now,
       subject: body.subject,
       description: body.description ?? '',
@@ -38,7 +36,7 @@ export const lettersService = {
     return doc;
   },
 
-  buildListFilter(query: Record<string, unknown>) {
+  buildListFilter(query: Record<string, unknown>, auth: Express.AuthContext) {
     const filter: Record<string, unknown> = {};
     const q = (k: string) => (query[k] !== undefined && query[k] !== '' ? query[k] : undefined);
     if (q('search')) {
@@ -57,18 +55,27 @@ export const lettersService = {
       if (q('from')) (filter.date as Record<string, unknown>).$gte = new Date(String(query.from));
       if (q('to')) (filter.date as Record<string, unknown>).$lte = new Date(String(query.to));
     }
+    if (!auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+      filter.principalId = { $in: auth.principalIds };
+    }
     return filter;
   },
 
-  async getDetail(id: string) {
+  async getDetail(id: string, auth: Express.AuthContext) {
     const doc = await Letter.findById(id)
       .populate([
-        'departmentId',
+        'principalId', 'departmentId',
         'location.wardId', 'location.gramPanchayatId', 'location.villageId', 'location.subVillageId',
         'createdBy',
       ])
       .lean();
     if (!doc) throw AppError.notFound('Letter not found');
+    if (
+      !auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)
+      && !auth.principalIds.includes(String((doc as any).principalId?._id ?? (doc as any).principalId))
+    ) {
+      throw AppError.notFound('Letter not found');
+    }
     return withId(doc);
   },
 

@@ -25,6 +25,7 @@ const createSchema = z.object({
   designation: z.string().optional(),
   roleId: z.string().length(24),
   departmentId: z.string().length(24).nullable().optional(),
+  principalIds: z.array(z.string().length(24)).optional(),
   password: z.string().min(8).regex(/\d/).regex(/[a-zA-Z]/),
   mustChangePassword: z.boolean().optional(),
 });
@@ -58,14 +59,14 @@ router.get(
     for (const k of ['roleCode', 'departmentId', 'isActive'] as const) {
       if (req.query[k] !== undefined && req.query[k] !== '') filter[k] = req.query[k];
     }
-    ok(res, await paginate(User, filter, params, { populate: ['roleId', 'departmentId'] }));
+    ok(res, await paginate(User, filter, params, { populate: ['roleId', 'departmentId', 'principalIds'] }));
   }),
 );
 
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id).populate(['roleId', 'departmentId']).lean();
+    const user = await User.findById(req.params.id).populate(['roleId', 'departmentId', 'principalIds']).lean();
     if (!user) throw AppError.notFound('User not found');
     ok(res, withId(user));
   }),

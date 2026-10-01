@@ -4,6 +4,7 @@ import { FUNDING_STATUSES } from '@mla/shared';
 const objectId = z.string().length(24, 'Invalid id');
 
 export const createFundingSchema = z.object({
+  principalId: objectId,
   departmentId: objectId,
   subject: z.string().min(3),
   address: z.string().min(3),

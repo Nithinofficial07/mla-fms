@@ -32,6 +32,7 @@ export interface AuthUser {
   roleCode: RoleCode | string;
   permissions: Permission[];
   departmentId: string | null;
+  principalIds: string[];
   mustChangePassword: boolean;
 }
 

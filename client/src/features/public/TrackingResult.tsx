@@ -1,10 +1,11 @@
-import { useState } from 'react';
 import { Alert, Box, Button, Card, Chip, Divider, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { StatusChip } from '@/components/chips';
 import { Icon } from '@/components/Icon';
 import { EmptyState } from '@/components/EmptyState';
+import { setLanguage } from '@/i18n';
 import type { TrackResult } from './trackTypes';
 
 const ICONS: Record<string, string> = {
@@ -49,7 +50,8 @@ function getStageIndex(code: string): number {
 export function TrackingResult({ result, onReset }: { result: TrackResult; onReset?: () => void }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const [lang, setLang] = useState<'en' | 'kn'>('en');
+  const { i18n } = useTranslation();
+  const lang: 'en' | 'kn' = i18n.language === 'kn' ? 'kn' : 'en';
 
   const currentStage = getStageIndex(result.statusCode);
   const isResolved = ['COMPLETED', 'APPROVED', 'CLOSED'].includes(result.statusCode);
@@ -98,7 +100,7 @@ Track online: ${window.location.href}`;
             </Box>
             <Box>
               <Typography variant="overline" sx={{ letterSpacing: 1, fontWeight: 700, color: 'text.secondary', display: 'block', lineHeight: 1 }}>
-                OFFICIAL CITIZEN TRACKING RECEIPT
+                {lang === 'en' ? 'OFFICIAL CITIZEN TRACKING RECEIPT' : 'ಅಧಿಕೃತ ನಾಗರಿಕ ಟ್ರ್ಯಾಕಿಂಗ್ ರಶೀದಿ'}
               </Typography>
               <Typography variant="h6" fontWeight={800} sx={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '0.02em', mt: 0.5 }}>
                 {result.fileId}
@@ -111,7 +113,7 @@ Track online: ${window.location.href}`;
             <Chip
               size="small"
               clickable
-              onClick={() => setLang((l) => (l === 'en' ? 'kn' : 'en'))}
+              onClick={() => setLanguage(lang === 'en' ? 'kn' : 'en')}
               label={lang === 'en' ? 'ಕನ್ನಡ (KN)' : 'English (EN)'}
               sx={{ fontWeight: 700, fontSize: '0.75rem' }}
             />
@@ -178,7 +180,7 @@ Track online: ${window.location.href}`;
           </Box>
         ) : (
           <Alert severity="error" sx={{ mb: 2 }}>
-            This application has been closed or marked as ineligible.
+            {lang === 'en' ? 'This application has been closed or marked as ineligible.' : 'ಈ ಅರ್ಜಿಯನ್ನು ಮುಚ್ಚಲಾಗಿದೆ ಅಥವಾ ಅನರ್ಹವೆಂದು ಗುರುತಿಸಲಾಗಿದೆ.'}
           </Alert>
         )}
 
@@ -236,7 +238,7 @@ Track online: ${window.location.href}`;
       </Typography>
 
       {result.timeline.length === 0 ? (
-        <EmptyState icon="Timeline" title="No updates yet" />
+        <EmptyState icon="Timeline" title={lang === 'en' ? 'No updates yet' : 'ಇನ್ನೂ ಯಾವುದೇ ನವೀಕರಣಗಳಿಲ್ಲ'} />
       ) : (
         <Box sx={{ pl: 1 }}>
           {result.timeline.map((e, i) => (

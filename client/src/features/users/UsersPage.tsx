@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField,
+  Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { PERMISSIONS } from '@mla/shared';
@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { Icon } from '@/components/Icon';
 import { useResource } from '@/hooks/useResourceList';
-import { useDepartments } from '@/hooks/useOptions';
+import { useDepartments, usePrincipals } from '@/hooks/useOptions';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 
@@ -24,10 +24,18 @@ export function UsersPage() {
   const create = useCreate();
   const update = useUpdate();
   const departments = useDepartments();
+  const principals = usePrincipals();
   const roles = useQuery({ queryKey: ['roles', 'all'], queryFn: () => api.get('/roles', { params: { pageSize: 100 } }).then((r) => r.data.data) });
 
-  const openCreate = () => { setEditing({}); setForm({ mustChangePassword: true }); };
-  const openEdit = (row: any) => { setEditing(row); setForm({ name: row.name, email: row.email, mobile: row.mobile, designation: row.designation, roleId: row.roleId?.id ?? row.roleId, departmentId: row.departmentId?.id ?? row.departmentId ?? '' }); };
+  const openCreate = () => { setEditing({}); setForm({ mustChangePassword: true, principalIds: [] }); };
+  const openEdit = (row: any) => {
+    setEditing(row);
+    setForm({
+      name: row.name, email: row.email, mobile: row.mobile, designation: row.designation,
+      roleId: row.roleId?.id ?? row.roleId, departmentId: row.departmentId?.id ?? row.departmentId ?? '',
+      principalIds: (row.principalIds ?? []).map((p: any) => p.id ?? p),
+    });
+  };
 
   const save = async () => {
     const body = { ...form };
@@ -43,6 +51,16 @@ export function UsersPage() {
     { field: 'email', headerName: 'Email', width: 200 },
     { field: 'roleCode', headerName: 'Role', width: 170 },
     { field: 'department', headerName: 'Department', width: 170, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? '—' },
+    {
+      field: 'principals', headerName: 'Principals', width: 180, sortable: false,
+      renderCell: (p: any) => (
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
+          {(p.row.principalIds ?? []).length === 0
+            ? <Chip size="small" color="warning" variant="outlined" label="None (no access)" />
+            : (p.row.principalIds ?? []).map((pr: any) => <Chip key={pr.id ?? pr} size="small" label={pr.code ?? pr} />)}
+        </Stack>
+      ),
+    },
     { field: 'isActive', headerName: 'Status', width: 100, renderCell: (p: any) => <Chip size="small" color={p.row.isActive ? 'success' : 'default'} label={p.row.isActive ? 'Active' : 'Inactive'} /> },
     { field: 'actions', headerName: '', width: 90, sortable: false, renderCell: (p: any) => <Button size="small" disabled={!canWrite} onClick={() => openEdit(p.row)}>Edit</Button> },
   ];
@@ -80,6 +98,23 @@ export function UsersPage() {
               <MenuItem value="">—</MenuItem>
               {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
             </TextField>
+            <Autocomplete
+              multiple
+              options={principals.data ?? []}
+              getOptionLabel={(p) => p.label}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              value={(principals.data ?? []).filter((p) => (form.principalIds ?? []).includes(p.id))}
+              onChange={(_e, v) => setForm((s: any) => ({ ...s, principalIds: v.map((p) => p.id) }))}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Principals"
+                  placeholder="Add principal"
+                  helperText="Which office(s) this user can see/act on. None means no access, even for staff roles."
+                />
+              )}
+              renderTags={(value, getTagProps) => value.map((option, index) => <Chip size="small" label={option.label} {...getTagProps({ index })} key={option.id} />)}
+            />
             {!editing?.id && <TextField label="Temporary password" type="text" value={form.password ?? ''} onChange={(e) => setForm((s: any) => ({ ...s, password: e.target.value }))} required helperText="User must change it at first login" />}
           </Stack>
         </DialogContent>

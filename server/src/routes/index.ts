@@ -5,6 +5,7 @@ import publicRoutes from '../modules/public/public.routes.js';
 import usersRoutes from '../modules/users/users.routes.js';
 import roleRoutes from '../modules/masters/role.routes.js';
 import departmentRoutes from '../modules/masters/department.routes.js';
+import principalRoutes from '../modules/masters/principal.routes.js';
 import importRoutes from '../modules/masters/import.routes.js';
 import {
   areaTypeRouter, constituencyRouter, gramPanchayatRouter,
@@ -33,6 +34,7 @@ api.use('/public', publicRoutes);
 api.use('/users', usersRoutes);
 api.use('/roles', roleRoutes);
 api.use('/departments', departmentRoutes);
+api.use('/principals', principalRoutes);
 api.use('/imports', importRoutes);
 
 api.use('/constituencies', constituencyRouter);

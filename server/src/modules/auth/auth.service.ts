@@ -18,6 +18,7 @@ function toAuthUser(user: any, role: any): AuthUser {
     roleCode: role.code,
     permissions: role.permissions ?? [],
     departmentId: user.departmentId ? String(user.departmentId) : null,
+    principalIds: (user.principalIds ?? []).map((id: unknown) => String(id)),
     mustChangePassword: !!user.mustChangePassword,
   };
 }

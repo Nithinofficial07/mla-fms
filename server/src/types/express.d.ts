@@ -9,6 +9,7 @@ declare global {
       roleCode: string;
       permissions: Permission[];
       departmentId: string | null;
+      principalIds: string[];
     }
     interface Request {
       auth?: AuthContext;

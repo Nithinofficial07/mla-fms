@@ -19,6 +19,7 @@ const location = z
   });
 
 export const createLetterSchema = z.object({
+  principalId: objectId,
   subject: z.string().min(3),
   description: z.string().optional(),
   applicant: z.object({

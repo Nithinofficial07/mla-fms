@@ -40,6 +40,7 @@ export function LetterListPage() {
 
   const columns = [
     { field: 'letterNo', headerName: 'Letter No', width: 170 },
+    { field: 'principal', headerName: 'Principal', width: 100, valueGetter: (_v: unknown, r: any) => r.principalId?.code ?? '—' },
     { field: 'date', headerName: 'Date', width: 110, valueGetter: (_v: unknown, r: any) => dayjs(r.date).format('DD MMM YY') },
     { field: 'applicant', headerName: 'Applicant', width: 160, valueGetter: (_v: unknown, r: any) => r.applicant?.name },
     { field: 'mobile', headerName: 'Phone', width: 130, valueGetter: (_v: unknown, r: any) => r.applicant?.mobile },

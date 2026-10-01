@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { Icon } from '@/components/Icon';
 import { TrackingResult } from './TrackingResult';
@@ -23,6 +24,7 @@ type Form = z.infer<typeof schema>;
  * carries a staff Authorization header or triggers the refresh interceptor.
  */
 export function TrackRequestPage() {
+  const { t } = useTranslation();
   const [result, setResult] = useState<TrackResult | null>(null);
   const { register, handleSubmit, formState } = useForm<Form>({ resolver: zodResolver(schema) });
 
@@ -35,11 +37,11 @@ export function TrackRequestPage() {
   const onSubmit = (data: Form) => track.mutate(data);
 
   return (
-    <AuthLayout title="Track your request" subtitle="Enter your File ID and the mobile number you registered with" maxWidth={560}>
+    <AuthLayout title={t('track.title')} subtitle={t('track.subtitle')} maxWidth={560}>
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>
           <TextField
-            label="File ID"
+            label={t('track.fileId')}
             placeholder="MLA/2026/000123"
             autoFocus
             {...register('fileId')}
@@ -50,8 +52,8 @@ export function TrackRequestPage() {
             }}
           />
           <TextField
-            label="Mobile number"
-            placeholder="10-digit number"
+            label={t('track.mobileNumber')}
+            placeholder={t('track.mobilePlaceholder')}
             {...register('mobile')}
             error={!!formState.errors.mobile}
             helperText={formState.errors.mobile?.message}
@@ -62,12 +64,12 @@ export function TrackRequestPage() {
           {track.isError && (
             <Alert severity="error">
               {axios.isAxiosError(track.error)
-                ? (track.error.response?.data as { message?: string })?.message ?? 'No matching request found.'
-                : 'Something went wrong. Try again.'}
+                ? (track.error.response?.data as { message?: string })?.message ?? t('track.noMatch')
+                : t('track.somethingWrong')}
             </Alert>
           )}
           <Button type="submit" size="large" variant="contained" disabled={track.isPending}>
-            {track.isPending ? 'Checking…' : 'Check status'}
+            {track.isPending ? t('track.checking') : t('track.checkStatus')}
           </Button>
         </Stack>
       </Box>

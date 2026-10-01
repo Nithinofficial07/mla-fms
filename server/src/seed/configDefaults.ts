@@ -1,11 +1,12 @@
 import {
-  DEFAULT_AREA_TYPES, DEFAULT_PRIORITIES, DEFAULT_STATUSES,
+  DEFAULT_AREA_TYPES, DEFAULT_PRINCIPALS, DEFAULT_PRIORITIES, DEFAULT_STATUSES,
   DEFAULT_REQUEST_CATEGORIES, DEFAULT_REQUEST_TYPES, DEFAULT_DOCUMENT_TYPES, DEFAULT_ID_TYPES,
   DEFAULT_ROLE_PERMISSIONS, ROLES, SYSTEM_ROLE_DESCRIPTIONS,
 } from '@mla/shared';
 import { AreaType } from '../models/location.js';
 import { Priority, RequestCategory, RequestStatus, Lookup, SystemSettings } from '../models/config.js';
 import { Role } from '../models/Role.js';
+import { Principal } from '../models/Principal.js';
 
 /**
  * The minimum reference data the app needs to function: system roles,
@@ -32,6 +33,9 @@ export async function seedConfigDefaults(): Promise<void> {
 
   for (const at of DEFAULT_AREA_TYPES) {
     await AreaType.findOneAndUpdate({ code: at.code }, { $setOnInsert: at }, { upsert: true });
+  }
+  for (const p of DEFAULT_PRINCIPALS) {
+    await Principal.findOneAndUpdate({ code: p.code }, { $setOnInsert: p }, { upsert: true });
   }
   for (const p of DEFAULT_PRIORITIES) {
     await Priority.findOneAndUpdate({ code: p.code }, { $setOnInsert: p }, { upsert: true });

@@ -4,6 +4,7 @@ import { Alert, Box, Button, Card, CardContent, CardHeader, Chip, Stack, Typogra
 import { alpha, useTheme } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -22,10 +23,10 @@ import { useAuth } from '@/app/AuthProvider';
 
 const PIE_COLORS = ['#0A2540', '#C99700', '#2563EB', '#059669', '#7C3AED', '#0D9488', '#EA580C', '#475569'];
 
-function greeting(hour: number) {
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+function greeting(hour: number, t: (key: string) => string) {
+  if (hour < 12) return t('dashboard.greetingMorning');
+  if (hour < 17) return t('dashboard.greetingAfternoon');
+  return t('dashboard.greetingEvening');
 }
 
 /** One cell of the bento grid. `md` is the 12-col span on desktop; sm/xs fall back wider. */
@@ -39,6 +40,7 @@ function Bento({ md, sm = 6, children }: { md: number; sm?: number; children: Re
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const { user } = useAuth();
@@ -77,7 +79,7 @@ export function DashboardPage() {
 
   const hero = [
     {
-      label: 'Total Files',
+      label: t('dashboard.totalFiles'),
       key: 'totalFiles',
       icon: 'FolderCopy',
       color: '#0A2540',
@@ -86,7 +88,7 @@ export function DashboardPage() {
       sparkline: sparkSeries,
     },
     {
-      label: 'New Requests',
+      label: t('dashboard.newRequests'),
       key: 'newRequests',
       icon: 'FiberNew',
       color: '#2563EB',
@@ -95,7 +97,7 @@ export function DashboardPage() {
       sparkline: sparkSeries.map((v) => Math.max(2, Math.round(v * 0.4))),
     },
     {
-      label: "Today's Inflow",
+      label: t('dashboard.todaysInflow'),
       key: 'todayRequests',
       icon: 'Today',
       color: '#0284C7',
@@ -106,10 +108,10 @@ export function DashboardPage() {
   ];
 
   const secondary = [
-    { label: 'Pending', key: 'pending', icon: 'HourglassEmpty', color: '#D97706', to: '/requests?bucket=pending', sublabel: 'Awaiting action' },
-    { label: 'In Progress', key: 'inProgress', icon: 'Autorenew', color: '#0D9488', to: '/requests?bucket=in-progress', sublabel: 'With line depts' },
+    { label: t('dashboard.pending'), key: 'pending', icon: 'HourglassEmpty', color: '#D97706', to: '/requests?bucket=pending', sublabel: 'Awaiting action' },
+    { label: t('dashboard.inProgress'), key: 'inProgress', icon: 'Autorenew', color: '#0D9488', to: '/requests?bucket=in-progress', sublabel: 'With line depts' },
     {
-      label: 'Completed',
+      label: t('dashboard.completed'),
       key: 'completed',
       icon: 'TaskAlt',
       color: '#059669',
@@ -117,13 +119,13 @@ export function DashboardPage() {
       progress: resolutionRate,
       sublabel: `${resolutionRate}% resolved`,
     },
-    { label: 'Rejected', key: 'rejected', icon: 'Cancel', color: '#DC2626', to: '/requests?statusCode=REJECTED', sublabel: 'Ineligible' },
+    { label: t('dashboard.rejected'), key: 'rejected', icon: 'Cancel', color: '#DC2626', to: '/requests?statusCode=REJECTED', sublabel: 'Ineligible' },
   ];
 
   const tertiary = [
-    { label: 'Overdue', key: 'overdue', icon: 'ReportProblem', color: '#DC2626', to: '/requests?overdue=true' },
-    { label: 'Urgent', key: 'urgent', icon: 'PriorityHigh', color: '#B91C1C', to: '/requests' },
-    { label: 'Dept Pending', key: 'departmentPending', icon: 'AccountBalance', color: '#475569', to: '/requests?bucket=pending' },
+    { label: t('dashboard.overdue'), key: 'overdue', icon: 'ReportProblem', color: '#DC2626', to: '/requests?overdue=true' },
+    { label: t('dashboard.urgent'), key: 'urgent', icon: 'PriorityHigh', color: '#B91C1C', to: '/requests' },
+    { label: t('dashboard.deptPending'), key: 'departmentPending', icon: 'AccountBalance', color: '#475569', to: '/requests?bucket=pending' },
   ];
 
   const recentColumns = [
@@ -148,8 +150,8 @@ export function DashboardPage() {
   return (
     <Box>
       <PageHeader
-        title={firstName ? `${greeting(new Date().getHours())}, ${firstName}` : 'Dashboard'}
-        subtitle="Live command center for constituency petitions, line departments & citizen requests"
+        title={firstName ? `${greeting(new Date().getHours(), t)}, ${firstName}` : t('dashboard.title')}
+        subtitle={t('dashboard.subtitle')}
         action={
           <Stack direction="row" spacing={1}>
             <Button
@@ -158,7 +160,7 @@ export function DashboardPage() {
               startIcon={<Icon name="Tune" />}
               onClick={() => navigate('/requests')}
             >
-              All Files
+              {t('dashboard.allFiles')}
             </Button>
             <Button
               variant="contained"
@@ -166,7 +168,7 @@ export function DashboardPage() {
               startIcon={<Icon name="Add" />}
               onClick={() => navigate('/requests/new')}
             >
-              New Request
+              {t('dashboard.newRequest')}
             </Button>
           </Stack>
         }
@@ -378,11 +380,11 @@ export function DashboardPage() {
         <Bento md={12}>
           <Card>
             <CardHeader
-              title="Recent Requests"
+              title={t('dashboard.recentRequests')}
               titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }}
               action={
                 <Button size="small" endIcon={<Icon name="ArrowForward" />} onClick={() => navigate('/requests')}>
-                  View all
+                  {t('dashboard.viewAll')}
                 </Button>
               }
             />

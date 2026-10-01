@@ -36,6 +36,10 @@ export const PERMISSIONS = {
   CATEGORY_MANAGE: 'category.manage',
   STATUS_MANAGE: 'status.manage',
   SETTINGS_MANAGE: 'settings.manage',
+  PRINCIPAL_MANAGE: 'principal.manage',
+
+  // multi-principal access
+  PRINCIPAL_ALL_VIEW: 'principal.all_view',
 
   // people
   USER_MANAGE: 'user.manage',

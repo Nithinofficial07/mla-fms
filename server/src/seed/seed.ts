@@ -13,6 +13,7 @@ import { Role } from '../models/Role.js';
 import { User } from '../models/User.js';
 import { RequestModel } from '../models/Request.js';
 import { Letter } from '../models/Letter.js';
+import { Principal } from '../models/Principal.js';
 import { Counter } from '../models/Counter.js';
 import { addTimeline } from '../modules/workflow/timeline.service.js';
 import { seedConfigDefaults } from './configDefaults.js';
@@ -32,9 +33,11 @@ async function run() {
 
   /* ---- reference-data defaults (roles, priorities, statuses, categories, lookups) ---- */
   await seedConfigDefaults();
-  console.log('  reference data: roles / priorities / statuses / categories / lookups');
+  console.log('  reference data: roles / priorities / statuses / categories / lookups / principals');
   const roleByCode: Record<string, any> = {};
   for (const r of await Role.find({ isSystem: true }).lean()) roleByCode[r.code] = r;
+  const principal = await Principal.findOne({ code: 'MLA_S' });
+  if (!principal) throw new Error('MLA_S principal missing after seedConfigDefaults - seeding cannot continue.');
 
   if (CONFIG_ONLY) {
     console.log('\n--config-only: reference data ensured, no demo data written.');
@@ -62,6 +65,7 @@ async function run() {
     passwordHash: await hashPassword(env.SEED_ADMIN_PASSWORD),
     roleId: superRole._id,
     roleCode: ROLES.SUPER_ADMIN,
+    principalIds: [principal._id],
   });
 
   /* ---- 22 demo departments ---- */
@@ -81,6 +85,7 @@ async function run() {
       roleId: roleByCode[u.roleCode]._id,
       roleCode: u.roleCode,
       departmentId: u.roleCode === ROLES.DEPARTMENT_OFFICER ? depDocs[0]._id : null,
+      principalIds: [principal._id],
       mustChangePassword: false,
     });
   }
@@ -121,11 +126,12 @@ async function run() {
     for (let i = 0; i < 12; i++) {
       const st = pick(statuses.filter((s) => !s.isInitial), i);
       const pr = pick(priorities, i);
-      const fileSeq = await Counter.findOneAndUpdate({ _id: `fileId:${new Date().getFullYear()}` }, { $inc: { seq: 1 } }, { upsert: true, new: true });
+      const fileSeq = await Counter.findOneAndUpdate({ _id: `fileId:${principal.code}:${new Date().getFullYear()}` }, { $inc: { seq: 1 } }, { upsert: true, new: true });
       const reqSeq = await Counter.findOneAndUpdate({ _id: `requestId:${new Date().getFullYear()}` }, { $inc: { seq: 1 } }, { upsert: true, new: true });
       const created = dayjs().subtract(i * 3, 'day').toDate();
       const r = await RequestModel.create({
-        fileId: formatId({ format: 'MLA/{YYYY}/{SEQ:6}', seq: fileSeq!.seq, date: created }),
+        principalId: principal._id,
+        fileId: formatId({ format: `${principal.idPrefix}/{SEQ:5}`, seq: fileSeq!.seq, date: created }),
         requestId: formatId({ format: 'REQ/{YYYY}/{SEQ:6}', seq: reqSeq!.seq, date: created }),
         date: created,
         createdAt: created,
@@ -162,9 +168,10 @@ async function run() {
     const admin = await User.findOne({ email: env.SEED_ADMIN_EMAIL });
     const statuses2 = ['DRAFT', 'ISSUED', 'DISPATCHED', 'REPLIED'] as const;
     for (let i = 0; i < 4; i++) {
-      const seq = await Counter.findOneAndUpdate({ _id: `letterNo:${new Date().getFullYear()}` }, { $inc: { seq: 1 } }, { upsert: true, new: true });
+      const seq = await Counter.findOneAndUpdate({ _id: `letterNo:${principal.code}:${new Date().getFullYear()}` }, { $inc: { seq: 1 } }, { upsert: true, new: true });
       await Letter.create({
-        letterNo: formatId({ format: 'MLA-LTR/{YYYY}/{SEQ:4}', seq: seq!.seq, date: new Date() }),
+        principalId: principal._id,
+        letterNo: formatId({ format: `${principal.idPrefix}-LTR/{SEQ:5}`, seq: seq!.seq, date: new Date() }),
         subject: `Demo letter ${i + 1}: recommendation to department`,
         description: 'Auto-generated demo letter. Safe to delete.',
         applicant: { name: `Demo Petitioner ${i + 1}`, mobile: `98${String(70000000 + i).padStart(8, '0')}`, address: 'Demo address' },

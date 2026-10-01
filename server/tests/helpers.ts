@@ -5,6 +5,7 @@ import { Role } from '../src/models/Role.js';
 import { User } from '../src/models/User.js';
 import { Priority, RequestStatus } from '../src/models/config.js';
 import { Constituency } from '../src/models/location.js';
+import { Principal } from '../src/models/Principal.js';
 import { hashPassword } from '../src/utils/password.js';
 
 /** Minimal fixtures needed by most request/auth tests. */
@@ -20,6 +21,7 @@ export async function seedCore() {
     });
   }
   await Constituency.create({ name: 'Test Constituency', isPrimary: true });
+  const principal = await Principal.create({ code: 'MLA_S', label: 'MLA – South', idPrefix: 'MLA-S' });
   await RequestStatus.create({ code: 'DRAFT', name: 'Draft', isInitial: true, order: 1, transitionsTo: ['SUBMITTED'] });
   await RequestStatus.create({ code: 'SUBMITTED', name: 'Submitted', order: 2, transitionsTo: ['UNDER_REVIEW'] });
   await RequestStatus.create({ code: 'UNDER_REVIEW', name: 'Under Review', order: 3, transitionsTo: ['ASSIGNED'] });
@@ -30,8 +32,9 @@ export async function seedCore() {
     name: 'Admin', username: 'admin', email: 'admin@test.local',
     passwordHash: await hashPassword('Admin@12345'),
     roleId: roles[ROLES.SUPER_ADMIN]._id, roleCode: ROLES.SUPER_ADMIN,
+    principalIds: [principal._id],
   });
-  return { roles, priority, admin };
+  return { roles, priority, admin, principal };
 }
 
 export async function login(app: Express, usernameOrEmail = 'admin@test.local', password = 'Admin@12345') {

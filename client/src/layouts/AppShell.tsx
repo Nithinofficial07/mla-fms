@@ -6,6 +6,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { NotificationBell } from '@/components/NotificationBell';
 import { NAV, type NavItem } from '@/routes/nav';
@@ -15,6 +16,8 @@ import { useThemeMode } from '@/app/ThemeModeProvider';
 import { CommandPalette, openCommandPalette } from '@/components/CommandPalette';
 import { ShortcutsDialog, openShortcuts } from '@/components/ShortcutsDialog';
 import { TopProgressBar } from '@/components/TopProgressBar';
+import { LanguageToggle } from '@/components/LanguageToggle';
+import { PrincipalSwitcher } from '@/components/PrincipalSwitcher';
 import { api } from '@/api/client';
 import { chrome } from '@/theme';
 
@@ -45,8 +48,8 @@ const SIDEBAR_COLLAPSE_KEY = 'mla-fms:sidebar-collapsed';
 
 /** The MLA's own login gets a deliberately minimal nav - just the two tabs they use day to day. */
 const MLA_NAV: NavItem[] = [
-  { label: 'Dashboard', to: '/', icon: 'Dashboard' },
-  { label: 'Requests', to: '/requests', icon: 'FolderShared' },
+  { label: 'Dashboard', labelKey: 'nav.dashboard', to: '/', icon: 'Dashboard' },
+  { label: 'Requests', labelKey: 'nav.requests', to: '/requests', icon: 'FolderShared' },
 ];
 
 function filterNav(items: NavItem[], can: (p: string) => boolean): NavItem[] {
@@ -58,6 +61,8 @@ function filterNav(items: NavItem[], can: (p: string) => boolean): NavItem[] {
 
 function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () => void; collapsed?: boolean; onExpandRequest?: () => void }) {
   const { can, user } = useAuth();
+  const { t } = useTranslation();
+  const navLabel = (item: NavItem) => (item.labelKey ? t(item.labelKey, item.label) : item.label);
   const location = useLocation();
   const items = useMemo(() => (user?.roleCode === 'MLA' ? MLA_NAV : filterNav(NAV, can)), [can, user?.roleCode]);
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
@@ -70,7 +75,7 @@ function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () =
         if (item.children?.length) {
           if (collapsed) {
             return (
-              <Tooltip key={item.label} title={item.label} placement="right">
+              <Tooltip key={item.label} title={navLabel(item)} placement="right">
                 <ListItemButton onClick={onExpandRequest} sx={{ justifyContent: 'center', px: 1.5, borderRadius: 2, mb: 0.25 }}>
                   <ListItemIcon sx={{ minWidth: 0 }}><Icon name={item.icon} /></ListItemIcon>
                 </ListItemButton>
@@ -83,7 +88,7 @@ function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () =
                 <ListItemIcon sx={{ minWidth: 36 }}>
                   <Icon name={item.icon} />
                 </ListItemIcon>
-                <ListItemText primaryTypographyProps={{ fontWeight: 600, variant: 'body2' }} primary={item.label} />
+                <ListItemText primaryTypographyProps={{ fontWeight: 600, variant: 'body2' }} primary={navLabel(item)} />
                 <Icon name={open[item.label] ? 'ExpandLess' : 'ExpandMore'} />
               </ListItemButton>
               <Collapse in={open[item.label]} unmountOnExit>
@@ -96,7 +101,7 @@ function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () =
                       onClick={onNavigate}
                       sx={{ pl: 6, borderRadius: 2, '&.active': activeNavSx }}
                     >
-                      <ListItemText primaryTypographyProps={{ variant: 'body2' }} primary={child.label} />
+                      <ListItemText primaryTypographyProps={{ variant: 'body2' }} primary={navLabel(child)} />
                     </ListItemButton>
                   ))}
                 </List>
@@ -106,7 +111,7 @@ function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () =
         }
         if (collapsed) {
           return (
-            <Tooltip key={item.label} title={item.label} placement="right">
+            <Tooltip key={item.label} title={navLabel(item)} placement="right">
               <ListItemButton
                 component={NavLink}
                 to={item.to!}
@@ -141,7 +146,7 @@ function NavList({ onNavigate, collapsed, onExpandRequest }: { onNavigate?: () =
             <ListItemIcon sx={{ minWidth: 36 }}>
               <Icon name={item.icon} />
             </ListItemIcon>
-            <ListItemText primaryTypographyProps={{ fontWeight: 600, variant: 'body2' }} primary={item.label} />
+            <ListItemText primaryTypographyProps={{ fontWeight: 600, variant: 'body2' }} primary={navLabel(item)} />
           </ListItemButton>
         );
       })}
@@ -293,6 +298,12 @@ export function AppShell() {
           {!online && (
             <Icon name="CloudOff" sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#FDE68A' }} />
           )}
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <PrincipalSwitcher light />
+          </Box>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <LanguageToggle light />
+          </Box>
           <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
             <IconButton onClick={toggleThemeMode} sx={{ color: '#fff' }}>
               <Icon name={mode === 'dark' ? 'LightMode' : 'DarkMode'} />

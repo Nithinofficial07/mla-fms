@@ -7,6 +7,7 @@ import { useTheme } from '@mui/material/styles';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
@@ -32,6 +33,7 @@ const BUCKETS: Record<string, string[]> = {
 
 export function RequestListPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { can } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
@@ -98,20 +100,21 @@ export function RequestListPage() {
   };
 
   const columns = [
-    { field: 'fileId', headerName: 'File ID', width: 150 },
-    { field: 'date', headerName: 'Date', width: 110, valueGetter: (_v: unknown, r: any) => dayjs(r.createdAt).format('DD MMM YY') },
-    { field: 'applicant', headerName: 'Applicant', width: 160, valueGetter: (_v: unknown, r: any) => r.applicant?.name },
-    { field: 'mobile', headerName: 'Mobile', width: 130, valueGetter: (_v: unknown, r: any) => r.applicant?.mobile },
-    { field: 'subject', headerName: 'Subject', flex: 1, minWidth: 200 },
-    { field: 'department', headerName: 'Department', width: 170, valueGetter: (_v: unknown, r: any) => r.primaryDepartmentId?.name ?? 'Unassigned' },
-    { field: 'priority', headerName: 'Priority', width: 120, renderCell: (p: any) => <PriorityChip code={p.row.priorityId?.code} label={p.row.priorityId?.name} /> },
-    { field: 'status', headerName: 'Status', width: 160, renderCell: (p: any) => <StatusChip code={p.row.statusCode} label={p.row.statusId?.name} /> },
-    { field: 'dueDate', headerName: 'Due', width: 110, valueGetter: (_v: unknown, r: any) => (r.dueDate ? dayjs(r.dueDate).format('DD MMM YY') : '—') },
+    { field: 'fileId', headerName: t('requests.fileId'), width: 150 },
+    { field: 'principal', headerName: 'Principal', width: 100, valueGetter: (_v: unknown, r: any) => r.principalId?.code ?? '—' },
+    { field: 'date', headerName: t('requests.date'), width: 110, valueGetter: (_v: unknown, r: any) => dayjs(r.createdAt).format('DD MMM YY') },
+    { field: 'applicant', headerName: t('requests.applicant'), width: 160, valueGetter: (_v: unknown, r: any) => r.applicant?.name },
+    { field: 'mobile', headerName: t('requests.mobile'), width: 130, valueGetter: (_v: unknown, r: any) => r.applicant?.mobile },
+    { field: 'subject', headerName: t('requests.subject'), flex: 1, minWidth: 200 },
+    { field: 'department', headerName: t('requests.department'), width: 170, valueGetter: (_v: unknown, r: any) => r.primaryDepartmentId?.name ?? t('common.unassigned') },
+    { field: 'priority', headerName: t('requests.priority'), width: 120, renderCell: (p: any) => <PriorityChip code={p.row.priorityId?.code} label={p.row.priorityId?.name} /> },
+    { field: 'status', headerName: t('requests.status'), width: 160, renderCell: (p: any) => <StatusChip code={p.row.statusCode} label={p.row.statusId?.name} /> },
+    { field: 'dueDate', headerName: t('requests.due'), width: 110, valueGetter: (_v: unknown, r: any) => (r.dueDate ? dayjs(r.dueDate).format('DD MMM YY') : '—') },
     {
       field: 'actions', headerName: '', width: 90, sortable: false,
       renderCell: (p: any) => (
         <Button size="small" onClick={(e) => { e.stopPropagation(); setDetailId(p.row.id); }}>
-          Open
+          {t('requests.open')}
         </Button>
       ),
     },
@@ -131,13 +134,13 @@ export function RequestListPage() {
   return (
     <Box>
       <PageHeader
-        title="Requests & Casework"
-        subtitle="Manage and track constituency files, petitions and departmental assignments"
-        crumbs={[{ label: 'Home', to: '/' }, { label: 'Requests' }]}
+        title={t('requests.title')}
+        subtitle={t('requests.subtitle')}
+        crumbs={[{ label: t('common.home'), to: '/' }, { label: t('nav.requests') }]}
         action={
           can(PERMISSIONS.REQUEST_CREATE) && (
             <Button variant="contained" startIcon={<Icon name="Add" />} onClick={() => navigate('/requests/new')}>
-              New Request
+              {t('requests.newRequest')}
             </Button>
           )
         }
@@ -147,7 +150,7 @@ export function RequestListPage() {
       <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
         <TextField
           size="small"
-          placeholder="Search file ID, applicant, mobile, subject…"
+          placeholder={t('requests.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ flex: 1 }}
@@ -160,7 +163,7 @@ export function RequestListPage() {
             startIcon={<Icon name="FilterList" />}
             sx={{ flexShrink: 0 }}
           >
-            {activeFilters ? `Filters (${activeFilters})` : 'Filters'}
+            {activeFilters ? `${t('requests.filters')} (${activeFilters})` : t('requests.filters')}
           </Button>
         )}
         {!isMobile && (
@@ -172,13 +175,13 @@ export function RequestListPage() {
             sx={{ bgcolor: 'background.paper', borderRadius: 2 }}
           >
             <ToggleButton value="table">
-              <Tooltip title="Table View"><Box sx={{ display: 'flex', alignItems: 'center' }}><Icon name="ViewList" /></Box></Tooltip>
+              <Tooltip title={t('requests.tableView')}><Box sx={{ display: 'flex', alignItems: 'center' }}><Icon name="ViewList" /></Box></Tooltip>
             </ToggleButton>
             <ToggleButton value="cards">
-              <Tooltip title="Cards View"><Box sx={{ display: 'flex', alignItems: 'center' }}><Icon name="ViewModule" /></Box></Tooltip>
+              <Tooltip title={t('requests.cardsView')}><Box sx={{ display: 'flex', alignItems: 'center' }}><Icon name="ViewModule" /></Box></Tooltip>
             </ToggleButton>
             <ToggleButton value="board">
-              <Tooltip title="Kanban Pipeline"><Box sx={{ display: 'flex', alignItems: 'center' }}><Icon name="ViewKanban" /></Box></Tooltip>
+              <Tooltip title={t('requests.kanbanPipeline')}><Box sx={{ display: 'flex', alignItems: 'center' }}><Icon name="ViewKanban" /></Box></Tooltip>
             </ToggleButton>
           </ToggleButtonGroup>
         )}
@@ -186,36 +189,36 @@ export function RequestListPage() {
 
       <Collapse in={!isMobile || filtersOpen}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }} alignItems={{ md: 'center' }}>
-          <TextField size="small" select label="Status" value={sp.get('statusCode') ?? ''} onChange={(e) => setFilter('statusCode', e.target.value)} sx={{ minWidth: 150 }} fullWidth={isMobile}>
-            <MenuItem value="">All Statuses</MenuItem>
+          <TextField size="small" select label={t('requests.status')} value={sp.get('statusCode') ?? ''} onChange={(e) => setFilter('statusCode', e.target.value)} sx={{ minWidth: 150 }} fullWidth={isMobile}>
+            <MenuItem value="">{t('requests.allStatuses')}</MenuItem>
             {(statuses.data ?? []).map((s) => <MenuItem key={s.id} value={(s as any).code}>{s.name}</MenuItem>)}
           </TextField>
-          <TextField size="small" select label="Department" value={sp.get('departmentId') ?? ''} onChange={(e) => setFilter('departmentId', e.target.value)} sx={{ minWidth: 170 }} fullWidth={isMobile}>
-            <MenuItem value="">All Departments</MenuItem>
+          <TextField size="small" select label={t('requests.department')} value={sp.get('departmentId') ?? ''} onChange={(e) => setFilter('departmentId', e.target.value)} sx={{ minWidth: 170 }} fullWidth={isMobile}>
+            <MenuItem value="">{t('requests.allDepartments')}</MenuItem>
             {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
           </TextField>
-          <TextField size="small" select label="Priority" value={sp.get('priorityId') ?? ''} onChange={(e) => setFilter('priorityId', e.target.value)} sx={{ minWidth: 140 }} fullWidth={isMobile}>
-            <MenuItem value="">All Priorities</MenuItem>
+          <TextField size="small" select label={t('requests.priority')} value={sp.get('priorityId') ?? ''} onChange={(e) => setFilter('priorityId', e.target.value)} sx={{ minWidth: 140 }} fullWidth={isMobile}>
+            <MenuItem value="">{t('requests.allPriorities')}</MenuItem>
             {(priorities.data ?? []).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
           <DateRangeQuickFilter
             from={sp.get('from') ?? ''}
             to={sp.get('to') ?? ''}
-            onApply={(f, t) => {
+            onApply={(from, to) => {
               const next = new URLSearchParams(sp);
-              if (f) next.set('from', f); else next.delete('from');
-              if (t) next.set('to', t); else next.delete('to');
+              if (from) next.set('from', from); else next.delete('from');
+              if (to) next.set('to', to); else next.delete('to');
               next.delete('bucket');
               setSp(next);
             }}
           />
           <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', md: 'auto' } }}>
             {activeFilters > 0 && (
-              <Button onClick={clearFilters} color="inherit" startIcon={<Icon name="Close" />}>Clear</Button>
+              <Button onClick={clearFilters} color="inherit" startIcon={<Icon name="Close" />}>{t('requests.clear')}</Button>
             )}
             <Box sx={{ flex: 1 }} />
-            <Button onClick={() => doExport('xlsx')} disabled={!!exporting} startIcon={<Icon name="TableView" />}>Excel</Button>
-            <Button onClick={() => doExport('pdf')} disabled={!!exporting} startIcon={<Icon name="PictureAsPdf" />}>PDF</Button>
+            <Button onClick={() => doExport('xlsx')} disabled={!!exporting} startIcon={<Icon name="TableView" />}>{t('common.excel')}</Button>
+            <Button onClick={() => doExport('pdf')} disabled={!!exporting} startIcon={<Icon name="PictureAsPdf" />}>{t('common.pdf')}</Button>
           </Stack>
         </Stack>
       </Collapse>
@@ -223,9 +226,9 @@ export function RequestListPage() {
       {data && data.total === 0 ? (
         <EmptyState
           illustration={EmptyBoxIllustration}
-          title="No requests found"
-          description="Try clearing filters, or create a new request."
-          action={can(PERMISSIONS.REQUEST_CREATE) && <Button variant="contained" onClick={() => navigate('/requests/new')}>New Request</Button>}
+          title={t('requests.noRequestsFound')}
+          description={t('requests.tryClearingFilters')}
+          action={can(PERMISSIONS.REQUEST_CREATE) && <Button variant="contained" onClick={() => navigate('/requests/new')}>{t('requests.newRequest')}</Button>}
         />
       ) : viewMode === 'board' && !isMobile ? (
         <RequestKanbanView

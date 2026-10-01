@@ -32,7 +32,7 @@ router.get(
     const params = parseListParams(req.query as Record<string, unknown>);
     const filter = requestsService.buildListFilter(req.query as Record<string, unknown>, req.auth!);
     const result = await paginate(RequestModel, filter, params, {
-      populate: ['priorityId', 'statusId', 'primaryDepartmentId', 'assignedOfficerId'],
+      populate: ['principalId', 'priorityId', 'statusId', 'primaryDepartmentId', 'assignedOfficerId'],
     });
     ok(res, result);
   }),
@@ -50,7 +50,7 @@ router.get(
 router.get(
   '/:id',
   requirePermission(PERMISSIONS.REQUEST_VIEW),
-  asyncHandler(async (req, res) => ok(res, await requestsService.getDetail(req.params.id))),
+  asyncHandler(async (req, res) => ok(res, await requestsService.getDetail(req.params.id, req.auth!))),
 );
 
 router.get(

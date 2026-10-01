@@ -21,12 +21,23 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
     const role = await Role.findById(user.roleId).lean();
     if (!role) throw AppError.unauthorized('Role missing');
 
+    const allPrincipalIds = (user.principalIds ?? []).map((id) => String(id));
+    // The client may ask to narrow to one principal it's actively viewing
+    // (multi-principal users only); only honored when it's actually one of
+    // this user's real principals, so the header can only narrow access,
+    // never widen it.
+    const requestedPrincipal = req.get('x-principal-id');
+    const principalIds = requestedPrincipal && allPrincipalIds.includes(requestedPrincipal)
+      ? [requestedPrincipal]
+      : allPrincipalIds;
+
     req.auth = {
       userId: String(user._id),
       name: user.name,
       roleCode: role.code,
       permissions: (role.permissions ?? []) as Permission[],
       departmentId: user.departmentId ? String(user.departmentId) : null,
+      principalIds,
     };
     next();
   } catch (err) {

@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { TrackingResult } from './TrackingResult';
 import type { TrackResult } from './trackTypes';
@@ -13,6 +14,7 @@ import type { TrackResult } from './trackTypes';
  * snapshot baked into the QR at print time.
  */
 export function QrTrackPage() {
+  const { t } = useTranslation();
   const { token = '' } = useParams();
 
   const query = useQuery({
@@ -22,11 +24,11 @@ export function QrTrackPage() {
   });
 
   return (
-    <AuthLayout title="Track your request" subtitle="Live status, updated automatically" maxWidth={560}>
+    <AuthLayout title={t('track.title')} subtitle={t('track.qrSubtitle')} maxWidth={560}>
       {query.isLoading && (
         <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}>
           <CircularProgress />
-          <Typography sx={{ mt: 2 }} color="text.secondary">Fetching the latest update…</Typography>
+          <Typography sx={{ mt: 2 }} color="text.secondary">{t('track.fetchingUpdate')}</Typography>
         </Box>
       )}
 
@@ -34,11 +36,11 @@ export function QrTrackPage() {
         <Box>
           <Alert severity="error" sx={{ mb: 2 }}>
             {axios.isAxiosError(query.error)
-              ? (query.error.response?.data as { message?: string })?.message ?? 'This QR code is invalid or has expired.'
-              : 'Something went wrong. Try again.'}
+              ? (query.error.response?.data as { message?: string })?.message ?? t('track.qrInvalid')
+              : t('track.somethingWrong')}
           </Alert>
           <Button href="/track" variant="outlined" fullWidth>
-            Track with File ID instead
+            {t('track.trackWithFileId')}
           </Button>
         </Box>
       )}

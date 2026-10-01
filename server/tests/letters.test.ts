@@ -11,9 +11,11 @@ describe('MLA letters', () => {
   let token: string;
   let gpId: string;
   let deptId: string;
+  let principalId: string;
 
   beforeEach(async () => {
-    await seedCore();
+    const { principal } = await seedCore();
+    principalId = String(principal._id);
     const c = await Constituency.findOne({ isPrimary: true });
     gpId = String((await GramPanchayat.create({ name: 'GP 1', constituencyId: c!._id }))._id);
     deptId = String((await Department.create({ code: 'RD', name: 'Rural Dev' }))._id);
@@ -21,6 +23,7 @@ describe('MLA letters', () => {
   });
 
   const payload = () => ({
+    principalId,
     subject: 'Recommendation to sanction culvert',
     referredBy: 'Ward Member',
     applicant: { name: 'Kamala Devi', mobile: '9876500011', altMobile: '9876500022', address: 'Near temple' },
@@ -32,7 +35,7 @@ describe('MLA letters', () => {
   it('creates a letter with an auto letter number (DRAFT by default)', async () => {
     const res = await request(app).post('/api/letters').set(auth(token)).send(payload());
     expect(res.status).toBe(201);
-    expect(res.body.letterNo).toMatch(/MLA-LTR\/\d{4}\/\d{4}/);
+    expect(res.body.letterNo).toMatch(/MLA-S-LTR\/\d{5}/);
     expect(res.body.status).toBe('DRAFT');
   });
 

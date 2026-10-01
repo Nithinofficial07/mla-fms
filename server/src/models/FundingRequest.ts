@@ -13,6 +13,7 @@ import { applyCommonPlugins, softDeleteFields } from './plugins.js';
 const fundingRequestSchema = new Schema(
   {
     ...softDeleteFields,
+    principalId: { type: Schema.Types.ObjectId, ref: 'Principal', required: true, index: true },
     fundingRequestId: { type: String, required: true, unique: true },
     departmentId: { type: Schema.Types.ObjectId, ref: 'Department', required: true, index: true },
     subject: { type: String, required: true, trim: true },

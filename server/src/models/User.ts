@@ -20,6 +20,11 @@ const userSchema = new Schema(
     // Department officers must be linked to a department.
     departmentId: { type: Schema.Types.ObjectId, ref: 'Department', default: null },
 
+    // Which principal(s) - MLA South / MLA North / MP - this user may act on
+    // behalf of. Empty + no PRINCIPAL_ALL_VIEW permission means they see
+    // nothing (fails closed), not everything.
+    principalIds: { type: [Schema.Types.ObjectId], ref: 'Principal', default: [] },
+
     lastLoginAt: { type: Date, default: null },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },

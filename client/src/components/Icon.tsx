@@ -10,7 +10,7 @@ import {
   HourglassEmpty, Inbox, Insights, Keyboard, KeyboardDoubleArrowLeft, KeyboardDoubleArrowRight, Label, LightMode, ListAlt, Lock, Mail, Menu, MoreVert, NoteAdd, Notifications, NotificationsNone,
   OpenInNew, Person, PersonAdd, Phone, PhotoCamera, PhotoLibrary, PictureAsPdf, Place, PriorityHigh, Print, Remove,
   ReportProblem, Rotate90DegreesCw, SearchOff, Search, Send, Settings, Spa, SwapHoriz,
-  TableView, TaskAlt, Timeline, Today, Tune, UploadFile, Videocam, ViewKanban, ViewList, ViewModule, Visibility, VisibilityOff, Warning,
+  TableView, TaskAlt, Timeline, Today, Translate, Tune, UploadFile, Videocam, ViewKanban, ViewList, ViewModule, Visibility, VisibilityOff, Warning,
 } from '@mui/icons-material';
 
 /** Explicit registry — keeps the production bundle from pulling every MUI icon. */
@@ -24,7 +24,7 @@ const REGISTRY: Record<string, ComponentType<SvgIconProps>> = {
   HourglassEmpty, Inbox, Insights, Keyboard, KeyboardDoubleArrowLeft, KeyboardDoubleArrowRight, Label, LightMode, ListAlt, Lock, Mail, Menu, MoreVert, NoteAdd, Notifications, NotificationsNone,
   OpenInNew, Person, PersonAdd, Phone, PhotoCamera, PhotoLibrary, PictureAsPdf, Place, PriorityHigh, Print, Remove,
   ReportProblem, Rotate90DegreesCw, SearchOff, Search, Send, Settings, Spa, SwapHoriz,
-  TableView, TaskAlt, Timeline, Today, Tune, UploadFile, Videocam, ViewKanban, ViewList, ViewModule, Visibility, VisibilityOff, Warning,
+  TableView, TaskAlt, Timeline, Today, Translate, Tune, UploadFile, Videocam, ViewKanban, ViewList, ViewModule, Visibility, VisibilityOff, Warning,
 };
 
 export function Icon({ name, ...props }: { name: string } & SvgIconProps) {

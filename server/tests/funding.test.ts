@@ -9,9 +9,11 @@ const app = createApp();
 describe('funding requests', () => {
   let token: string;
   let departmentId: string;
+  let principalId: string;
 
   beforeEach(async () => {
-    await seedCore();
+    const { principal } = await seedCore();
+    principalId = String(principal._id);
     token = await login(app);
     const dept = await Department.create({ code: 'AGRI', name: 'Agriculture Department', ministryName: 'Minister for Agriculture, Government of Karnataka' });
     departmentId = String(dept._id);
@@ -21,20 +23,20 @@ describe('funding requests', () => {
     const res = await request(app)
       .post('/api/funding')
       .set(auth(token))
-      .send({ departmentId, subject: 'Bridge repair funding', address: 'Near bus stand, Davanagere' });
+      .send({ principalId, departmentId, subject: 'Bridge repair funding', address: 'Near bus stand, Davanagere' });
     expect(res.status).toBe(201);
-    expect(res.body.fundingRequestId).toMatch(/FUND\/\d{4}\/\d{4}/);
+    expect(res.body.fundingRequestId).toMatch(/MLA-S-FUND\/\d{5}/);
     expect(res.body.departmentId).toBe(departmentId);
     expect(res.body.status).toBe('SUBMITTED');
   });
 
   it('rejects a missing department, subject, or address', async () => {
-    const res = await request(app).post('/api/funding').set(auth(token)).send({ departmentId, subject: 'ab', address: '' });
+    const res = await request(app).post('/api/funding').set(auth(token)).send({ principalId, departmentId, subject: 'ab', address: '' });
     expect(res.status).toBe(400);
   });
 
   it('lists funding requests with the department populated, and supports filtering by department', async () => {
-    await request(app).post('/api/funding').set(auth(token)).send({ departmentId, subject: 'Bridge repair funding', address: 'Near bus stand' });
+    await request(app).post('/api/funding').set(auth(token)).send({ principalId, departmentId, subject: 'Bridge repair funding', address: 'Near bus stand' });
     const res = await request(app).get('/api/funding').set(auth(token));
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(1);
@@ -48,7 +50,7 @@ describe('funding requests', () => {
     const created = await request(app)
       .post('/api/funding')
       .set(auth(token))
-      .send({ departmentId, subject: 'Bridge repair funding', address: 'Near bus stand' });
+      .send({ principalId, departmentId, subject: 'Bridge repair funding', address: 'Near bus stand' });
     const id = created.body.id;
 
     const upload = await request(app)

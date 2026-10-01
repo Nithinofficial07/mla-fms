@@ -14,7 +14,7 @@ const PENDING_CODES = ['SUBMITTED', 'UNDER_REVIEW', 'ASSIGNED', 'FORWARDED', 'IN
 const router = Router();
 router.use(authenticate, requirePermission(PERMISSIONS.DASHBOARD_VIEW));
 
-/** Officer scoping: department officers see only their department's slice, plus an optional date-range filter shared by all dashboard widgets. */
+/** Officer + principal scoping, plus an optional date-range filter shared by all dashboard widgets. */
 function scope(auth: Express.AuthContext, query: Record<string, unknown> = {}): Record<string, unknown> {
   const filter: Record<string, unknown> = {};
   if (auth.roleCode === 'DEPARTMENT_OFFICER' && auth.departmentId) {
@@ -23,6 +23,9 @@ function scope(auth: Express.AuthContext, query: Record<string, unknown> = {}): 
       { secondaryDepartmentId: auth.departmentId },
       { assignedOfficerId: auth.userId },
     ];
+  }
+  if (!auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+    filter.principalId = { $in: auth.principalIds };
   }
   const from = query.from ? new Date(String(query.from)) : undefined;
   const to = query.to ? new Date(String(query.to)) : undefined;

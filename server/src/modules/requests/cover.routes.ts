@@ -51,7 +51,7 @@ router.get(
   '/:id/cover.pdf',
   requirePermission(PERMISSIONS.REQUEST_VIEW),
   asyncHandler(async (req, res) => {
-    const r = (await requestsService.getDetail(req.params.id)) as any;
+    const r = (await requestsService.getDetail(req.params.id, req.auth!)) as any;
     const [docs, timeline] = await Promise.all([
       DocumentModel.find({ requestId: req.params.id }).lean(),
       listTimeline({ requestId: req.params.id }),

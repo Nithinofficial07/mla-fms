@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AuthUser } from '@mla/shared';
-import { api, setAccessToken, setOnAuthLost } from '@/api/client';
+import { api, setAccessToken, setActivePrincipal, setOnAuthLost } from '@/api/client';
 
 interface AuthState {
   user: AuthUser | null;
@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await api.post('/auth/logout');
         } finally {
           setAccessToken(null);
+          setActivePrincipal(null);
           setUser(null);
         }
       },

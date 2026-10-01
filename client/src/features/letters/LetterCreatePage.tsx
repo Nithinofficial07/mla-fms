@@ -6,7 +6,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { PageHeader } from '@/components/PageHeader';
-import { api, errorMessage } from '@/api/client';
+import { api, errorMessage, getActivePrincipal } from '@/api/client';
 import { useDepartments } from '@/hooks/useOptions';
 import { CascadingLocationPicker, type LocationValue } from '@/features/requests/CascadingLocationPicker';
 import { buildLocationPayload, isLocationComplete } from '@/features/requests/locationPayload';
@@ -41,6 +41,7 @@ export function LetterCreatePage() {
   const setApplicant = (k: string, v: string) => setForm((s) => ({ ...s, applicant: { ...s.applicant, [k]: v } }));
 
   const payload = (issue: boolean) => ({
+    principalId: getActivePrincipal(),
     subject: form.subject,
     description: form.description || undefined,
     applicant: {

@@ -10,10 +10,12 @@ describe('request cover sheet PDF', () => {
   let token: string;
   let priorityId: string;
   let gpId: string;
+  let principalId: string;
 
   beforeEach(async () => {
-    const { priority } = await seedCore();
+    const { priority, principal } = await seedCore();
     priorityId = String(priority._id);
+    principalId = String(principal._id);
     const c = await Constituency.findOne({ isPrimary: true });
     const gp = await GramPanchayat.create({ name: 'GP 1', constituencyId: c!._id });
     gpId = String(gp._id);
@@ -27,6 +29,7 @@ describe('request cover sheet PDF', () => {
       .send({
         subject: 'Broken hand pump',
         priorityId,
+        principalId,
         applicant: { name: 'Ramesh Kumar', mobile: '9876543210' },
         location: { gramPanchayatId: gpId },
         submit: true,
@@ -47,6 +50,7 @@ describe('request cover sheet PDF', () => {
       .send({
         subject: longSubject,
         priorityId,
+        principalId,
         applicant: { name: 'Ramesh Kumar', mobile: '9876543210' },
         location: { gramPanchayatId: gpId },
         submit: true,

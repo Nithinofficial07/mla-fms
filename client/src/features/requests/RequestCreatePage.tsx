@@ -9,7 +9,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { PageHeader } from '@/components/PageHeader';
 import { Icon } from '@/components/Icon';
-import { api, errorMessage } from '@/api/client';
+import { api, errorMessage, getActivePrincipal } from '@/api/client';
 import { useCategories, useDepartments, useGramPanchayats, useLookup, usePriorities, useWards } from '@/hooks/useOptions';
 import { CascadingLocationPicker, type LocationValue } from './CascadingLocationPicker';
 import { buildLocationPayload, isLocationComplete, locationSummary } from './locationPayload';
@@ -69,6 +69,7 @@ export function RequestCreatePage() {
     setForm((s) => ({ ...s, applicant: { ...s.applicant, [k]: v } }));
 
   const payload = (submit: boolean) => ({
+    principalId: getActivePrincipal(),
     subject: form.subject,
     description: form.description,
     requestType: form.requestType || undefined,

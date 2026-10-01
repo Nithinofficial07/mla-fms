@@ -29,6 +29,7 @@ export const locationSchema = z
   });
 
 export const createRequestSchema = z.object({
+  principalId: objectId,
   subject: z.string().min(3),
   description: z.string().optional(),
   requestType: z.string().optional(),

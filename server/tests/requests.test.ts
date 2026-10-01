@@ -10,10 +10,12 @@ describe('requests', () => {
   let token: string;
   let priorityId: string;
   let gpId: string;
+  let principalId: string;
 
   beforeEach(async () => {
-    const { priority } = await seedCore();
+    const { priority, principal } = await seedCore();
     priorityId = String(priority._id);
+    principalId = String(principal._id);
     const c = await Constituency.findOne({ isPrimary: true });
     const gp = await GramPanchayat.create({ name: 'GP 1', constituencyId: c!._id });
     gpId = String(gp._id);
@@ -23,6 +25,7 @@ describe('requests', () => {
   const payload = () => ({
     subject: 'Broken hand pump',
     priorityId,
+    principalId,
     applicant: { name: 'Ramesh Kumar', mobile: '9876543210' },
     location: { gramPanchayatId: gpId },
   });
@@ -30,7 +33,7 @@ describe('requests', () => {
   it('creates a draft with generated ids', async () => {
     const res = await request(app).post('/api/requests').set(auth(token)).send(payload());
     expect(res.status).toBe(201);
-    expect(res.body.fileId).toMatch(/MLA\/\d{4}\/\d{6}/);
+    expect(res.body.fileId).toMatch(/MLA-S\/\d{5}/);
     expect(res.body.requestId).toMatch(/REQ\/\d{4}\/\d{6}/);
     expect(res.body.statusCode).toBe('DRAFT');
     expect(res.body.dueDate).toBeNull();

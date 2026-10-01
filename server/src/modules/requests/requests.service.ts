@@ -1,8 +1,9 @@
 import dayjs from 'dayjs';
-import { formatId } from '@mla/shared';
+import { formatId, PERMISSIONS } from '@mla/shared';
 import { RequestModel } from '../../models/Request.js';
 import { RequestStatus, Priority, SystemSettings } from '../../models/config.js';
 import { Constituency } from '../../models/location.js';
+import { Principal } from '../../models/Principal.js';
 import { AppError } from '../../utils/AppError.js';
 import { nextSequence, yearlyKey } from '../../utils/sequence.js';
 import { escapeRegex, withId } from '../../utils/queryFeatures.js';
@@ -35,19 +36,22 @@ export const requestsService = {
     const cfg = await settings();
     const priority = await Priority.findById(body.priorityId).lean();
     if (!priority) throw AppError.badRequest('Unknown priority');
+    const principal = await Principal.findById(body.principalId).lean();
+    if (!principal) throw AppError.badRequest('Unknown principal');
 
     const draft = await initialStatus();
     const submittedStatus = body.submit ? await statusByCode('SUBMITTED') : null;
     const status = submittedStatus ?? draft;
 
-    const fileSeq = await nextSequence(yearlyKey('fileId'));
+    const fileSeq = await nextSequence(yearlyKey(`fileId:${principal.code}`));
     const reqSeq = await nextSequence(yearlyKey('requestId'));
     const now = new Date();
     const slaDays = body.slaDays ?? priority.slaDays ?? cfg.defaultSlaDays ?? 15;
     const constituency = await Constituency.findOne({ isPrimary: true }).lean();
 
     const doc = await RequestModel.create({
-      fileId: formatId({ format: cfg.fileIdFormat, seq: fileSeq, date: now }),
+      principalId: principal._id,
+      fileId: formatId({ format: `${principal.idPrefix}/{SEQ:5}`, seq: fileSeq, date: now }),
       requestId: formatId({ format: cfg.requestIdFormat, seq: reqSeq, date: now }),
       date: now,
       requestType: body.requestType,
@@ -138,18 +142,30 @@ export const requestsService = {
         },
       ];
     }
+
+    // Principal scoping: only PRINCIPAL_ALL_VIEW bypasses it. An empty
+    // principalIds list fails closed (matches nothing) rather than opening up.
+    if (!auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+      filter.principalId = { $in: auth.principalIds };
+    }
     return filter;
   },
 
-  async getDetail(id: string) {
+  async getDetail(id: string, auth: Express.AuthContext) {
     const doc = await RequestModel.findById(id)
       .populate([
-        'priorityId', 'categoryId', 'statusId',
+        'principalId', 'priorityId', 'categoryId', 'statusId',
         'primaryDepartmentId', 'secondaryDepartmentId', 'assignedOfficerId',
         'location.wardId', 'location.gramPanchayatId', 'location.villageId', 'location.subVillageId',
       ])
       .lean();
     if (!doc) throw AppError.notFound('Request not found');
+    if (
+      !auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)
+      && !auth.principalIds.includes(String((doc as any).principalId?._id ?? (doc as any).principalId))
+    ) {
+      throw AppError.notFound('Request not found');
+    }
     return withId(doc);
   },
 

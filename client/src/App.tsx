@@ -16,6 +16,7 @@ import { LetterListPage } from '@/features/letters/LetterListPage';
 import { LetterCreatePage } from '@/features/letters/LetterCreatePage';
 import { LetterDetailPage } from '@/features/letters/LetterDetailPage';
 import { DepartmentsPage } from '@/features/departments/DepartmentsPage';
+import { PrincipalsPage } from '@/features/principals/PrincipalsPage';
 import { FundingDepartmentsPage } from '@/features/funding/FundingDepartmentsPage';
 import { FundingCreatePage } from '@/features/funding/FundingCreatePage';
 import { FundingDetailPage } from '@/features/funding/FundingDetailPage';
@@ -69,6 +70,8 @@ export function App() {
           <Route index element={<DepartmentsPage />} />
           <Route path="import" element={<RequirePermission permission={PERMISSIONS.DEPARTMENT_MANAGE}><ImportPage kind="DEPARTMENT" /></RequirePermission>} />
         </Route>
+
+        <Route path="principals" element={<RequirePermission permission={PERMISSIONS.PRINCIPAL_MANAGE}><PrincipalsPage /></RequirePermission>} />
 
         <Route path="funding">
           <Route index element={<RequirePermission permission={PERMISSIONS.LETTER_VIEW}><FundingDepartmentsPage /></RequirePermission>} />

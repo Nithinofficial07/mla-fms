@@ -9,6 +9,7 @@ import { recordAudit } from '../../utils/audit.js';
 import { parseListParams, paginate, withId } from '../../utils/queryFeatures.js';
 import { nextSequence, yearlyKey } from '../../utils/sequence.js';
 import { FundingRequest } from '../../models/FundingRequest.js';
+import { Principal } from '../../models/Principal.js';
 import { Remark } from '../../models/workflow.js';
 import { addTimeline, listTimeline } from '../workflow/timeline.service.js';
 import { createFundingSchema, fundingRemarkSchema, fundingStatusSchema, updateFundingSchema } from './funding.validation.js';
@@ -34,7 +35,10 @@ router.get(
     const departmentId = req.query.departmentId;
     if (departmentId) filter.departmentId = departmentId;
     if (req.query.status) filter.status = req.query.status;
-    ok(res, await paginate(FundingRequest, filter, params, { populate: ['departmentId', 'createdBy'] }));
+    if (!req.auth!.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+      filter.principalId = { $in: req.auth!.principalIds };
+    }
+    ok(res, await paginate(FundingRequest, filter, params, { populate: ['principalId', 'departmentId', 'createdBy'] }));
   }),
 );
 
@@ -42,8 +46,14 @@ router.get(
   '/:id',
   requirePermission(PERMISSIONS.LETTER_VIEW),
   asyncHandler(async (req, res) => {
-    const doc = await FundingRequest.findById(req.params.id).populate(['departmentId', 'createdBy']).lean();
+    const doc = await FundingRequest.findById(req.params.id).populate(['principalId', 'departmentId', 'createdBy']).lean();
     if (!doc) throw AppError.notFound('Funding request not found');
+    if (
+      !req.auth!.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)
+      && !req.auth!.principalIds.includes(String((doc as any).principalId?._id ?? (doc as any).principalId))
+    ) {
+      throw AppError.notFound('Funding request not found');
+    }
     ok(res, withId(doc));
   }),
 );
@@ -59,9 +69,12 @@ router.post(
   requirePermission(PERMISSIONS.LETTER_CREATE),
   validate({ body: createFundingSchema }),
   asyncHandler(async (req, res) => {
-    const seq = await nextSequence(yearlyKey('fundingRequestId'));
+    const principal = await Principal.findById(req.body.principalId).lean();
+    if (!principal) throw AppError.badRequest('Unknown principal');
+    const seq = await nextSequence(yearlyKey(`fundingRequestId:${principal.code}`));
     const doc = await FundingRequest.create({
-      fundingRequestId: formatId({ format: 'FUND/{YYYY}/{SEQ:4}', seq, date: new Date() }),
+      principalId: principal._id,
+      fundingRequestId: formatId({ format: `${principal.idPrefix}-FUND/{SEQ:5}`, seq, date: new Date() }),
       departmentId: req.body.departmentId,
       subject: req.body.subject,
       address: req.body.address,

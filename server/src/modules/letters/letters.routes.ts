@@ -22,8 +22,8 @@ router.get(
   requirePermission(PERMISSIONS.LETTER_VIEW),
   asyncHandler(async (req, res) => {
     const params = parseListParams(req.query as Record<string, unknown>);
-    const filter = lettersService.buildListFilter(req.query as Record<string, unknown>);
-    ok(res, await paginate(Letter, filter, params, { populate: ['departmentId'] }));
+    const filter = lettersService.buildListFilter(req.query as Record<string, unknown>, req.auth!);
+    ok(res, await paginate(Letter, filter, params, { populate: ['principalId', 'departmentId'] }));
   }),
 );
 
@@ -33,7 +33,7 @@ router.get(
   requirePermission(PERMISSIONS.LETTER_VIEW),
   asyncHandler(async (req, res) => {
     const format = String(req.query.format ?? 'csv');
-    const filter = lettersService.buildListFilter(req.query as Record<string, unknown>);
+    const filter = lettersService.buildListFilter(req.query as Record<string, unknown>, req.auth!);
     const rows = await Letter.find(filter)
       .sort('-date')
       .limit(5000)
@@ -71,7 +71,7 @@ router.get(
 router.get(
   '/:id',
   requirePermission(PERMISSIONS.LETTER_VIEW),
-  asyncHandler(async (req, res) => ok(res, await lettersService.getDetail(req.params.id))),
+  asyncHandler(async (req, res) => ok(res, await lettersService.getDetail(req.params.id, req.auth!))),
 );
 
 router.get(

@@ -42,6 +42,18 @@ export const useStatuses = () =>
 export const useDepartments = () =>
   useQuery({ queryKey: ['opt', 'departments'], queryFn: () => alphabetical('/departments', { pageSize: 500, sort: 'name' }) });
 
+export interface PrincipalOpt { id: string; code: string; label: string; idPrefix: string }
+const PRINCIPAL_ORDER = ['MLA_S', 'MLA_N', 'MP'];
+
+/** The office's 3 principals, in their fixed display order (not alphabetical - "MP" would sort before "MLA"). */
+export const usePrincipals = () =>
+  useQuery({
+    queryKey: ['opt', 'principals'],
+    queryFn: () =>
+      api.get('/principals', { params: { pageSize: 10 } }).then((r) => r.data.data as PrincipalOpt[])
+        .then((list) => list.slice().sort((a, b) => PRINCIPAL_ORDER.indexOf(a.code) - PRINCIPAL_ORDER.indexOf(b.code))),
+  });
+
 export const useLookup = (group: string) =>
   useQuery({ queryKey: ['opt', 'lookup', group], queryFn: () => byOrder('/lookups', { group, pageSize: 200, sort: 'order,name' }) });
 

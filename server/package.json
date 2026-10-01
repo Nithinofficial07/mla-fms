@@ -11,6 +11,8 @@
     "seed": "tsx src/seed/seed.ts",
     "seed:config": "tsx src/seed/seed.ts --config-only",
     "seed:prod": "node dist/seed/seed.js --config-only",
+    "backfill:principal": "tsx src/scripts/backfill-principal.ts",
+    "backfill:principal:prod": "node dist/scripts/backfill-principal.js",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"

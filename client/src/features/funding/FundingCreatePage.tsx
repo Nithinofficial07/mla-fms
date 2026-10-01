@@ -6,7 +6,7 @@ import { useSnackbar } from 'notistack';
 import { PageHeader } from '@/components/PageHeader';
 import { Icon } from '@/components/Icon';
 import { Confetti } from '@/components/Confetti';
-import { api, errorMessage } from '@/api/client';
+import { api, errorMessage, getActivePrincipal } from '@/api/client';
 import { useDepartments } from '@/hooks/useOptions';
 
 export function FundingCreatePage() {
@@ -25,7 +25,7 @@ export function FundingCreatePage() {
   const department = departments.data?.find((d) => d.id === departmentId);
 
   const create = useMutation({
-    mutationFn: () => api.post('/funding', { departmentId, subject, address, letterNo, pointPersonName, pointPersonNumber }).then((r) => r.data),
+    mutationFn: () => api.post('/funding', { principalId: getActivePrincipal(), departmentId, subject, address, letterNo, pointPersonName, pointPersonNumber }).then((r) => r.data),
     onSuccess: (data) => {
       enqueueSnackbar(`Created ${data.fundingRequestId}`, { variant: 'success' });
       setCelebrate(true);

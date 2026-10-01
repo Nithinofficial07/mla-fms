@@ -4,6 +4,7 @@ import { Alert, Box, Button, Checkbox, FormControlLabel, IconButton, InputAdornm
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { Icon } from '@/components/Icon';
 import { useAuth } from '@/app/AuthProvider';
@@ -19,6 +20,7 @@ type Form = z.infer<typeof schema>;
 
 export function LoginPage() {
   const { login } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -54,12 +56,12 @@ export function LoginPage() {
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to the MLA File Management System">
+    <AuthLayout title={t('auth.welcomeBack')} subtitle={t('auth.signInSubtitle')}>
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField
-            label="Username or email"
+            label={t('auth.usernameOrEmail')}
             autoFocus
             autoComplete="username"
             {...register('usernameOrEmail')}
@@ -68,7 +70,7 @@ export function LoginPage() {
             InputProps={{ startAdornment: <InputAdornment position="start"><Icon name="PersonAdd" fontSize="small" sx={{ opacity: 0.6 }} /></InputAdornment> }}
           />
           <TextField
-            label="Password"
+            label={t('auth.password')}
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             {...register('password')}
@@ -87,19 +89,19 @@ export function LoginPage() {
           />
           <FormControlLabel
             control={<Checkbox size="small" checked={remember} onChange={(e) => setRemember(e.target.checked)} />}
-            label="Remember my username"
+            label={t('auth.rememberUsername')}
             sx={{ mt: -1, ml: 0 }}
           />
           <Button type="submit" size="large" variant="contained" disabled={formState.isSubmitting}>
-            {formState.isSubmitting ? 'Signing in…' : 'Sign in'}
+            {formState.isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
           </Button>
           <Stack direction="row" justifyContent="space-between">
-            <Link href="/forgot-password" variant="body2">Forgot password?</Link>
-            <Link href="/setup" variant="body2">First-time setup</Link>
+            <Link href="/forgot-password" variant="body2">{t('auth.forgotPassword')}</Link>
+            <Link href="/setup" variant="body2">{t('auth.firstTimeSetup')}</Link>
           </Stack>
           <Stack alignItems="center" sx={{ pt: 1 }}>
             <Link href="/track" variant="body2" underline="hover">
-              Not staff? Track your request here
+              {t('auth.trackPrompt')}
             </Link>
           </Stack>
         </Stack>

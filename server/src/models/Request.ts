@@ -5,6 +5,7 @@ import { applyCommonPlugins, softDeleteFields } from './plugins.js';
 const requestSchema = new Schema(
   {
     ...softDeleteFields,
+    principalId: { type: Schema.Types.ObjectId, ref: 'Principal', required: true, index: true },
     fileId: { type: String, required: true, unique: true },
     requestId: { type: String, required: true, unique: true },
 

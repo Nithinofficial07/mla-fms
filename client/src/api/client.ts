@@ -20,8 +20,40 @@ export function setOnAuthLost(fn: () => void) {
   onAuthLost = fn;
 }
 
+const PRINCIPAL_STORAGE_KEY = 'mla-fms:active-principal';
+
+function readStoredPrincipal(): string | null {
+  try {
+    return localStorage.getItem(PRINCIPAL_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+let activePrincipalId: string | null = readStoredPrincipal();
+
+/**
+ * Which principal (MLA-S / MLA-N / MP) the signed-in user is currently acting
+ * as - only meaningful for users with more than one. The server never trusts
+ * this header alone; it's intersected with the user's actual principalIds
+ * server-side, so this only narrows an already-authorized view, never widens it.
+ */
+export function setActivePrincipal(id: string | null) {
+  activePrincipalId = id;
+  try {
+    if (id) localStorage.setItem(PRINCIPAL_STORAGE_KEY, id);
+    else localStorage.removeItem(PRINCIPAL_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+export function getActivePrincipal(): string | null {
+  return activePrincipalId;
+}
+
 api.interceptors.request.use((config) => {
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  if (activePrincipalId) config.headers['X-Principal-Id'] = activePrincipalId;
   return config;
 });
 
