@@ -32,7 +32,10 @@ router.get(
     const params = parseListParams(req.query as Record<string, unknown>);
     const filter = requestsService.buildListFilter(req.query as Record<string, unknown>, req.auth!);
     const result = await paginate(RequestModel, filter, params, {
-      populate: ['principalId', 'priorityId', 'statusId', 'primaryDepartmentId', 'assignedOfficerId'],
+      populate: [
+        'principalId', 'priorityId', 'statusId', 'primaryDepartmentId', 'assignedOfficerId',
+        'location.wardId', 'location.gramPanchayatId',
+      ],
     });
     ok(res, result);
   }),
@@ -45,6 +48,20 @@ router.get(
   asyncHandler(async (req, res) =>
     ok(res, { matches: await requestsService.findDuplicates(req.query as Record<string, string>) }),
   ),
+);
+
+/** Officers of a department, for the Immediate Intervention step's "Person" picker. */
+router.get(
+  '/officers',
+  requirePermission(PERMISSIONS.REQUEST_CREATE),
+  asyncHandler(async (req, res) => {
+    if (!req.query.departmentId) return ok(res, []);
+    const officers = await User.find({ departmentId: req.query.departmentId, isActive: true })
+      .select('name designation')
+      .sort('name')
+      .lean();
+    ok(res, withId(officers));
+  }),
 );
 
 router.get(

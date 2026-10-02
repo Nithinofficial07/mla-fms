@@ -46,7 +46,8 @@ export const DEFAULT_STATUSES = [
 export const DEFAULT_REQUEST_CATEGORIES = [
   'Road', 'Drinking Water', 'Electricity', 'Drainage', 'Housing', 'Education',
   'Health', 'Agriculture', 'Revenue', 'Transport', 'Pension',
-  'Government Schemes', 'Infrastructure', 'Other',
+  'Government Schemes', 'Infrastructure', 'Shamanur Industries',
+  'Personal Issues', 'Bapuji Samasta', 'Other',
 ];
 
 export const DEFAULT_REQUEST_TYPES = [

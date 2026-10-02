@@ -60,6 +60,9 @@ const gramPanchayatSchema = new Schema(
     code: { type: String, trim: true, index: true },
     description: { type: String, default: '' },
     constituencyId: { type: Schema.Types.ObjectId, ref: 'Constituency', required: true },
+    // Display order (1-8 for Davanagere South's rural GPs), rendered as a
+    // Roman numeral in the UI. 0 = unordered / not yet assigned.
+    order: { type: Number, default: 0 },
     isDemo: { type: Boolean, default: false },
   },
   { timestamps: true },

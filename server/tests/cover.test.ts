@@ -30,8 +30,8 @@ describe('request cover sheet PDF', () => {
         subject: 'Broken hand pump',
         priorityId,
         principalId,
-        applicant: { name: 'Ramesh Kumar', mobile: '9876543210' },
-        location: { gramPanchayatId: gpId },
+        applicant: { firstName: 'Ramesh', lastName: 'Kumar', mobile: '9876543210' },
+        location: { locationType: 'RURAL', gramPanchayatId: gpId },
         submit: true,
       });
     const id = created.body.id;
@@ -51,8 +51,8 @@ describe('request cover sheet PDF', () => {
         subject: longSubject,
         priorityId,
         principalId,
-        applicant: { name: 'Ramesh Kumar', mobile: '9876543210' },
-        location: { gramPanchayatId: gpId },
+        applicant: { firstName: 'Ramesh', lastName: 'Kumar', mobile: '9876543210' },
+        location: { locationType: 'RURAL', gramPanchayatId: gpId },
         submit: true,
       });
     const id = created.body.id;

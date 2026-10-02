@@ -54,12 +54,13 @@ export const wardRouter = crudRouter({
 export const gramPanchayatRouter = crudRouter({
   model: GramPanchayat,
   entity: 'GramPanchayat',
-  createSchema: z.object({ ...named, constituencyId: z.string().length(24) }),
-  updateSchema: z.object({ ...named, constituencyId: z.string().length(24), isActive: z.boolean() }).partial(),
+  createSchema: z.object({ ...named, constituencyId: z.string().length(24), order: z.number().int().min(0).optional() }),
+  updateSchema: z.object({ ...named, constituencyId: z.string().length(24), order: z.number().int().min(0), isActive: z.boolean() }).partial(),
   permissions: { read: READ, write: WRITE },
   searchFields: ['name', 'code'],
   filterFields: ['constituencyId'],
   populate: 'constituencyId',
+  defaultSort: 'order,name',
   async beforeDelete(id) {
     if (await Village.countDocuments({ gramPanchayatId: id })) {
       throw AppError.conflict('Gram Panchayat has villages. Move or remove them first.');
@@ -128,7 +129,7 @@ locationOptionsRouter.get(
   asyncHandler(async (req, res) => {
     const f: Record<string, unknown> = { isActive: true };
     if (req.query.constituencyId) f.constituencyId = req.query.constituencyId;
-    ok(res, withId(await GramPanchayat.find(f).sort('name').select('name code').lean()));
+    ok(res, withId(await GramPanchayat.find(f).sort({ order: 1, name: 1 }).select('name code order').lean()));
   }),
 );
 locationOptionsRouter.get(

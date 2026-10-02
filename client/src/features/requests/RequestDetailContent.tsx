@@ -443,7 +443,8 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
           {!compact && tab === 2 && (
             <Card>
               <CardHeader
-                title="Grievance / Request Subject & Background"
+                title="Request Description"
+                subheader="The applicant's request, issue, background and required intervention"
                 titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }}
               />
               <Divider />
@@ -567,12 +568,6 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
               </Stack>
               <Divider sx={{ my: 1 }} />
               <Stack spacing={1}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Responsible Department</Typography>
-                  <Typography variant="body2" fontWeight={700}>
-                    {r.primaryDepartmentId?.name ?? 'Unassigned'}
-                  </Typography>
-                </Box>
                 {r.dueDate && (
                   <Box>
                     <Typography variant="caption" color="text.secondary">SLA Resolution Target</Typography>
@@ -628,6 +623,16 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
               )}
 
               <Stack spacing={1} sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                {!!r.applicant?.accompanyingCount && (
+                  <DetailField icon="Group" label="Accompanying People" value={String(r.applicant.accompanyingCount)} />
+                )}
+                {r.applicant?.referencePersonName && (
+                  <DetailField
+                    icon="PersonAdd"
+                    label="Reference Person"
+                    value={[r.applicant.referencePersonName, r.applicant.referencePersonMobile].filter(Boolean).join(' · ')}
+                  />
+                )}
                 {r.applicant?.email && <DetailField icon="Mail" label="Email" value={r.applicant.email} />}
                 {r.applicant?.address && <DetailField icon="Place" label="Applicant Address" value={r.applicant.address} />}
                 {r.applicant?.idType && (
@@ -646,13 +651,49 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
             />
             <Divider />
             <CardContent sx={{ p: 2 }}>
+              {r.location?.locationType === 'OTHER' ? (
+                <Stack spacing={1}>
+                  {r.location?.otherLocationPlace && <DetailField icon="Place" label="Place" value={r.location.otherLocationPlace} />}
+                  {r.location?.otherLocationCity && <DetailField icon="LocationCity" label="City / Town" value={r.location.otherLocationCity} />}
+                  {r.location?.otherLocationDistrict && <DetailField icon="Public" label="District" value={r.location.otherLocationDistrict} />}
+                  {r.location?.otherLocationState && <DetailField icon="Public" label="State" value={r.location.otherLocationState} />}
+                  {r.location?.additionalLocationDetails && <DetailField icon="Notes" label="Detailed Location" value={r.location.additionalLocationDetails} />}
+                  {r.location?.otherLocationReason && <DetailField icon="Info" label="Reason / Context" value={r.location.otherLocationReason} />}
+                </Stack>
+              ) : (
+                <Stack spacing={1}>
+                  {r.location?.wardId && <DetailField icon="Apartment" label="Ward" value={r.location.wardId.name} />}
+                  {r.location?.gramPanchayatId && <DetailField icon="Cottage" label="Gram Panchayat" value={r.location.gramPanchayatId.name} />}
+                  {r.location?.villageId && (
+                    <DetailField icon="Grass" label={r.location?.locationType === 'URBAN' ? 'Area / Locality' : 'Village'} value={r.location.villageId.name} />
+                  )}
+                  {r.location?.subVillageId && <DetailField icon="Spa" label="Sub-Village / Hamlet" value={r.location.subVillageId.name} />}
+                  {r.location?.otherPlaceName && <DetailField icon="Place" label="Other Place" value={r.location.otherPlaceName} />}
+                  {r.location?.houseNumber && <DetailField icon="Home" label="House / Door No." value={r.location.houseNumber} />}
+                  {r.location?.roadName && <DetailField icon="Place" label="Road Name" value={r.location.roadName} />}
+                  {r.location?.roadType && <DetailField icon="Place" label="Road Type" value={r.location.roadType} />}
+                  {r.location?.pincode && <DetailField icon="Mail" label="Pincode" value={r.location.pincode} />}
+                  {r.location?.addressText && <DetailField icon="Place" label="Address / Landmark" value={r.location.addressText} />}
+                  {r.location?.additionalLocationDetails && <DetailField icon="Notes" label="Additional Details" value={r.location.additionalLocationDetails} />}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Immediate Intervention Card */}
+          <Card>
+            <CardHeader
+              title="Immediate Intervention"
+              titleTypographyProps={{ variant: 'subtitle2', fontWeight: 700 }}
+              avatar={<Icon name="Bolt" sx={{ color: 'primary.main' }} />}
+            />
+            <Divider />
+            <CardContent sx={{ p: 2 }}>
               <Stack spacing={1}>
-                {r.location?.wardId && <DetailField icon="Apartment" label="Ward" value={r.location.wardId.name} />}
-                {r.location?.gramPanchayatId && <DetailField icon="Cottage" label="Gram Panchayat" value={r.location.gramPanchayatId.name} />}
-                {r.location?.villageId && <DetailField icon="Grass" label="Village" value={r.location.villageId.name} />}
-                {r.location?.subVillageId && <DetailField icon="Spa" label="Sub-Village / Hamlet" value={r.location.subVillageId.name} />}
-                {r.location?.otherPlaceName && <DetailField icon="Place" label="Other Place" value={r.location.otherPlaceName} />}
-                {r.location?.addressText && <DetailField icon="Place" label="Incident Address" value={r.location.addressText} />}
+                <DetailField icon="AccountBalance" label="Department / Authority" value={r.primaryDepartmentId?.name ?? 'Unassigned'} />
+                {r.assignedOfficerId?.name && <DetailField icon="Person" label="Officer" value={r.assignedOfficerId.name} />}
+                {r.assignedOfficerId?.designation && <DetailField icon="Badge" label="Designation" value={r.assignedOfficerId.designation} />}
+                {r.interventionInstructions && <DetailField icon="Notes" label="Instructions / Action Required" value={r.interventionInstructions} />}
               </Stack>
             </CardContent>
           </Card>

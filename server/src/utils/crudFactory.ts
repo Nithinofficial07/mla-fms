@@ -25,6 +25,8 @@ interface CrudOptions<T> {
   /** guard executed before a delete; throw AppError to block (e.g. FK in use) */
   beforeDelete?: (id: string) => Promise<void>;
   softDelete?: boolean;
+  /** applied when the caller doesn't pass ?sort= (default: -createdAt) */
+  defaultSort?: string;
 }
 
 /**
@@ -46,7 +48,9 @@ export function crudRouter<T>(o: CrudOptions<T>): Router {
     '/',
     requirePermission(o.permissions.read),
     asyncHandler(async (req, res) => {
-      const params = parseListParams(req.query as Record<string, unknown>);
+      const query = { ...req.query } as Record<string, unknown>;
+      if (!query.sort && o.defaultSort) query.sort = o.defaultSort;
+      const params = parseListParams(query);
       const filter: FilterQuery<T> = {};
       if (params.search && o.searchFields?.length) {
         const rx = new RegExp(escapeRegex(params.search), 'i');

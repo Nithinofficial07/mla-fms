@@ -46,6 +46,11 @@ router.get(
     const startOfToday = dayjs().startOf('day').toDate();
     const terminal = (await RequestStatus.find({ isTerminal: true }).select('code').lean()).map((s) => s.code);
 
+    // "Urgent" used to mean "priority = URGENT" alone, but Priority is no
+    // longer collected at intake - a request close to breaching its SLA is
+    // just as urgent as one someone manually flagged, so both count now.
+    const urgentThreshold = dayjs().add(2, 'day').toDate();
+
     const [byStatus, total, todayRequests, overdue, urgent] = await Promise.all([
       RequestModel.aggregate([{ $match: base }, { $group: { _id: '$statusCode', n: { $sum: 1 } } }]),
       RequestModel.countDocuments(base),
@@ -54,8 +59,15 @@ router.get(
       RequestModel.aggregate([
         { $match: base },
         { $lookup: { from: 'priorities', localField: 'priorityId', foreignField: '_id', as: 'p' } },
-        { $unwind: '$p' },
-        { $match: { 'p.code': 'URGENT' } },
+        { $unwind: { path: '$p', preserveNullAndEmptyArrays: true } },
+        {
+          $match: {
+            $or: [
+              { 'p.code': 'URGENT' },
+              { dueDate: { $ne: null, $lte: urgentThreshold }, statusCode: { $nin: terminal } },
+            ],
+          },
+        },
         { $count: 'n' },
       ]),
     ]);

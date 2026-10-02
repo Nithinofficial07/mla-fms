@@ -31,8 +31,8 @@ describe('public tracking', () => {
         subject: 'Broken hand pump',
         priorityId,
         principalId,
-        applicant: { name: 'Ramesh Kumar', mobile: '9876543210' },
-        location: { gramPanchayatId: gpId },
+        applicant: { firstName: 'Ramesh', lastName: 'Kumar', mobile: '9876543210' },
+        location: { locationType: 'RURAL', gramPanchayatId: gpId },
         submit: true,
       });
     return res.body as { id: string; fileId: string };

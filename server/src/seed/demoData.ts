@@ -21,9 +21,13 @@ export const DEMO_WARDS = Array.from({ length: 6 }, (_, i) => ({
   code: `W-${String(i + 1).padStart(2, '0')}`,
 }));
 
-export const DEMO_GPS = Array.from({ length: 4 }, (_, i) => ({
+// 8 rural Gram Panchayats, displayed as Roman numerals I-VIII (by `order`).
+// Names here are placeholders - rename them from the Gram Panchayats admin
+// page once the real 8 names are available; no code change needed.
+export const DEMO_GPS = Array.from({ length: 8 }, (_, i) => ({
   name: `Gram Panchayat ${String(i + 1).padStart(2, '0')}`,
   code: `GP-${String(i + 1).padStart(3, '0')}`,
+  order: i + 1,
 }));
 
 /** village name -> parent GP index */

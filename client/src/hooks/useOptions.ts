@@ -32,8 +32,9 @@ const byOrder = sortedBy(byOrderThenName);
 export const usePriorities = () =>
   useQuery({ queryKey: ['opt', 'priorities'], queryFn: () => byOrder('/priorities', { pageSize: 100, sort: 'order,name' }) });
 
+// Categories are always alphabetical (A-Z), never manually ordered.
 export const useCategories = () =>
-  useQuery({ queryKey: ['opt', 'categories'], queryFn: () => byOrder('/request-categories', { pageSize: 200, sort: 'order,name' }) });
+  useQuery({ queryKey: ['opt', 'categories'], queryFn: () => alphabetical('/request-categories', { pageSize: 200, sort: 'name' }) });
 
 export const useStatuses = () =>
   useQuery({ queryKey: ['opt', 'statuses'], queryFn: () => byOrder('/request-statuses', { pageSize: 100, sort: 'order,name' }) });
@@ -61,14 +62,25 @@ export const useLookup = (group: string) =>
 export const useWards = () =>
   useQuery({ queryKey: ['opt', 'wards'], queryFn: () => alphabetical('/location-options/wards') });
 
+// Rural GPs have a fixed display order (1-8, rendered as Roman numerals).
 export const useGramPanchayats = () =>
-  useQuery({ queryKey: ['opt', 'gps'], queryFn: () => alphabetical('/location-options/gram-panchayats') });
+  useQuery({ queryKey: ['opt', 'gps'], queryFn: () => byOrder('/location-options/gram-panchayats') });
 
 export const useVillages = (parent: { wardId?: string; gramPanchayatId?: string }) =>
   useQuery({
     queryKey: ['opt', 'villages', parent],
     queryFn: () => alphabetical('/location-options/villages', parent),
     enabled: !!(parent.wardId || parent.gramPanchayatId),
+  });
+
+export interface OfficerOpt { id: string; name: string; designation?: string }
+
+/** Officers belonging to a department, for the Immediate Intervention step's "Person" picker. */
+export const useOfficers = (departmentId?: string) =>
+  useQuery({
+    queryKey: ['opt', 'officers', departmentId],
+    queryFn: () => api.get('/requests/officers', { params: { departmentId } }).then((r) => r.data as OfficerOpt[]),
+    enabled: !!departmentId,
   });
 
 export const useSubVillages = (villageId?: string) =>

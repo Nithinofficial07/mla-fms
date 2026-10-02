@@ -91,7 +91,7 @@ export function LetterCreatePage() {
             </Grid>
 
             <Typography variant="subtitle2" sx={{ mt: 3 }} gutterBottom>Location (Ward or Rural)</Typography>
-            <CascadingLocationPicker value={form.location} onChange={(location) => setForm((s) => ({ ...s, location }))} />
+            <CascadingLocationPicker value={form.location} onChange={(location) => setForm((s) => ({ ...s, location }))} allowOther={false} />
           </CardContent></Card>
         </Grid>
 

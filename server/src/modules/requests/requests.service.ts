@@ -34,8 +34,10 @@ export interface CreateInput {
 export const requestsService = {
   async create({ body, actorId, actorName }: CreateInput) {
     const cfg = await settings();
-    const priority = await Priority.findById(body.priorityId).lean();
-    if (!priority) throw AppError.badRequest('Unknown priority');
+    // No longer collected at intake - staff may set it later via the
+    // Workflow Actions tab, so this is optional now.
+    const priority = body.priorityId ? await Priority.findById(body.priorityId).lean() : null;
+    if (body.priorityId && !priority) throw AppError.badRequest('Unknown priority');
     const principal = await Principal.findById(body.principalId).lean();
     if (!principal) throw AppError.badRequest('Unknown principal');
 
@@ -46,7 +48,7 @@ export const requestsService = {
     const fileSeq = await nextSequence(yearlyKey(`fileId:${principal.code}`));
     const reqSeq = await nextSequence(yearlyKey('requestId'));
     const now = new Date();
-    const slaDays = body.slaDays ?? priority.slaDays ?? cfg.defaultSlaDays ?? 15;
+    const slaDays = body.slaDays ?? priority?.slaDays ?? cfg.defaultSlaDays ?? 15;
     const constituency = await Constituency.findOne({ isPrimary: true }).lean();
 
     const doc = await RequestModel.create({
@@ -56,7 +58,7 @@ export const requestsService = {
       date: now,
       requestType: body.requestType,
       categoryId: body.categoryId,
-      priorityId: priority._id,
+      priorityId: priority?._id ?? null,
       subject: body.subject,
       description: body.description ?? '',
       applicant: body.applicant,
@@ -64,6 +66,7 @@ export const requestsService = {
       primaryDepartmentId: body.primaryDepartmentId ?? null,
       secondaryDepartmentId: body.secondaryDepartmentId ?? null,
       assignedOfficerId: body.assignedOfficerId ?? null,
+      interventionInstructions: body.interventionInstructions ?? '',
       statusId: status._id,
       statusCode: status.code,
       slaDays,

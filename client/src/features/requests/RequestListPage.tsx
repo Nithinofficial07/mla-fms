@@ -106,6 +106,10 @@ export function RequestListPage() {
     { field: 'applicant', headerName: t('requests.applicant'), width: 160, valueGetter: (_v: unknown, r: any) => r.applicant?.name },
     { field: 'mobile', headerName: t('requests.mobile'), width: 130, valueGetter: (_v: unknown, r: any) => r.applicant?.mobile },
     { field: 'subject', headerName: t('requests.subject'), flex: 1, minWidth: 200 },
+    {
+      field: 'location', headerName: 'Ward / GP', width: 150,
+      valueGetter: (_v: unknown, r: any) => r.location?.wardId?.name ?? r.location?.gramPanchayatId?.name ?? r.location?.otherPlaceName ?? r.location?.otherLocationPlace ?? '—',
+    },
     { field: 'department', headerName: t('requests.department'), width: 170, valueGetter: (_v: unknown, r: any) => r.primaryDepartmentId?.name ?? t('common.unassigned') },
     { field: 'priority', headerName: t('requests.priority'), width: 120, renderCell: (p: any) => <PriorityChip code={p.row.priorityId?.code} label={p.row.priorityId?.name} /> },
     { field: 'status', headerName: t('requests.status'), width: 160, renderCell: (p: any) => <StatusChip code={p.row.statusCode} label={p.row.statusId?.name} /> },

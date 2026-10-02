@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert, Box, Button, Card, CardContent, Grid, MenuItem, MobileStepper, Step, StepLabel,
+  Alert, Box, Button, Card, CardContent, Chip, Grid, MenuItem, MobileStepper, Stack, Step, StepLabel,
   Stepper, TextField, Typography, useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -10,32 +10,46 @@ import { useSnackbar } from 'notistack';
 import { PageHeader } from '@/components/PageHeader';
 import { Icon } from '@/components/Icon';
 import { api, errorMessage, getActivePrincipal } from '@/api/client';
-import { useCategories, useDepartments, useGramPanchayats, useLookup, usePriorities, useWards } from '@/hooks/useOptions';
+import {
+  useCategories, useDepartments, useGramPanchayats, useLookup, useOfficers, useWards,
+} from '@/hooks/useOptions';
 import { CascadingLocationPicker, type LocationValue } from './CascadingLocationPicker';
 import { buildLocationPayload, isLocationComplete, locationSummary } from './locationPayload';
 
-const STEPS = ['Applicant', 'Location', 'Request', 'Department', 'Review'];
+const STEPS = ['Applicant', 'Location', 'Request', 'Immediate Intervention', 'Review'];
 
 interface FormState {
-  applicant: { name: string; mobile: string; altMobile: string; email: string; address: string; idType: string; idNumber: string };
+  applicant: {
+    firstName: string; lastName: string; mobile: string;
+    accompanyingCount: number;
+    referencePersonName: string; referencePersonMobile: string;
+    idType: string; idNumber: string;
+  };
   location: LocationValue;
   subject: string;
   description: string;
   requestType: string;
   categoryId: string;
-  priorityId: string;
   primaryDepartmentId: string;
+  assignedOfficerId: string;
+  interventionInstructions: string;
 }
 
 const empty: FormState = {
-  applicant: { name: '', mobile: '', altMobile: '', email: '', address: '', idType: '', idNumber: '' },
+  applicant: {
+    firstName: '', lastName: '', mobile: '',
+    accompanyingCount: 0,
+    referencePersonName: '', referencePersonMobile: '',
+    idType: '', idNumber: '',
+  },
   location: { branch: 'RURAL' },
   subject: '',
   description: '',
   requestType: '',
   categoryId: '',
-  priorityId: '',
   primaryDepartmentId: '',
+  assignedOfficerId: '',
+  interventionInstructions: '',
 };
 
 export function RequestCreatePage() {
@@ -45,16 +59,18 @@ export function RequestCreatePage() {
   const { enqueueSnackbar } = useSnackbar();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(empty);
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const categories = useCategories();
-  const priorities = usePriorities();
   const departments = useDepartments();
   const wards = useWards();
   const gramPanchayats = useGramPanchayats();
+  const officers = useOfficers(form.primaryDepartmentId || undefined);
   const requestTypes = useLookup('REQUEST_TYPE');
   const idTypes = useLookup('ID_TYPE');
 
+  const selectedOfficer = officers.data?.find((o) => o.id === form.assignedOfficerId);
 
   const dup = useQuery({
     queryKey: ['dupes', form.applicant.mobile, form.subject],
@@ -65,7 +81,7 @@ export function RequestCreatePage() {
     enabled: form.applicant.mobile.length === 10 && form.subject.length > 3 && step >= 2,
   });
 
-  const setApplicant = (k: string, v: string) =>
+  const setApplicant = <K extends keyof FormState['applicant']>(k: K, v: FormState['applicant'][K]) =>
     setForm((s) => ({ ...s, applicant: { ...s.applicant, [k]: v } }));
 
   const payload = (submit: boolean) => ({
@@ -74,14 +90,16 @@ export function RequestCreatePage() {
     description: form.description,
     requestType: form.requestType || undefined,
     categoryId: form.categoryId || undefined,
-    priorityId: form.priorityId,
     primaryDepartmentId: form.primaryDepartmentId || undefined,
+    assignedOfficerId: form.assignedOfficerId || undefined,
+    interventionInstructions: form.interventionInstructions || undefined,
     applicant: {
-      name: form.applicant.name,
+      firstName: form.applicant.firstName.trim(),
+      lastName: form.applicant.lastName.trim(),
       mobile: form.applicant.mobile,
-      altMobile: form.applicant.altMobile || undefined,
-      email: form.applicant.email || undefined,
-      address: form.applicant.address || undefined,
+      accompanyingCount: form.applicant.accompanyingCount,
+      referencePersonName: form.applicant.referencePersonName.trim() || undefined,
+      referencePersonMobile: form.applicant.referencePersonMobile || undefined,
       idType: form.applicant.idType || undefined,
       idNumber: form.applicant.idNumber || undefined,
     },
@@ -91,7 +109,17 @@ export function RequestCreatePage() {
 
   const create = useMutation({
     mutationFn: (submit: boolean) => api.post('/requests', payload(submit)).then((r) => r.data),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      if (files.length) {
+        try {
+          const fd = new FormData();
+          files.forEach((f) => fd.append('files', f));
+          fd.append('documentType', 'Supporting Document');
+          await api.post(`/documents/request/${data.id}`, fd);
+        } catch {
+          enqueueSnackbar('File created, but attaching the document(s) failed — attach them from the file detail page.', { variant: 'warning' });
+        }
+      }
       enqueueSnackbar(`Created ${data.fileId}`, { variant: 'success' });
       navigate(`/requests/${data.id}`);
     },
@@ -99,11 +127,19 @@ export function RequestCreatePage() {
   });
 
   const canNext = () => {
-    if (step === 0) return form.applicant.name.length > 1 && /^[6-9]\d{9}$/.test(form.applicant.mobile);
+    if (step === 0) {
+      return (
+        form.applicant.firstName.trim().length > 0
+        && form.applicant.lastName.trim().length > 0
+        && /^[6-9]\d{9}$/.test(form.applicant.mobile)
+      );
+    }
     if (step === 1) return isLocationComplete(form.location);
-    if (step === 2) return form.subject.length > 2 && !!form.priorityId;
+    if (step === 2) return form.subject.length > 2;
     return true;
   };
+
+  const gp = gramPanchayats.data?.find((g) => g.id === form.location.gramPanchayatId);
 
   return (
     <Box>
@@ -126,11 +162,33 @@ export function RequestCreatePage() {
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           {step === 0 && (
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField fullWidth required label="Applicant name" value={form.applicant.name} onChange={(e) => setApplicant('name', e.target.value)} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth required label="Mobile number" value={form.applicant.mobile} onChange={(e) => setApplicant('mobile', e.target.value)} error={!!form.applicant.mobile && !/^[6-9]\d{9}$/.test(form.applicant.mobile)} helperText="10-digit Indian mobile" /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Alternate mobile" value={form.applicant.altMobile} onChange={(e) => setApplicant('altMobile', e.target.value)} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Email" value={form.applicant.email} onChange={(e) => setApplicant('email', e.target.value)} /></Grid>
-              <Grid item xs={12}><TextField fullWidth multiline minRows={2} label="Address" value={form.applicant.address} onChange={(e) => setApplicant('address', e.target.value)} /></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth required label="First Name" value={form.applicant.firstName} onChange={(e) => setApplicant('firstName', e.target.value)} /></Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth required label="Last Name" value={form.applicant.lastName} onChange={(e) => setApplicant('lastName', e.target.value)} /></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth required label="Mobile number" value={form.applicant.mobile}
+                  onChange={(e) => setApplicant('mobile', e.target.value)}
+                  error={!!form.applicant.mobile && !/^[6-9]\d{9}$/.test(form.applicant.mobile)}
+                  helperText={!!form.applicant.mobile && !/^[6-9]\d{9}$/.test(form.applicant.mobile) ? 'Enter a valid 10-digit mobile number' : '10-digit Indian mobile'}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth type="number" label="Number of people accompanying applicant"
+                  value={form.applicant.accompanyingCount}
+                  onChange={(e) => setApplicant('accompanyingCount', Math.max(0, Number(e.target.value) || 0))}
+                  inputProps={{ min: 0 }}
+                  helperText="Helps gauge the scale of the visit"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}><TextField fullWidth label="Reference Person Name (optional)" value={form.applicant.referencePersonName} onChange={(e) => setApplicant('referencePersonName', e.target.value)} /></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth label="Reference Person Mobile (optional)" value={form.applicant.referencePersonMobile}
+                  onChange={(e) => setApplicant('referencePersonMobile', e.target.value)}
+                  error={!!form.applicant.referencePersonMobile && !/^[6-9]\d{9}$/.test(form.applicant.referencePersonMobile)}
+                />
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField fullWidth select label="ID type" value={form.applicant.idType} onChange={(e) => setApplicant('idType', e.target.value)}>
                   <MenuItem value="">—</MenuItem>
@@ -148,22 +206,24 @@ export function RequestCreatePage() {
           {step === 2 && (
             <Grid container spacing={2}>
               <Grid item xs={12}><TextField fullWidth required label="Subject" value={form.subject} onChange={(e) => setForm((s) => ({ ...s, subject: e.target.value }))} /></Grid>
-              <Grid item xs={12}><TextField fullWidth multiline minRows={3} label="Description" value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} /></Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth multiline minRows={3} label="Request Description"
+                  value={form.description}
+                  onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+                  helperText="Provide a clear and complete description of the applicant's request, issue, background and required intervention."
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
                 <TextField fullWidth select label="Request type" value={form.requestType} onChange={(e) => setForm((s) => ({ ...s, requestType: e.target.value }))}>
                   <MenuItem value="">—</MenuItem>
                   {(requestTypes.data ?? []).map((t) => <MenuItem key={t.id} value={t.name}>{t.name}</MenuItem>)}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <TextField fullWidth select label="Category" value={form.categoryId} onChange={(e) => setForm((s) => ({ ...s, categoryId: e.target.value }))}>
                   <MenuItem value="">—</MenuItem>
                   {(categories.data ?? []).map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField fullWidth required select label="Priority" value={form.priorityId} onChange={(e) => setForm((s) => ({ ...s, priorityId: e.target.value }))}>
-                  {(priorities.data ?? []).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
               {dup.data && dup.data.length > 0 && (
@@ -186,43 +246,108 @@ export function RequestCreatePage() {
           {step === 3 && (
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth select label="Primary department" value={form.primaryDepartmentId} onChange={(e) => setForm((s) => ({ ...s, primaryDepartmentId: e.target.value }))} helperText="Optional now — can be assigned after submission">
+                <TextField
+                  fullWidth select label="Intervention Department / Authority"
+                  value={form.primaryDepartmentId}
+                  onChange={(e) => setForm((s) => ({ ...s, primaryDepartmentId: e.target.value, assignedOfficerId: '' }))}
+                  helperText="Can be changed later from the file's Workflow Actions tab"
+                >
                   <MenuItem value="">—</MenuItem>
                   {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
                 </TextField>
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth select label="Officer / Person (optional)"
+                  value={form.assignedOfficerId}
+                  onChange={(e) => setForm((s) => ({ ...s, assignedOfficerId: e.target.value }))}
+                  disabled={!form.primaryDepartmentId}
+                  helperText={selectedOfficer?.designation ? `Designation: ${selectedOfficer.designation}` : ' '}
+                >
+                  <MenuItem value="">—</MenuItem>
+                  {(officers.data ?? []).map((o) => <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>)}
+                </TextField>
+              </Grid>
               <Grid item xs={12}>
-                <Alert severity="info">Documents (application, ID, photos) are attached on the file detail page right after this step.</Alert>
+                <TextField
+                  fullWidth multiline minRows={2} label="Instructions / Action Required (optional)"
+                  value={form.interventionInstructions}
+                  onChange={(e) => setForm((s) => ({ ...s, interventionInstructions: e.target.value }))}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button component="label" variant="outlined" startIcon={<Icon name="AttachFile" />}>
+                  Attach document(s)
+                  <input hidden type="file" multiple onChange={(e) => setFiles((f) => [...f, ...Array.from(e.target.files ?? [])])} />
+                </Button>
+                {files.length > 0 && (
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
+                    {files.map((f, i) => (
+                      <Chip key={`${f.name}-${i}`} label={f.name} size="small" onDelete={() => setFiles((fs) => fs.filter((_, j) => j !== i))} />
+                    ))}
+                  </Stack>
+                )}
               </Grid>
             </Grid>
           )}
 
           {step === 4 && (
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>Review</Typography>
-              <Grid container spacing={1}>
-                {[
-                  ['Applicant', form.applicant.name],
-                  ['Mobile', form.applicant.mobile],
-                  [
-                    'Location',
-                    locationSummary(
-                      form.location,
-                      wards.data?.find((w) => w.id === form.location.wardId)?.name,
-                      gramPanchayats.data?.find((g) => g.id === form.location.gramPanchayatId)?.name,
-                    ),
+            <Stack spacing={2.5}>
+              {[
+                {
+                  title: 'Applicant', editStep: 0,
+                  rows: [
+                    ['First Name', form.applicant.firstName],
+                    ['Last Name', form.applicant.lastName],
+                    ['Mobile', form.applicant.mobile],
+                    ['Accompanying People', String(form.applicant.accompanyingCount)],
+                    ['Reference Person', form.applicant.referencePersonName || '—'],
+                    ['Reference Mobile', form.applicant.referencePersonMobile || '—'],
+                    ['ID', form.applicant.idType ? `${form.applicant.idType}: ${form.applicant.idNumber || '—'}` : '—'],
                   ],
-                  ['Subject', form.subject],
-                  ['Priority', priorities.data?.find((p) => p.id === form.priorityId)?.name ?? '—'],
-                  ['Department', departments.data?.find((d) => d.id === form.primaryDepartmentId)?.name ?? 'Unassigned'],
-                ].map(([k, v]) => (
-                  <Grid item xs={12} sm={6} key={k as string}>
-                    <Typography variant="caption" color="text.secondary">{k}</Typography>
-                    <Typography variant="body2" fontWeight={600}>{String(v || '—')}</Typography>
+                },
+                {
+                  title: 'Location', editStep: 1,
+                  rows: [
+                    ['Location', locationSummary(form.location, wards.data?.find((w) => w.id === form.location.wardId)?.name, gp?.name, gp?.order)],
+                  ],
+                },
+                {
+                  title: 'Request', editStep: 2,
+                  rows: [
+                    ['Subject', form.subject],
+                    ['Request Description', form.description || '—'],
+                    ['Request Type', form.requestType || '—'],
+                    ['Category', categories.data?.find((c) => c.id === form.categoryId)?.name ?? '—'],
+                  ],
+                },
+                {
+                  title: 'Immediate Intervention', editStep: 3,
+                  rows: [
+                    ['Department / Authority', departments.data?.find((d) => d.id === form.primaryDepartmentId)?.name ?? 'Unassigned'],
+                    ['Officer', selectedOfficer?.name ?? '—'],
+                    ['Designation', selectedOfficer?.designation ?? '—'],
+                    ['Instructions / Action Required', form.interventionInstructions || '—'],
+                    ['Attachments', files.length ? files.map((f) => f.name).join(', ') : 'None'],
+                  ],
+                },
+              ].map((section) => (
+                <Box key={section.title}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                    <Typography variant="subtitle2">{section.title}</Typography>
+                    <Button size="small" onClick={() => setStep(section.editStep)}>Edit</Button>
+                  </Stack>
+                  <Grid container spacing={1}>
+                    {section.rows.map(([k, v]) => (
+                      <Grid item xs={12} sm={6} key={k}>
+                        <Typography variant="caption" color="text.secondary">{k}</Typography>
+                        <Typography variant="body2" fontWeight={600}>{v || '—'}</Typography>
+                      </Grid>
+                    ))}
                   </Grid>
-                ))}
-              </Grid>
-            </Box>
+                </Box>
+              ))}
+            </Stack>
           )}
         </CardContent>
       </Card>

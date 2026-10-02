@@ -26,8 +26,8 @@ describe('requests', () => {
     subject: 'Broken hand pump',
     priorityId,
     principalId,
-    applicant: { name: 'Ramesh Kumar', mobile: '9876543210' },
-    location: { gramPanchayatId: gpId },
+    applicant: { firstName: 'Ramesh', lastName: 'Kumar', mobile: '9876543210' },
+    location: { locationType: 'RURAL', gramPanchayatId: gpId },
   });
 
   it('creates a draft with generated ids', async () => {
@@ -37,6 +37,14 @@ describe('requests', () => {
     expect(res.body.requestId).toMatch(/REQ\/\d{4}\/\d{6}/);
     expect(res.body.statusCode).toBe('DRAFT');
     expect(res.body.dueDate).toBeNull();
+    expect(res.body.applicant.name).toBe('Ramesh Kumar');
+  });
+
+  it('creates a request without a priority (no longer collected at intake)', async () => {
+    const { priorityId: _drop, ...rest } = payload();
+    const res = await request(app).post('/api/requests').set(auth(token)).send(rest);
+    expect(res.status).toBe(201);
+    expect(res.body.priorityId).toBeNull();
   });
 
   it('submits straight away when submit=true and sets a due date', async () => {
@@ -50,7 +58,7 @@ describe('requests', () => {
     const res = await request(app)
       .post('/api/requests')
       .set(auth(token))
-      .send({ ...payload(), applicant: { name: 'X', mobile: '123' } });
+      .send({ ...payload(), applicant: { firstName: 'X', lastName: 'Y', mobile: '123' } });
     expect(res.status).toBe(400);
     expect(res.body.details).toBeTruthy();
   });

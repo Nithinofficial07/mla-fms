@@ -25,6 +25,8 @@ export const categoryRouter = crudRouter({
     .partial(),
   permissions: { read: PERMISSIONS.DASHBOARD_VIEW, write: PERMISSIONS.CATEGORY_MANAGE },
   searchFields: ['name', 'code'],
+  // Categories are always alphabetical, never manually ordered.
+  defaultSort: 'name',
 });
 
 /** /api/request-statuses */
