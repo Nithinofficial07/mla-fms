@@ -40,6 +40,7 @@ export function StatCard({
   sparkline,
   sublabel,
   progress,
+  dense,
 }: {
   label: string;
   value?: number | string;
@@ -53,6 +54,8 @@ export function StatCard({
   sparkline?: number[];
   sublabel?: string;
   progress?: number;
+  /** Tighter padding/icon/footer for a thinner KPI row (e.g. the dashboard). */
+  dense?: boolean;
 }) {
   const numeric = typeof value === 'number' ? value : undefined;
   const animated = useCountUp(numeric);
@@ -76,23 +79,23 @@ export function StatCard({
         },
       }}
     >
-      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <CardContent sx={dense ? { height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', p: '12px !important' } : { height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <Stack
           direction={hero ? 'column' : 'row'}
-          spacing={hero ? 2 : 1.75}
+          spacing={hero ? 2 : dense ? 1.25 : 1.75}
           alignItems={hero ? 'flex-start' : 'center'}
           justifyContent="space-between"
           sx={{ width: '100%' }}
         >
-          <Stack direction="row" spacing={1.75} alignItems="center">
+          <Stack direction="row" spacing={dense ? 1.25 : 1.75} alignItems="center">
             <Stack
               className="stat-icon-badge"
               alignItems="center"
               justifyContent="center"
               sx={{
-                width: hero ? 48 : 42,
-                height: hero ? 48 : 42,
-                borderRadius: 2.5,
+                width: hero ? 48 : dense ? 32 : 42,
+                height: hero ? 48 : dense ? 32 : 42,
+                borderRadius: 2,
                 bgcolor: `${color}18`,
                 color,
                 transition: 'all .2s ease',
@@ -105,14 +108,14 @@ export function StatCard({
               <Typography
                 variant="caption"
                 color="text.secondary"
-                sx={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, fontSize: '0.72rem' }}
+                sx={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, fontSize: dense ? '0.66rem' : '0.72rem' }}
               >
                 {label}
               </Typography>
               {loading ? (
                 <Skeleton width={hero ? 80 : 54} height={hero ? 44 : 30} />
               ) : (
-                <Typography variant={hero ? 'h4' : 'h5'} fontWeight={800} sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.15, mt: 0.25 }}>
+                <Typography variant={hero ? 'h4' : dense ? 'h6' : 'h5'} fontWeight={800} sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.15, mt: 0.25 }}>
                   {display}
                 </Typography>
               )}
@@ -138,7 +141,7 @@ export function StatCard({
 
         {/* Footer / Trend pill or Progress indicator */}
         {(trend || sublabel || progress != null) && (
-          <Box sx={{ mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ mt: dense ? 0.75 : 1.5, pt: dense ? 0.5 : 1, borderTop: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
               {trend && (
                 <Stack direction="row" spacing={0.5} alignItems="center">

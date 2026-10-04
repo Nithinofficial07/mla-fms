@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, Box, Button, Card, CardContent, CardHeader, Chip, Stack, Typography } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
+import { Box, Button, Card, CardContent, CardHeader, Skeleton, Stack, Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -14,19 +16,27 @@ import { StatCard } from '@/components/StatCard';
 import { ChartCard } from '@/components/ChartCard';
 import { ConstituencyMap } from '@/components/ConstituencyMap';
 import { DataTable } from '@/components/DataTable';
-import { DateRangeQuickFilter } from '@/components/DateRangeQuickFilter';
-import { StatusChip, PriorityChip } from '@/components/chips';
+import { DashboardRangeFilter, resolveRange, type RangeKey } from '@/components/DashboardRangeFilter';
+import { StatusChip, PriorityChip, STATUS_COLORS } from '@/components/chips';
 import { Icon } from '@/components/Icon';
 import { RequestDetailDialog } from '@/features/requests/RequestDetailDialog';
+import { MILESTONES, MILESTONE_COLORS, getMilestoneIndex } from '@/lib/milestones';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 
-const PIE_COLORS = ['#0A2540', '#C99700', '#2563EB', '#059669', '#7C3AED', '#0D9488', '#EA580C', '#475569'];
+dayjs.extend(relativeTime);
+
+const LOCATION_COLORS: Record<string, string> = { ward: '#0D9488', gp: '#2563EB', other: '#C99700' };
 
 function greeting(hour: number, t: (key: string) => string) {
   if (hour < 12) return t('dashboard.greetingMorning');
   if (hour < 17) return t('dashboard.greetingAfternoon');
   return t('dashboard.greetingEvening');
+}
+
+function requestLocationLabel(r: any): string {
+  return r.location?.wardId?.name ?? r.location?.gramPanchayatId?.name
+    ?? r.location?.otherLocationPlace ?? r.location?.otherPlaceName ?? r.location?.addressText ?? 'Not specified';
 }
 
 /** One cell of the bento grid. `md` is the 12-col span on desktop; sm/xs fall back wider. */
@@ -35,6 +45,50 @@ function Bento({ md, sm = 6, children }: { md: number; sm?: number; children: Re
     <Box sx={{ gridColumn: { xs: 'span 12', sm: `span ${sm}`, md: `span ${md}` } }}>
       {children}
     </Box>
+  );
+}
+
+/** A single-request preview row for the Latest Request / Follow-up cards - applicant name + stage color, not just a count. */
+function RequestPreviewCard({
+  title, icon, color, loading, request, emptyText, onOpen,
+}: {
+  title: string;
+  icon: string;
+  color: string;
+  loading?: boolean;
+  request?: any;
+  emptyText: string;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <Card sx={{ height: '100%', cursor: request ? 'pointer' : 'default' }} onClick={() => request && onOpen(request.id)}>
+      <CardContent sx={{ p: '12px !important' }}>
+        <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: request ? 1 : 0 }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: `${color}18`, color, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <Icon name={icon} fontSize="small" />
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, fontSize: '0.66rem' }}>
+            {title}
+          </Typography>
+        </Stack>
+        {loading ? (
+          <Skeleton height={44} />
+        ) : !request ? (
+          <Typography variant="body2" color="text.secondary">{emptyText}</Typography>
+        ) : (
+          <Stack spacing={0.25}>
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+              <Typography variant="subtitle2" fontWeight={700} noWrap>{request.applicant?.name ?? '—'}</Typography>
+              <StatusChip code={request.statusCode} label={request.statusId?.name} />
+            </Stack>
+            <Typography variant="body2" color="text.secondary" noWrap>{request.subject}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {requestLocationLabel(request)} · {dayjs(request.createdAt).fromNow()}
+            </Typography>
+          </Stack>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -61,72 +115,47 @@ export function DashboardPage() {
   };
 
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const dateParams: Record<string, string> = {};
+  const [range, setRange] = useState<RangeKey>('all');
+  const { from, to, bucket } = resolveRange(range);
+  const dateParams: Record<string, string> = { bucket };
   if (from) dateParams.from = from;
   if (to) dateParams.to = to;
 
   const stats = useQuery({ queryKey: ['dashboard', 'stats', dateParams], queryFn: () => api.get('/dashboard/stats', { params: dateParams }).then((r) => r.data) });
   const charts = useQuery({ queryKey: ['dashboard', 'charts', dateParams], queryFn: () => api.get('/dashboard/charts', { params: dateParams }).then((r) => r.data) });
-  const recent = useQuery({ queryKey: ['dashboard', 'recent', dateParams], queryFn: () => api.get('/dashboard/recent', { params: dateParams }).then((r) => r.data) });
+  const recent = useQuery({ queryKey: ['dashboard', 'recent', dateParams], queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 10 } }).then((r) => r.data) });
+  const latest = useQuery({ queryKey: ['dashboard', 'latest', dateParams], queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 1 } }).then((r) => r.data[0]) });
+  const followUpPreview = useQuery({
+    queryKey: ['dashboard', 'followup-preview', dateParams],
+    queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 1, statusCode: 'AWAITING_INFO,DEPT_RESPONSE' } }).then((r) => r.data[0]),
+  });
 
   const s = stats.data ?? {};
-  const monthlyData: { label: string; value: number }[] = charts.data?.monthly ?? [];
-  const sparkSeries = monthlyData.length > 0 ? monthlyData.map((d) => d.value) : [12, 18, 15, 24, 22, 35, 30];
 
-  const resolutionRate = s.totalFiles > 0 ? Math.round(((s.completed ?? 0) / s.totalFiles) * 100) : 0;
-
-  const hero = [
-    {
-      label: t('dashboard.totalFiles'),
-      key: 'totalFiles',
-      icon: 'FolderCopy',
-      color: '#0A2540',
-      to: '/requests',
-      trend: { value: '+8.4% vs last mo.', positive: true },
-      sparkline: sparkSeries,
-    },
-    {
-      label: t('dashboard.newRequests'),
-      key: 'newRequests',
-      icon: 'FiberNew',
-      color: '#2563EB',
-      to: '/requests?statusCode=SUBMITTED',
-      trend: { value: 'Active intake', neutral: true },
-      sparkline: sparkSeries.map((v) => Math.max(2, Math.round(v * 0.4))),
-    },
-    {
-      label: t('dashboard.todaysInflow'),
-      key: 'todayRequests',
-      icon: 'Today',
-      color: '#0284C7',
-      to: '/requests',
-      trend: { value: 'Today', neutral: true },
-      sparkline: [2, 5, 3, 7, 4, 8, Math.max(1, s.todayRequests ?? 1)],
-    },
-  ];
-
-  const secondary = [
-    { label: t('dashboard.pending'), key: 'pending', icon: 'HourglassEmpty', color: '#D97706', to: '/requests?bucket=pending', sublabel: 'Awaiting action' },
-    { label: t('dashboard.inProgress'), key: 'inProgress', icon: 'Autorenew', color: '#0D9488', to: '/requests?bucket=in-progress', sublabel: 'With line depts' },
-    {
-      label: t('dashboard.completed'),
-      key: 'completed',
-      icon: 'TaskAlt',
-      color: '#059669',
-      to: '/requests?bucket=completed',
-      progress: resolutionRate,
-      sublabel: `${resolutionRate}% resolved`,
-    },
-    { label: t('dashboard.rejected'), key: 'rejected', icon: 'Cancel', color: '#DC2626', to: '/requests?statusCode=REJECTED', sublabel: 'Ineligible' },
+  const topRow = [
+    { label: t('dashboard.totalFiles'), key: 'totalFiles', icon: 'FolderCopy', color: '#0A2540', to: '/requests' },
+    { label: 'Week Requests', key: 'weekRequests', icon: 'Event', color: '#2563EB', to: '/requests' },
+    { label: t('dashboard.todaysInflow'), key: 'todayRequests', icon: 'Today', color: '#0284C7', to: '/requests' },
+    { label: 'Follow-up', key: 'followUp', icon: 'Flag', color: '#D97706', to: '/requests?statusCode=AWAITING_INFO,DEPT_RESPONSE' },
   ];
 
   const tertiary = [
     { label: t('dashboard.overdue'), key: 'overdue', icon: 'ReportProblem', color: '#DC2626', to: '/requests?overdue=true' },
     { label: t('dashboard.urgent'), key: 'urgent', icon: 'PriorityHigh', color: '#B91C1C', to: '/requests' },
     { label: t('dashboard.deptPending'), key: 'departmentPending', icon: 'AccountBalance', color: '#475569', to: '/requests?bucket=pending' },
+    { label: t('dashboard.rejected'), key: 'rejected', icon: 'Cancel', color: '#B71C1C', to: '/requests?statusCode=REJECTED' },
   ];
+
+  // Stage 1-5 counts, derived client-side from the per-status counts already
+  // in charts.byStatus (no extra backend call) via the same milestone
+  // grouping used on the request detail page's stepper. REJECTED is tracked
+  // separately (the Rejected card above), not folded into a stage.
+  const byStatus: { label: string; value: number }[] = charts.data?.byStatus ?? [];
+  const stageCounts = MILESTONES.map(() => 0);
+  byStatus.forEach((r) => {
+    if (r.label === 'REJECTED') return;
+    stageCounts[getMilestoneIndex(r.label)] += r.value;
+  });
 
   const recentColumns = [
     { field: 'fileId', headerName: 'File ID', width: 160 },
@@ -151,7 +180,7 @@ export function DashboardPage() {
     <Box>
       <PageHeader
         title={firstName ? `${greeting(new Date().getHours(), t)}, ${firstName}` : t('dashboard.title')}
-        subtitle={t('dashboard.subtitle')}
+        subtitle={`${t('dashboard.subtitle')} · Today: ${dayjs().format('DD MMM YYYY')}, ${dayjs().format('dddd')}`}
         action={
           <Stack direction="row" spacing={1}>
             <Button
@@ -175,7 +204,7 @@ export function DashboardPage() {
       />
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 2.5 }}>
-        <DateRangeQuickFilter from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
+        <DashboardRangeFilter value={range} onChange={setRange} />
       </Stack>
 
       {/* Needs Immediate Attention (Priority Triage) Banner */}
@@ -218,22 +247,12 @@ export function DashboardPage() {
               </Stack>
               <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
                 {(s.overdue ?? 0) > 0 && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="error"
-                    onClick={() => navigate('/requests?overdue=true')}
-                  >
+                  <Button size="small" variant="contained" color="error" onClick={() => navigate('/requests?overdue=true')}>
                     View Overdue ({s.overdue})
                   </Button>
                 )}
                 {(s.urgent ?? 0) > 0 && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    onClick={() => navigate('/requests')}
-                  >
+                  <Button size="small" variant="outlined" color="error" onClick={() => navigate('/requests')}>
                     Urgent Files ({s.urgent})
                   </Button>
                 )}
@@ -244,48 +263,53 @@ export function DashboardPage() {
       )}
 
       {/* Bento grid */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 2 }}>
-        {hero.map((c) => (
-          <Bento key={c.key} md={4}>
-            <StatCard
-              size="hero"
-              label={c.label}
-              value={s[c.key]}
-              icon={c.icon}
-              color={c.color}
-              loading={stats.isLoading}
-              onClick={() => navigate(c.to)}
-              trend={c.trend}
-              sparkline={c.sparkline}
-            />
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 1.5 }}>
+        {topRow.map((c) => (
+          <Bento key={c.key} md={3}>
+            <StatCard dense label={c.label} value={s[c.key]} icon={c.icon} color={c.color} loading={stats.isLoading} onClick={() => navigate(c.to)} />
           </Bento>
         ))}
 
-        {secondary.map((c) => (
-          <Bento key={c.key} md={3}>
+        <Bento md={6}>
+          <RequestPreviewCard
+            title="Latest Request"
+            icon="Inbox"
+            color="#2563EB"
+            loading={latest.isLoading}
+            request={latest.data}
+            emptyText="No requests yet"
+            onOpen={setDetailId}
+          />
+        </Bento>
+        <Bento md={6}>
+          <RequestPreviewCard
+            title="Needs Follow-up"
+            icon="Flag"
+            color="#D97706"
+            loading={followUpPreview.isLoading}
+            request={followUpPreview.data}
+            emptyText="Nothing waiting on a follow-up"
+            onOpen={setDetailId}
+          />
+        </Bento>
+
+        {MILESTONES.map((m, i) => (
+          <Bento key={m.key} md={2} sm={4}>
             <StatCard
-              label={c.label}
-              value={s[c.key]}
-              icon={c.icon}
-              color={c.color}
-              loading={stats.isLoading}
-              onClick={() => navigate(c.to)}
-              sublabel={c.sublabel}
-              progress={c.progress}
+              dense
+              label={`Stage ${i + 1}: ${m.label}`}
+              value={stageCounts[i]}
+              icon={m.icon}
+              color={MILESTONE_COLORS[i]}
+              loading={charts.isLoading}
+              onClick={() => navigate(`/requests?statusCode=${m.codes.join(',')}`)}
             />
           </Bento>
         ))}
 
         {tertiary.map((c) => (
-          <Bento key={c.key} md={4}>
-            <StatCard
-              label={c.label}
-              value={s[c.key]}
-              icon={c.icon}
-              color={c.color}
-              loading={stats.isLoading}
-              onClick={() => navigate(c.to)}
-            />
+          <Bento key={c.key} md={3}>
+            <StatCard dense label={c.label} value={s[c.key]} icon={c.icon} color={c.color} loading={stats.isLoading} onClick={() => navigate(c.to)} />
           </Bento>
         ))}
 
@@ -304,7 +328,16 @@ export function DashboardPage() {
                 <XAxis dataKey="label" hide />
                 <YAxis allowDecimals={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
                 <Tooltip {...tooltipProps} />
-                <Bar dataKey="value" fill="url(#deptBarGradient)" radius={[6, 6, 0, 0]} />
+                <Bar
+                  dataKey="value"
+                  fill="url(#deptBarGradient)"
+                  radius={[6, 6, 0, 0]}
+                  cursor="pointer"
+                  onClick={(d: any) => {
+                    const id = d?.id ?? d?.payload?.id;
+                    if (id) navigate(`/requests?departmentId=${id}`);
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -322,8 +355,8 @@ export function DashboardPage() {
                   outerRadius={95}
                   paddingAngle={3}
                 >
-                  {(charts.data?.byStatus ?? []).map((_: unknown, i: number) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke={theme.palette.background.paper} strokeWidth={2} />
+                  {(charts.data?.byStatus ?? []).map((r: { label: string }, i: number) => (
+                    <Cell key={i} fill={STATUS_COLORS[r.label] ?? '#64748B'} stroke={theme.palette.background.paper} strokeWidth={2} />
                   ))}
                 </Pie>
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '0.78rem' }} />
@@ -354,22 +387,38 @@ export function DashboardPage() {
         </Bento>
 
         <Bento md={6}>
-          <ChartCard title="Ward & Urban Inflow" loading={charts.isLoading}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={charts.data?.byWard ?? []} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="wardBarGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#0D9488" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.palette.divider} />
-                <XAxis type="number" allowDecimals={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
-                <YAxis type="category" dataKey="label" width={90} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
-                <Tooltip {...tooltipProps} />
-                <Bar dataKey="value" fill="url(#wardBarGradient)" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <ChartCard title="Location-Based Tracking" loading={charts.isLoading}>
+            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={charts.data?.byLocation ?? []} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.palette.divider} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} />
+                    <YAxis type="category" dataKey="label" width={110} tick={{ fill: theme.palette.text.secondary, fontSize: 11 }} />
+                    <Tooltip {...tooltipProps} />
+                    <Bar
+                      dataKey="value"
+                      radius={[0, 6, 6, 0]}
+                      cursor="pointer"
+                      onClick={(d: any) => {
+                        const row = d?.payload ?? d;
+                        if (row?.kind === 'ward' && row?.id) navigate(`/requests?wardId=${row.id}`);
+                        else if (row?.kind === 'gp' && row?.id) navigate(`/requests?gramPanchayatId=${row.id}`);
+                      }}
+                    >
+                      {(charts.data?.byLocation ?? []).map((r: { kind: string }, i: number) => (
+                        <Cell key={i} fill={LOCATION_COLORS[r.kind] ?? '#64748B'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+              {!!charts.data?.notSpecified && (
+                <Typography variant="caption" color="text.secondary" sx={{ pt: 1 }}>
+                  {charts.data.notSpecified} request(s) with no location recorded (not specified).
+                </Typography>
+              )}
+            </Box>
           </ChartCard>
         </Bento>
 

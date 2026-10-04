@@ -17,17 +17,10 @@ import { api, errorMessage } from '@/api/client';
 import { openViaApi } from '@/lib/download';
 import { useAuth } from '@/app/AuthProvider';
 import { useDepartments, useStatuses } from '@/hooks/useOptions';
+import { MILESTONES, getMilestoneIndex } from '@/lib/milestones';
 import { PERMISSIONS } from '@mla/shared';
 
 const CELEBRATE_STATUSES = ['COMPLETED', 'APPROVED', 'CLOSED'];
-
-const MILESTONES = [
-  { key: 'submitted', label: 'Registered', icon: 'NoteAdd' },
-  { key: 'scrutiny', label: 'Office Scrutiny', icon: 'HourglassEmpty' },
-  { key: 'assigned', label: 'Dept Assigned', icon: 'AssignmentInd' },
-  { key: 'action', label: 'Action in Progress', icon: 'Autorenew' },
-  { key: 'resolved', label: 'Resolved', icon: 'CheckCircle' },
-];
 
 interface DocRow {
   id: string;
@@ -97,29 +90,6 @@ function DocumentsSection({ id, canUpload, onUploaded }: { id: string; canUpload
       )}
     </Stack>
   );
-}
-
-function getMilestoneIndex(code: string): number {
-  switch (code) {
-    case 'DRAFT':
-    case 'SUBMITTED':
-      return 0;
-    case 'UNDER_REVIEW':
-    case 'AWAITING_INFO':
-      return 1;
-    case 'ASSIGNED':
-      return 2;
-    case 'IN_PROGRESS':
-    case 'FORWARDED':
-    case 'DEPT_RESPONSE':
-      return 3;
-    case 'COMPLETED':
-    case 'APPROVED':
-    case 'CLOSED':
-      return 4;
-    default:
-      return 0;
-  }
 }
 
 /**

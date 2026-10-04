@@ -60,6 +60,9 @@ export interface DashboardStats {
   urgent: number;
   departmentPending: number;
   todayRequests: number;
+  weekRequests: number;
+  followUp: number;
+  closed: number;
 }
 
 export interface TimelineEntry {

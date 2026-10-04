@@ -9,6 +9,15 @@ import { RequestModel } from '../../models/Request.js';
 import { RequestStatus } from '../../models/config.js';
 import { Ward } from '../../models/location.js';
 
+const LOCATION_POPULATE = ['statusId', 'priorityId', 'primaryDepartmentId', 'location.wardId', 'location.gramPanchayatId'];
+
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+/** Renders a Gram Panchayat's display order (1-8) as a Roman numeral, matching the Location step's GP dropdown. */
+function toRoman(order: number): string {
+  if (order <= 0) return '';
+  return ROMAN[order] ?? String(order);
+}
+
 const PENDING_CODES = ['SUBMITTED', 'UNDER_REVIEW', 'ASSIGNED', 'FORWARDED', 'IN_PROGRESS', 'AWAITING_INFO', 'DEPT_RESPONSE'];
 
 const router = Router();
@@ -16,7 +25,11 @@ router.use(authenticate, requirePermission(PERMISSIONS.DASHBOARD_VIEW));
 
 /** Officer + principal scoping, plus an optional date-range filter shared by all dashboard widgets. */
 function scope(auth: Express.AuthContext, query: Record<string, unknown> = {}): Record<string, unknown> {
-  const filter: Record<string, unknown> = {};
+  // .aggregate() doesn't go through the soft-delete pre-hook that .find()/
+  // .countDocuments() get (it's only registered for those), so every
+  // aggregation here needs this explicitly or it double-counts deactivated
+  // requests against the count-based KPIs.
+  const filter: Record<string, unknown> = { deletedAt: null };
   if (auth.roleCode === 'DEPARTMENT_OFFICER' && auth.departmentId) {
     filter.$or = [
       { primaryDepartmentId: auth.departmentId },
@@ -44,6 +57,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const base = scope(req.auth!, req.query as Record<string, unknown>);
     const startOfToday = dayjs().startOf('day').toDate();
+    const startOfWeek = dayjs().startOf('week').toDate();
     const terminal = (await RequestStatus.find({ isTerminal: true }).select('code').lean()).map((s) => s.code);
 
     // "Urgent" used to mean "priority = URGENT" alone, but Priority is no
@@ -51,10 +65,11 @@ router.get(
     // just as urgent as one someone manually flagged, so both count now.
     const urgentThreshold = dayjs().add(2, 'day').toDate();
 
-    const [byStatus, total, todayRequests, overdue, urgent] = await Promise.all([
+    const [byStatus, total, todayRequests, weekRequests, overdue, urgent] = await Promise.all([
       RequestModel.aggregate([{ $match: base }, { $group: { _id: '$statusCode', n: { $sum: 1 } } }]),
       RequestModel.countDocuments(base),
       RequestModel.countDocuments({ ...base, createdAt: { $gte: startOfToday } }),
+      RequestModel.countDocuments({ ...base, createdAt: { $gte: startOfWeek } }),
       RequestModel.countDocuments({ ...base, dueDate: { $lt: new Date() }, statusCode: { $nin: terminal } }),
       RequestModel.aggregate([
         { $match: base },
@@ -86,6 +101,8 @@ router.get(
       urgent: urgent[0]?.n ?? 0,
       departmentPending: req.auth!.departmentId ? sum(['ASSIGNED', 'FORWARDED', 'IN_PROGRESS']) : 0,
       todayRequests,
+      weekRequests,
+      followUp: sum(['AWAITING_INFO', 'DEPT_RESPONSE']),
       closed: sum(['CLOSED']),
     });
   }),
@@ -95,48 +112,77 @@ router.get(
   '/charts',
   asyncHandler(async (req, res) => {
     const base = scope(req.auth!, req.query as Record<string, unknown>);
-    const [byDepartment, byStatus, monthly, byWard, byGramPanchayat] = await Promise.all([
+    const dayBucket = req.query.bucket === 'day';
+
+    const [byDepartment, byStatus, monthly, byWard, byGp, otherCount, locatedCount] = await Promise.all([
       RequestModel.aggregate([
         { $match: base },
         { $group: { _id: '$primaryDepartmentId', n: { $sum: 1 } } },
         { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'd' } },
         { $unwind: { path: '$d', preserveNullAndEmptyArrays: true } },
-        { $project: { label: { $ifNull: ['$d.name', 'Unassigned'] }, n: 1 } },
+        { $project: { id: '$_id', label: { $ifNull: ['$d.name', 'Unassigned'] }, n: 1 } },
         { $sort: { n: -1 } },
       ]),
       RequestModel.aggregate([{ $match: base }, { $group: { _id: '$statusCode', n: { $sum: 1 } } }]),
+      dayBucket
+        ? RequestModel.aggregate([
+          { $match: base },
+          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, n: { $sum: 1 } } },
+          { $sort: { _id: 1 } },
+          { $limit: 31 },
+        ])
+        : RequestModel.aggregate([
+          { $match: base },
+          { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, n: { $sum: 1 } } },
+          { $sort: { '_id.y': 1, '_id.m': 1 } },
+          { $limit: 24 },
+        ]),
       RequestModel.aggregate([
-        { $match: base },
-        { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, n: { $sum: 1 } } },
-        { $sort: { '_id.y': 1, '_id.m': 1 } },
-        { $limit: 24 },
-      ]),
-      RequestModel.aggregate([
-        { $match: base },
+        { $match: { ...base, 'location.wardId': { $ne: null } } },
         { $group: { _id: '$location.wardId', n: { $sum: 1 } } },
         { $lookup: { from: 'wards', localField: '_id', foreignField: '_id', as: 'w' } },
-        { $unwind: { path: '$w', preserveNullAndEmptyArrays: true } },
-        { $project: { label: { $ifNull: ['$w.name', 'N/A'] }, n: 1 } },
-        { $sort: { n: -1 } },
-        { $limit: 15 },
+        { $unwind: '$w' },
+        { $project: { id: '$_id', label: '$w.name', n: 1, kind: { $literal: 'ward' } } },
       ]),
       RequestModel.aggregate([
-        { $match: base },
+        { $match: { ...base, 'location.gramPanchayatId': { $ne: null } } },
         { $group: { _id: '$location.gramPanchayatId', n: { $sum: 1 } } },
         { $lookup: { from: 'grampanchayats', localField: '_id', foreignField: '_id', as: 'g' } },
-        { $unwind: { path: '$g', preserveNullAndEmptyArrays: true } },
-        { $project: { label: { $ifNull: ['$g.name', 'N/A'] }, n: 1 } },
-        { $sort: { n: -1 } },
-        { $limit: 15 },
+        { $unwind: '$g' },
+        { $project: { id: '$_id', n: 1, kind: { $literal: 'gp' }, name: '$g.name', order: { $ifNull: ['$g.order', 0] } } },
       ]),
+      RequestModel.countDocuments({ ...base, 'location.locationType': 'OTHER' }),
+      RequestModel.countDocuments({
+        ...base,
+        $or: [
+          { 'location.wardId': { $ne: null } },
+          { 'location.gramPanchayatId': { $ne: null } },
+          { 'location.locationType': 'OTHER' },
+        ],
+      }),
     ]);
 
+    const inScope = await RequestModel.countDocuments(base);
+    const byLocation = [
+      ...byWard.map((r) => ({ label: r.label, value: r.n, kind: 'ward' as const, id: String(r.id) })),
+      ...byGp.map((r) => ({
+        label: r.order > 0 ? `${toRoman(r.order)} - ${r.name}` : r.name,
+        value: r.n, kind: 'gp' as const, id: String(r.id),
+      })),
+      ...(otherCount > 0 ? [{ label: 'Other (outside constituency)', value: otherCount, kind: 'other' as const, id: null }] : []),
+    ].sort((a, b) => b.value - a.value).slice(0, 15);
+    // Only non-zero for records that genuinely never got a ward/GP/Other
+    // branch recorded - new intake always sets one of these (Phase A).
+    const notSpecified = Math.max(0, inScope - locatedCount);
+
     ok(res, {
-      byDepartment: byDepartment.map((r) => ({ label: r.label, value: r.n })),
+      byDepartment: byDepartment.map((r) => ({ id: r.id ? String(r.id) : null, label: r.label, value: r.n })),
       byStatus: byStatus.map((r) => ({ label: r._id, value: r.n })),
-      monthly: monthly.map((r) => ({ label: `${r._id.y}-${String(r._id.m).padStart(2, '0')}`, value: r.n })),
-      byWard: byWard.map((r) => ({ label: r.label, value: r.n })),
-      byGramPanchayat: byGramPanchayat.map((r) => ({ label: r.label, value: r.n })),
+      monthly: dayBucket
+        ? monthly.map((r) => ({ label: r._id, value: r.n }))
+        : monthly.map((r) => ({ label: `${r._id.y}-${String(r._id.m).padStart(2, '0')}`, value: r.n })),
+      byLocation,
+      notSpecified,
     });
   }),
 );
@@ -144,10 +190,16 @@ router.get(
 router.get(
   '/recent',
   asyncHandler(async (req, res) => {
-    const rows = await RequestModel.find(scope(req.auth!, req.query as Record<string, unknown>))
+    const filter = scope(req.auth!, req.query as Record<string, unknown>);
+    if (req.query.statusCode) {
+      const codes = String(req.query.statusCode).split(',').map((s) => s.trim()).filter(Boolean);
+      filter.statusCode = codes.length > 1 ? { $in: codes } : codes[0];
+    }
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+    const rows = await RequestModel.find(filter)
       .sort('-createdAt')
-      .limit(10)
-      .populate(['statusId', 'priorityId', 'primaryDepartmentId'])
+      .limit(limit)
+      .populate(LOCATION_POPULATE)
       .lean();
     ok(res, withId(rows));
   }),

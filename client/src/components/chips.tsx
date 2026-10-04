@@ -1,6 +1,6 @@
 import { Chip } from '@mui/material';
 
-const STATUS_COLORS: Record<string, string> = {
+export const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#78716C', SUBMITTED: '#1565C0', UNDER_REVIEW: '#0277BD', ASSIGNED: '#B8860B',
   FORWARDED: '#5E7C99', IN_PROGRESS: '#E65100', AWAITING_INFO: '#F9A825', DEPT_RESPONSE: '#00695C',
   APPROVED: '#2E7D32', COMPLETED: '#1B5E20', REJECTED: '#B71C1C', CLOSED: '#455A64',
