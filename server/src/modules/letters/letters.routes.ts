@@ -133,7 +133,7 @@ router.get(
   '/:id/remarks',
   requirePermission(PERMISSIONS.LETTER_VIEW),
   asyncHandler(async (req, res) => {
-    ok(res, withId(await Remark.find({ letterId: req.params.id }).sort('-createdAt').lean()));
+    ok(res, withId(await Remark.find({ letterId: req.params.id }).sort('-createdAt').populate('authorDepartmentId').lean()));
   }),
 );
 
@@ -146,7 +146,7 @@ router.post(
     if (!doc) throw AppError.notFound('Letter not found');
     const remark = await Remark.create({
       letterId: req.params.id, body: req.body.body, kind: 'INTERNAL',
-      authorId: req.auth!.userId, authorName: req.auth!.name,
+      authorId: req.auth!.userId, authorName: req.auth!.name, authorDepartmentId: req.auth!.departmentId,
     });
     await addTimeline({
       letterId: req.params.id, action: 'REMARK_ADD', label: 'Remark added',

@@ -118,6 +118,7 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
 
   const detail = useQuery({ queryKey: ['requests', 'one', id], queryFn: () => api.get(`/requests/${id}`).then((r) => r.data) });
   const timeline = useQuery({ queryKey: ['requests', id, 'timeline'], queryFn: () => api.get(`/requests/${id}/timeline`).then((r) => r.data) });
+  const remarks = useQuery({ queryKey: ['requests', id, 'remarks'], queryFn: () => api.get(`/requests/${id}/remarks`).then((r) => r.data) });
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['requests', 'one', id] });
@@ -565,6 +566,40 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
               </Stack>
             </CardContent>
           </Card>
+
+          {/* Latest Comments Card */}
+          {(remarks.data ?? []).length > 0 && (
+            <Card>
+              <CardHeader
+                title="Latest Comments"
+                titleTypographyProps={{ variant: 'subtitle2', fontWeight: 700 }}
+                avatar={<Icon name="Comment" sx={{ color: 'primary.main' }} />}
+                action={
+                  !compact && (
+                    <Button size="small" onClick={() => setTab(0)}>View all</Button>
+                  )
+                }
+              />
+              <Divider />
+              <CardContent sx={{ p: 2 }}>
+                <Stack spacing={1.5}>
+                  {(remarks.data ?? []).slice(0, 3).map((rm: any) => (
+                    <Box key={rm.id} sx={{ pb: 1.5, borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { pb: 0, borderBottom: 0 } }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+                        <Typography variant="caption" fontWeight={700}>
+                          {rm.authorDepartmentId?.name ? `${rm.authorDepartmentId.name} · ` : ''}{rm.authorName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                          {dayjs(rm.createdAt).format('DD MMM, hh:mm A')}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>{rm.body}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Applicant & Citizen Contact Card */}
           <Card>

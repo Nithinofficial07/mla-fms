@@ -6,6 +6,7 @@ import { auth, login, seedCore } from './helpers.js';
 import { GramPanchayat, Constituency } from '../src/models/location.js';
 import { Principal } from '../src/models/Principal.js';
 import { User } from '../src/models/User.js';
+import { Department } from '../src/models/Department.js';
 import { hashPassword } from '../src/utils/password.js';
 
 const app = createApp();
@@ -126,6 +127,39 @@ describe('requests', () => {
 
       const detail = await request(app).get(`/api/requests/${southRequest.body.id}`).set(auth(token));
       expect(detail.body.visitCount).toBe(1);
+    });
+  });
+
+  describe('remarks carry the commenter\'s department', () => {
+    it('attributes a remark to the author\'s department, for the Latest Comments card', async () => {
+      const created = await request(app).post('/api/requests').set(auth(token)).send(payload());
+      const dept = await Department.create({ code: 'PWD', name: 'Public Works' });
+      await User.create({
+        name: 'Ravi Officer', username: 'ravipwd', email: 'ravipwd@test.local',
+        passwordHash: await hashPassword('Admin@12345'),
+        roleId: roles[ROLES.DEPARTMENT_OFFICER]._id, roleCode: ROLES.DEPARTMENT_OFFICER,
+        departmentId: dept._id, principalIds: [principalId],
+      });
+      const officerToken = await login(app, 'ravipwd@test.local');
+
+      const addRemark = await request(app)
+        .post(`/api/requests/${created.body.id}/remarks`)
+        .set(auth(officerToken))
+        .send({ body: 'Site inspected, work scheduled for next week.' });
+      expect(addRemark.status).toBe(201);
+
+      const list = await request(app).get(`/api/requests/${created.body.id}/remarks`).set(auth(token));
+      expect(list.status).toBe(200);
+      expect(list.body[0].authorName).toBe('Ravi Officer');
+      expect(list.body[0].authorDepartmentId?.name).toBe('Public Works');
+    });
+
+    it('leaves the department blank for a remark from MLA office staff with no department', async () => {
+      const created = await request(app).post('/api/requests').set(auth(token)).send(payload());
+      await request(app).post(`/api/requests/${created.body.id}/remarks`).set(auth(token)).send({ body: 'Forwarded for review.' });
+
+      const list = await request(app).get(`/api/requests/${created.body.id}/remarks`).set(auth(token));
+      expect(list.body[0].authorDepartmentId).toBeNull();
     });
   });
 });

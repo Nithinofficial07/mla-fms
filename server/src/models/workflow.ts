@@ -32,6 +32,11 @@ const remarkSchema = new Schema(
     kind: { type: String, enum: ['INTERNAL', 'DEPARTMENT_RESPONSE'], default: 'INTERNAL' },
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     authorName: { type: String, required: true },
+    // The commenting user's own department at the time of writing - so
+    // "Latest Comments" can show which department this remark is coming
+    // from, not just who wrote it. Null for MLA office staff with no
+    // department (they aren't tied to a line department).
+    authorDepartmentId: { type: Schema.Types.ObjectId, ref: 'Department', default: null },
     attachments: { type: [Schema.Types.ObjectId], ref: 'Document', default: [] },
   },
   { timestamps: true },
