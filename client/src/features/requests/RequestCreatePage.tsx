@@ -162,9 +162,9 @@ export function RequestCreatePage() {
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           {step === 0 && (
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField fullWidth required label="First Name" value={form.applicant.firstName} onChange={(e) => setApplicant('firstName', e.target.value)} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth required label="Last Name" value={form.applicant.lastName} onChange={(e) => setApplicant('lastName', e.target.value)} /></Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={4}><TextField fullWidth required label="First Name" value={form.applicant.firstName} onChange={(e) => setApplicant('firstName', e.target.value)} /></Grid>
+              <Grid item xs={12} sm={4}><TextField fullWidth required label="Last Name" value={form.applicant.lastName} onChange={(e) => setApplicant('lastName', e.target.value)} /></Grid>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth required label="Mobile number" value={form.applicant.mobile}
                   onChange={(e) => setApplicant('mobile', e.target.value)}

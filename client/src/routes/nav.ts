@@ -21,11 +21,6 @@ export const NAV: NavItem[] = [
     children: [
       { label: 'All Requests', labelKey: 'nav.allRequests', to: '/requests', icon: 'ListAlt' },
       { label: 'New Request', labelKey: 'nav.newRequest', to: '/requests/new', icon: 'AddCircleOutline', permission: PERMISSIONS.REQUEST_CREATE },
-      { label: 'Drafts', labelKey: 'nav.drafts', to: '/requests?statusCode=DRAFT', icon: 'EditNote' },
-      { label: 'Pending', labelKey: 'nav.pending', to: '/requests?bucket=pending', icon: 'HourglassEmpty' },
-      { label: 'In Progress', labelKey: 'nav.inProgress', to: '/requests?bucket=in-progress', icon: 'Autorenew' },
-      { label: 'Completed', labelKey: 'nav.completed', to: '/requests?bucket=completed', icon: 'TaskAlt' },
-      { label: 'Overdue', labelKey: 'nav.overdue', to: '/requests?overdue=true', icon: 'ReportProblem' },
     ],
   },
   {
