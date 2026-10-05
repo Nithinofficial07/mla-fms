@@ -3,6 +3,7 @@ import { PERMISSIONS } from '@mla/shared';
 import { useQuery } from '@tanstack/react-query';
 import { MasterCrudPage, type FieldDef } from '@/components/MasterCrudPage';
 import { api } from '@/api/client';
+import { toAlpha, toRoman } from '@/features/requests/locationPayload';
 
 const LOC = PERMISSIONS.LOCATION_MANAGE;
 const statusCol = {
@@ -81,6 +82,7 @@ export function GramPanchayatsPage() {
     { name: 'code', label: 'Code' },
     { name: 'description', label: 'Description' },
     { name: 'constituencyId', label: 'Constituency', type: 'select', required: true, options: useConstituencyOptions() },
+    { name: 'order', label: 'Display order', type: 'number', helperText: 'Shown as a letter - A, B, C... (1 = A). Leave 0/blank if unordered.' },
   ];
   return (
     <MasterCrudPage
@@ -88,6 +90,10 @@ export function GramPanchayatsPage() {
       crumbs={[{ label: 'Locations' }, { label: 'Gram Panchayats' }]}
       fields={fields}
       columns={[
+        {
+          field: 'order', headerName: 'Letter', width: 80,
+          renderCell: (p) => toAlpha(p.row.order ?? 0) || '—',
+        },
         { field: 'name', headerName: 'Gram Panchayat', flex: 1 },
         { field: 'code', headerName: 'Code', width: 140 },
         statusCol,
@@ -105,6 +111,7 @@ export function VillagesPage() {
       { value: 'WARD', label: 'Ward' },
     ] },
     { name: 'gramPanchayatId', label: 'Parent Gram Panchayat', type: 'select', options: useGpOptions() },
+    { name: 'order', label: 'Display order', type: 'number', helperText: 'Shown as a Roman numeral - I, II, III... (e.g. by population estimate). Leave 0/blank if unordered.' },
   ];
   return (
     <MasterCrudPage
@@ -112,6 +119,10 @@ export function VillagesPage() {
       crumbs={[{ label: 'Locations' }, { label: 'Villages' }]}
       fields={fields}
       columns={[
+        {
+          field: 'order', headerName: 'No.', width: 70,
+          renderCell: (p) => toRoman(p.row.order ?? 0) || '—',
+        },
         { field: 'name', headerName: 'Village', flex: 1 },
         { field: 'code', headerName: 'Code', width: 120 },
         { field: 'parentType', headerName: 'Parent', width: 150 },

@@ -51,8 +51,7 @@ export const DEFAULT_REQUEST_CATEGORIES = [
 ];
 
 export const DEFAULT_REQUEST_TYPES = [
-  'Constituency Request', 'Public / Citizen Request', 'Departmental Reference',
-  'Grievance', 'Information Request',
+  'Grievance', 'Department Request', 'Personal Request', 'BEA Request', 'SS Industry Request',
 ];
 
 export const DEFAULT_DOCUMENT_TYPES = [

@@ -2,10 +2,16 @@ import { OTHER_LOCATION, type LocationValue } from './CascadingLocationPicker';
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
-/** Renders a Gram Panchayat's display order (1-8) as a Roman numeral. Falls back to the number itself above X, or '' for 0/unset. */
+/** Renders a Village's display order as a Roman numeral. Falls back to the number itself above X, or '' for 0/unset. */
 export function toRoman(order: number): string {
   if (order <= 0) return '';
   return ROMAN[order] ?? String(order);
+}
+
+/** Renders a Gram Panchayat's display order (1-8) as a letter (A, B, C...). Falls back to the number itself above Z, or '' for 0/unset. */
+export function toAlpha(order: number): string {
+  if (order <= 0) return '';
+  return order <= 26 ? String.fromCharCode(64 + order) : String(order);
 }
 
 /** True once enough of the location step is filled in to move on / submit. */
@@ -63,6 +69,6 @@ export function locationSummary(
     return [label ? `Ward: ${label}` : 'Ward', l.addressText?.trim()].filter(Boolean).join(' — ') || 'Urban';
   }
   const label = l.gramPanchayatId === OTHER_LOCATION ? l.otherPlaceName?.trim() : gpName;
-  const roman = l.gramPanchayatId === OTHER_LOCATION || !gpOrder ? '' : `${toRoman(gpOrder)} – `;
-  return label ? `GP: ${roman}${label}` : 'Rural';
+  const alpha = l.gramPanchayatId === OTHER_LOCATION || !gpOrder ? '' : `${toAlpha(gpOrder)} – `;
+  return label ? `GP: ${alpha}${label}` : 'Rural';
 }

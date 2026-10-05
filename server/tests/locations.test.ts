@@ -34,6 +34,21 @@ describe('locations + rbac', () => {
     expect(empty.status).toBe(400); // parent id required
   });
 
+  it('sorts villages by their own display order (Roman numeral rank), not just name', async () => {
+    const gp = await request(app).post('/api/gram-panchayats').set(auth(token)).send({ name: 'GP Alpha', constituencyId });
+    expect(gp.status).toBe(201);
+
+    // Created out of order, and "Zebra" would sort first alphabetically -
+    // the order field should still win.
+    await request(app).post('/api/villages').set(auth(token)).send({ name: 'Zebra Village', parentType: 'GRAM_PANCHAYAT', gramPanchayatId: gp.body.id, order: 2 });
+    await request(app).post('/api/villages').set(auth(token)).send({ name: 'Alpha Village', parentType: 'GRAM_PANCHAYAT', gramPanchayatId: gp.body.id, order: 1 });
+
+    const opts = await request(app).get(`/api/location-options/villages?gramPanchayatId=${gp.body.id}`).set(auth(token));
+    expect(opts.status).toBe(200);
+    expect(opts.body.map((v: { name: string }) => v.name)).toEqual(['Alpha Village', 'Zebra Village']);
+    expect(opts.body[0].order).toBe(1);
+  });
+
   it('blocks a viewer from writing masters', async () => {
     const viewerToken = await login(app, 'admin@test.local'); // super admin
     // create a viewer user, then login as them

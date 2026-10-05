@@ -13,6 +13,8 @@
     "seed:prod": "node dist/seed/seed.js --config-only",
     "backfill:principal": "tsx src/scripts/backfill-principal.ts",
     "backfill:principal:prod": "node dist/scripts/backfill-principal.js",
+    "fix:request-types": "tsx src/scripts/fix-request-types.ts",
+    "fix:request-types:prod": "node dist/scripts/fix-request-types.js",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"

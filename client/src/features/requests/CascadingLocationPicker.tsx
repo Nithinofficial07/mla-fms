@@ -1,6 +1,6 @@
 import { MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { useGramPanchayats, useSubVillages, useVillages, useWards } from '@/hooks/useOptions';
-import { toRoman } from './locationPayload';
+import { toAlpha, toRoman } from './locationPayload';
 
 /** Sentinel for "not in the list" — never sent to the server as an id. */
 export const OTHER_LOCATION = '__OTHER__';
@@ -69,7 +69,8 @@ function LocationBreakupFields({ value, onChange }: { value: LocationValue; onCh
 
 /**
  * Rural branch enforces the hierarchy GP -> Village -> Sub-village, GPs shown
- * as Roman numerals (I-VIII) ahead of their name.
+ * as letters (A-H) and Villages as Roman numerals (I, II, III...) ahead of
+ * their name - each ordered independently via its own `order` field.
  * Urban branch is Ward + Area/Locality (a Village under that Ward).
  * Other branch is a genuinely different place (e.g. a walk-in from outside
  * the constituency) — flat fields, no master-data dependency.
@@ -168,7 +169,7 @@ export function CascadingLocationPicker({
             >
               <MenuItem value="">—</MenuItem>
               {(villages.data ?? []).map((v) => (
-                <MenuItem key={v.id} value={v.id}>{v.name}</MenuItem>
+                <MenuItem key={v.id} value={v.id}>{v.order ? `${toRoman(v.order)} – ${v.name}` : v.name}</MenuItem>
               ))}
             </TextField>
           )}
@@ -203,7 +204,7 @@ export function CascadingLocationPicker({
             }}
           >
             {(gps.data ?? []).map((g) => (
-              <MenuItem key={g.id} value={g.id}>{`${toRoman(g.order ?? 0)} – ${g.name}`}</MenuItem>
+              <MenuItem key={g.id} value={g.id}>{`${toAlpha(g.order ?? 0)} – ${g.name}`}</MenuItem>
             ))}
             <MenuItem value={OTHER_LOCATION}>Other (not in list)</MenuItem>
           </TextField>
@@ -226,7 +227,7 @@ export function CascadingLocationPicker({
                 helperText={villages.data && villages.data.length === 0 ? 'No villages configured for this parent yet' : ' '}
               >
                 {(villages.data ?? []).map((v) => (
-                  <MenuItem key={v.id} value={v.id}>{v.name}</MenuItem>
+                  <MenuItem key={v.id} value={v.id}>{v.order ? `${toRoman(v.order)} – ${v.name}` : v.name}</MenuItem>
                 ))}
               </TextField>
 

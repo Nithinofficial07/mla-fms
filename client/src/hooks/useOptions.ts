@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
+import { PERMISSIONS } from '@mla/shared';
 import { api } from '@/api/client';
+import { useAuth } from '@/app/AuthProvider';
 
 interface Opt { id: string; name: string; code?: string; order?: number; ministryName?: string }
 
@@ -55,6 +57,22 @@ export const usePrincipals = () =>
         .then((list) => list.slice().sort((a, b) => PRINCIPAL_ORDER.indexOf(a.code) - PRINCIPAL_ORDER.indexOf(b.code))),
   });
 
+/**
+ * Which principals (offices) the current user may act as. A PRINCIPAL_ALL_VIEW
+ * user (e.g. Super Admin) gets every principal; everyone else only their own
+ * assigned one(s) - the same rule the server enforces, so this never offers a
+ * choice the backend would reject.
+ */
+export const useMyPrincipals = () => {
+  const { user, can } = useAuth();
+  const principals = usePrincipals();
+  const allView = can(PERMISSIONS.PRINCIPAL_ALL_VIEW);
+  const data = allView
+    ? (principals.data ?? [])
+    : (principals.data ?? []).filter((p) => user?.principalIds?.includes(p.id));
+  return { data, allView, isLoading: principals.isLoading };
+};
+
 export const useLookup = (group: string) =>
   useQuery({ queryKey: ['opt', 'lookup', group], queryFn: () => byOrder('/lookups', { group, pageSize: 200, sort: 'order,name' }) });
 
@@ -62,14 +80,16 @@ export const useLookup = (group: string) =>
 export const useWards = () =>
   useQuery({ queryKey: ['opt', 'wards'], queryFn: () => alphabetical('/location-options/wards') });
 
-// Rural GPs have a fixed display order (1-8, rendered as Roman numerals).
+// Rural GPs have a fixed display order (1-8, rendered as letters A-H).
 export const useGramPanchayats = () =>
   useQuery({ queryKey: ['opt', 'gps'], queryFn: () => byOrder('/location-options/gram-panchayats') });
 
+// Villages have their own display order too (e.g. by population estimate),
+// rendered as Roman numerals - independent of their parent GP's lettering.
 export const useVillages = (parent: { wardId?: string; gramPanchayatId?: string }) =>
   useQuery({
     queryKey: ['opt', 'villages', parent],
-    queryFn: () => alphabetical('/location-options/villages', parent),
+    queryFn: () => byOrder('/location-options/villages', parent),
     enabled: !!(parent.wardId || parent.gramPanchayatId),
   });
 

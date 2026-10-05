@@ -61,7 +61,7 @@ const gramPanchayatSchema = new Schema(
     description: { type: String, default: '' },
     constituencyId: { type: Schema.Types.ObjectId, ref: 'Constituency', required: true },
     // Display order (1-8 for Davanagere South's rural GPs), rendered as a
-    // Roman numeral in the UI. 0 = unordered / not yet assigned.
+    // letter (A, B, C...) in the UI. 0 = unordered / not yet assigned.
     order: { type: Number, default: 0 },
     isDemo: { type: Boolean, default: false },
   },
@@ -81,6 +81,10 @@ const villageSchema = new Schema(
     parentType: { type: String, enum: ['GRAM_PANCHAYAT', 'WARD'], required: true },
     gramPanchayatId: { type: Schema.Types.ObjectId, ref: 'GramPanchayat', default: null, index: true },
     wardId: { type: Schema.Types.ObjectId, ref: 'Ward', default: null, index: true },
+    // Display order within its parent (e.g. by population estimate), rendered
+    // as a Roman numeral in the UI - the counterpart to GramPanchayat.order,
+    // which is rendered as a letter (A, B, C...) instead. 0 = unordered.
+    order: { type: Number, default: 0 },
     isDemo: { type: Boolean, default: false },
   },
   { timestamps: true },

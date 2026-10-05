@@ -78,15 +78,17 @@ export const villageRouter = crudRouter({
       parentType: z.enum(['GRAM_PANCHAYAT', 'WARD']),
       gramPanchayatId: z.string().length(24).nullable().optional(),
       wardId: z.string().length(24).nullable().optional(),
+      order: z.number().int().min(0).optional(),
     })
     .refine((v) => (v.parentType === 'GRAM_PANCHAYAT' ? !!v.gramPanchayatId : !!v.wardId), {
       message: 'Parent id must match parentType',
       path: ['parentType'],
     }),
-  updateSchema: z.object({ name: z.string().min(1), code: z.string(), isActive: z.boolean() }).partial(),
+  updateSchema: z.object({ name: z.string().min(1), code: z.string(), order: z.number().int().min(0), isActive: z.boolean() }).partial(),
   permissions: { read: READ, write: WRITE },
   searchFields: ['name', 'code'],
   filterFields: ['gramPanchayatId', 'wardId', 'parentType'],
+  defaultSort: 'order,name',
   async beforeDelete(id) {
     if (await SubVillage.countDocuments({ villageId: id })) {
       throw AppError.conflict('Village has sub-villages. Remove them first.');
@@ -140,7 +142,7 @@ locationOptionsRouter.get(
     const f: Record<string, unknown> = { isActive: true };
     if (gramPanchayatId) f.gramPanchayatId = gramPanchayatId;
     if (wardId) f.wardId = wardId;
-    ok(res, withId(await Village.find(f).sort('name').select('name code parentType').lean()));
+    ok(res, withId(await Village.find(f).sort({ order: 1, name: 1 }).select('name code parentType order').lean()));
   }),
 );
 locationOptionsRouter.get(
