@@ -99,29 +99,22 @@ export function RequestListPage() {
     setSp(next);
   };
 
+  // All flex, no fixed widths - the grid distributes the full row width across
+  // these 8 columns so nothing ever needs horizontal scroll to see at a
+  // glance. Clicking a row opens the full detail (File ID, date, principal,
+  // etc. live there instead of as their own columns here).
   const columns = [
-    { field: 'fileId', headerName: t('requests.fileId'), width: 150 },
-    { field: 'principal', headerName: 'Principal', width: 100, valueGetter: (_v: unknown, r: any) => r.principalId?.code ?? '—' },
-    { field: 'date', headerName: t('requests.date'), width: 110, valueGetter: (_v: unknown, r: any) => dayjs(r.createdAt).format('DD MMM YY') },
-    { field: 'applicant', headerName: t('requests.applicant'), width: 160, valueGetter: (_v: unknown, r: any) => r.applicant?.name },
-    { field: 'mobile', headerName: t('requests.mobile'), width: 130, valueGetter: (_v: unknown, r: any) => r.applicant?.mobile },
-    { field: 'subject', headerName: t('requests.subject'), flex: 1, minWidth: 200 },
+    { field: 'applicant', headerName: t('requests.applicant'), flex: 1.1, minWidth: 110, valueGetter: (_v: unknown, r: any) => r.applicant?.name },
+    { field: 'mobile', headerName: t('requests.mobile'), flex: 1, minWidth: 100, valueGetter: (_v: unknown, r: any) => r.applicant?.mobile },
+    { field: 'subject', headerName: t('requests.subject'), flex: 1.8, minWidth: 160 },
     {
-      field: 'location', headerName: 'Ward / GP', width: 150,
+      field: 'location', headerName: 'Ward / GP', flex: 1, minWidth: 100,
       valueGetter: (_v: unknown, r: any) => r.location?.wardId?.name ?? r.location?.gramPanchayatId?.name ?? r.location?.otherPlaceName ?? r.location?.otherLocationPlace ?? '—',
     },
-    { field: 'department', headerName: t('requests.department'), width: 170, valueGetter: (_v: unknown, r: any) => r.primaryDepartmentId?.name ?? t('common.unassigned') },
-    { field: 'priority', headerName: t('requests.priority'), width: 120, renderCell: (p: any) => <PriorityChip code={p.row.priorityId?.code} label={p.row.priorityId?.name} /> },
-    { field: 'status', headerName: t('requests.status'), width: 160, renderCell: (p: any) => <StatusChip code={p.row.statusCode} label={p.row.statusId?.name} /> },
-    { field: 'dueDate', headerName: t('requests.due'), width: 110, valueGetter: (_v: unknown, r: any) => (r.dueDate ? dayjs(r.dueDate).format('DD MMM YY') : '—') },
-    {
-      field: 'actions', headerName: '', width: 90, sortable: false,
-      renderCell: (p: any) => (
-        <Button size="small" onClick={(e) => { e.stopPropagation(); setDetailId(p.row.id); }}>
-          {t('requests.open')}
-        </Button>
-      ),
-    },
+    { field: 'department', headerName: t('requests.department'), flex: 1.1, minWidth: 110, valueGetter: (_v: unknown, r: any) => r.primaryDepartmentId?.name ?? t('common.unassigned') },
+    { field: 'priority', headerName: t('requests.priority'), flex: 0.8, minWidth: 90, renderCell: (p: any) => <PriorityChip code={p.row.priorityId?.code} label={p.row.priorityId?.name} /> },
+    { field: 'status', headerName: t('requests.status'), flex: 1, minWidth: 110, renderCell: (p: any) => <StatusChip code={p.row.statusCode} label={p.row.statusId?.name} /> },
+    { field: 'dueDate', headerName: t('requests.due'), flex: 0.7, minWidth: 80, valueGetter: (_v: unknown, r: any) => (r.dueDate ? dayjs(r.dueDate).format('DD MMM YY') : '—') },
   ];
 
   const doExport = async (fmt: string) => {
