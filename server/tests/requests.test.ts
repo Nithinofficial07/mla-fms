@@ -80,6 +80,24 @@ describe('requests', () => {
     expect(good.body.statusCode).toBe('UNDER_REVIEW');
   });
 
+  it('allows resolving to COMPLETED from any non-terminal stage, not just the "normal" end of the path', async () => {
+    const { RequestStatus } = await import('../src/models/config.js');
+    await RequestStatus.create({ code: 'COMPLETED', name: 'Completed', order: 10, transitionsTo: ['CLOSED'] });
+    // Mirrors the real seed: ASSIGNED's graph includes COMPLETED now, not just FORWARDED/IN_PROGRESS.
+    await RequestStatus.findOneAndUpdate({ code: 'ASSIGNED' }, { $addToSet: { transitionsTo: 'COMPLETED' } });
+
+    const created = await request(app).post('/api/requests').set(auth(token)).send({ ...payload(), submit: true });
+    const id = created.body.id;
+    await request(app).post(`/api/requests/${id}/status`).set(auth(token)).send({ toStatusCode: 'UNDER_REVIEW' });
+    const assigned = await request(app).post(`/api/requests/${id}/status`).set(auth(token)).send({ toStatusCode: 'ASSIGNED' });
+    expect(assigned.status).toBe(200);
+
+    // Jump straight to COMPLETED from ASSIGNED, skipping FORWARDED/IN_PROGRESS entirely - no remark sent.
+    const solved = await request(app).post(`/api/requests/${id}/status`).set(auth(token)).send({ toStatusCode: 'COMPLETED' });
+    expect(solved.status).toBe(200);
+    expect(solved.body.statusCode).toBe('COMPLETED');
+  });
+
   it('records a timeline for lifecycle events', async () => {
     const created = await request(app).post('/api/requests').set(auth(token)).send({ ...payload(), submit: true });
     const res = await request(app).get(`/api/requests/${created.body.id}/timeline`).set(auth(token));

@@ -15,6 +15,8 @@
     "backfill:principal:prod": "node dist/scripts/backfill-principal.js",
     "fix:request-types": "tsx src/scripts/fix-request-types.ts",
     "fix:request-types:prod": "node dist/scripts/fix-request-types.js",
+    "fix:status-transitions": "tsx src/scripts/fix-status-transitions.ts",
+    "fix:status-transitions:prod": "node dist/scripts/fix-status-transitions.js",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"

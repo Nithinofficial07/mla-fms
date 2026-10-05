@@ -28,15 +28,18 @@ export const DEFAULT_PRIORITIES = [
  * Default workflow. `isInitial` marks the state a new draft enters,
  * `isTerminal` marks closed states, `transitionsTo` lists allowed next codes.
  */
+// Every non-terminal status can transition straight to COMPLETED, not just
+// IN_PROGRESS/APPROVED - resolving a file is allowed at any stage, not only
+// at the end of the "normal" path.
 export const DEFAULT_STATUSES = [
-  { code: 'DRAFT', name: 'Draft', order: 1, isInitial: true, isTerminal: false, color: '#9e9e9e', transitionsTo: ['SUBMITTED'] },
-  { code: 'SUBMITTED', name: 'Submitted', order: 2, isInitial: false, isTerminal: false, color: '#1976d2', transitionsTo: ['UNDER_REVIEW', 'REJECTED'] },
-  { code: 'UNDER_REVIEW', name: 'Under Review', order: 3, isInitial: false, isTerminal: false, color: '#0288d1', transitionsTo: ['ASSIGNED', 'REJECTED'] },
-  { code: 'ASSIGNED', name: 'Assigned', order: 4, isInitial: false, isTerminal: false, color: '#7b1fa2', transitionsTo: ['FORWARDED', 'IN_PROGRESS'] },
-  { code: 'FORWARDED', name: 'Forwarded', order: 5, isInitial: false, isTerminal: false, color: '#5e35b1', transitionsTo: ['IN_PROGRESS', 'AWAITING_INFO'] },
+  { code: 'DRAFT', name: 'Draft', order: 1, isInitial: true, isTerminal: false, color: '#9e9e9e', transitionsTo: ['SUBMITTED', 'COMPLETED'] },
+  { code: 'SUBMITTED', name: 'Submitted', order: 2, isInitial: false, isTerminal: false, color: '#1976d2', transitionsTo: ['UNDER_REVIEW', 'REJECTED', 'COMPLETED'] },
+  { code: 'UNDER_REVIEW', name: 'Under Review', order: 3, isInitial: false, isTerminal: false, color: '#0288d1', transitionsTo: ['ASSIGNED', 'REJECTED', 'COMPLETED'] },
+  { code: 'ASSIGNED', name: 'Assigned', order: 4, isInitial: false, isTerminal: false, color: '#7b1fa2', transitionsTo: ['FORWARDED', 'IN_PROGRESS', 'COMPLETED'] },
+  { code: 'FORWARDED', name: 'Forwarded', order: 5, isInitial: false, isTerminal: false, color: '#5e35b1', transitionsTo: ['IN_PROGRESS', 'AWAITING_INFO', 'COMPLETED'] },
   { code: 'IN_PROGRESS', name: 'In Progress', order: 6, isInitial: false, isTerminal: false, color: '#ed6c02', transitionsTo: ['AWAITING_INFO', 'DEPT_RESPONSE', 'COMPLETED'] },
-  { code: 'AWAITING_INFO', name: 'Awaiting Information', order: 7, isInitial: false, isTerminal: false, color: '#fbc02d', transitionsTo: ['IN_PROGRESS'] },
-  { code: 'DEPT_RESPONSE', name: 'Department Response Received', order: 8, isInitial: false, isTerminal: false, color: '#00897b', transitionsTo: ['APPROVED', 'IN_PROGRESS'] },
+  { code: 'AWAITING_INFO', name: 'Awaiting Information', order: 7, isInitial: false, isTerminal: false, color: '#fbc02d', transitionsTo: ['IN_PROGRESS', 'COMPLETED'] },
+  { code: 'DEPT_RESPONSE', name: 'Department Response Received', order: 8, isInitial: false, isTerminal: false, color: '#00897b', transitionsTo: ['APPROVED', 'IN_PROGRESS', 'COMPLETED'] },
   { code: 'APPROVED', name: 'Approved', order: 9, isInitial: false, isTerminal: false, color: '#2e7d32', transitionsTo: ['COMPLETED'] },
   { code: 'COMPLETED', name: 'Completed', order: 10, isInitial: false, isTerminal: false, color: '#388e3c', transitionsTo: ['CLOSED'] },
   { code: 'REJECTED', name: 'Rejected', order: 11, isInitial: false, isTerminal: true, color: '#c62828', transitionsTo: ['CLOSED'] },

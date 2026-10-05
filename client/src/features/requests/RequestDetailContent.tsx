@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import dayjs from 'dayjs';
 import { Icon } from '@/components/Icon';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { DetailField } from '@/components/DetailField';
 import { StatusChip, PriorityChip } from '@/components/chips';
 import { DocumentUploader } from '@/components/DocumentUploader';
@@ -107,6 +108,7 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
   const { can } = useAuth();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [tab, setTab] = useState(0);
   const [remark, setRemark] = useState('');
   const [nextStatus, setNextStatus] = useState('');
@@ -158,6 +160,18 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
   const assign = useAct(() => api.post(`/requests/${id}/assign`, { departmentId: assignDept, remark: remark || undefined }), 'Assigned to department');
   const forward = useAct(() => api.post(`/requests/${id}/forward`, { departmentId: assignDept, remark: remark || undefined }), 'Forwarded to department');
 
+  // One-click resolve - no remark field, no status dropdown. Works from any
+  // stage (the backend now allows COMPLETED from any non-terminal status).
+  const markSolved = useMutation({
+    mutationFn: () => api.post(`/requests/${id}/status`, { toStatusCode: 'COMPLETED' }),
+    onSuccess: () => {
+      enqueueSnackbar('Marked as Solved', { variant: 'success' });
+      setCelebrate(true);
+      refresh();
+    },
+    onError: (e) => enqueueSnackbar(errorMessage(e), { variant: 'error' }),
+  });
+
   const r = detail.data;
 
   if (detail.isLoading) return <Skeleton variant="rounded" height={420} />;
@@ -192,6 +206,23 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
           >
             Print Cover Sheet
           </Button>
+          {!['COMPLETED', 'APPROVED', 'CLOSED', 'REJECTED'].includes(r.statusCode) && can(PERMISSIONS.REQUEST_STATUS_CHANGE) && (
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              startIcon={<Icon name="CheckCircle" />}
+              disabled={markSolved.isPending}
+              onClick={async () => {
+                if (await confirm({ title: 'Mark as Solved', message: 'Mark this file as Solved? No remark is required - you can still add one from Activity & Notes afterwards if you want.', confirmLabel: 'Mark Solved' })) {
+                  markSolved.mutate();
+                }
+              }}
+              sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+            >
+              Mark as Solved
+            </Button>
+          )}
           {!compact && (can(PERMISSIONS.REQUEST_STATUS_CHANGE) || can(PERMISSIONS.REQUEST_ASSIGN)) && (
             <Button
               variant="contained"
@@ -726,6 +757,7 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
       </Box>
 
       {celebrate && <Confetti onDone={() => setCelebrate(false)} />}
+      {confirmDialog}
     </Box>
   );
 }
