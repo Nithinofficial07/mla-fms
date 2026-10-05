@@ -175,7 +175,8 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} sx={{ mb: 2.5 }}>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="h5" fontWeight={800} sx={{ wordBreak: 'break-word' }}>{r.fileId}</Typography>
-          <Typography variant="body2" color="text.secondary">{r.subject}</Typography>
+          {/* The quick-view dialog has no Petition Details tab to show the subject in, so it keeps showing it here; the full page shows the filed date instead (no year - that's in "Filed Date" on the Petition Details tab already). */}
+          <Typography variant="body2" color="text.secondary">{compact ? r.subject : dayjs(r.createdAt).format('DD MMM')}</Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
           <Button
@@ -420,6 +421,9 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
               />
               <Divider />
               <CardContent>
+                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
+                  {r.subject}
+                </Typography>
                 <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: 3, lineHeight: 1.6 }}>
                   {r.description || 'No detailed description provided.'}
                 </Typography>
