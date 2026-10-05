@@ -132,47 +132,52 @@ export function CascadingLocationPicker({
 
       {value.branch === 'URBAN' && (
         <Stack spacing={2}>
-          <TextField
-            select
-            label="Ward"
-            value={value.wardId ?? ''}
-            onChange={(e) => {
-              const v = e.target.value;
-              set(
-                v === OTHER_LOCATION
-                  ? { wardId: OTHER_LOCATION, otherPlaceName: value.otherPlaceName ?? '', villageId: undefined }
-                  : { wardId: v, otherPlaceName: undefined, villageId: undefined },
-              );
-            }}
-          >
-            {(wards.data ?? []).map((w) => (
-              <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
-            ))}
-            <MenuItem value={OTHER_LOCATION}>Other (not in list)</MenuItem>
-          </TextField>
-
-          {value.wardId === OTHER_LOCATION ? (
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              label="Ward / locality name"
-              placeholder="Type the ward or locality name"
-              value={value.otherPlaceName ?? ''}
-              onChange={(e) => set({ otherPlaceName: e.target.value })}
-            />
-          ) : (
-            <TextField
+              fullWidth
               select
-              label="Area / Locality (optional)"
-              value={value.villageId ?? ''}
-              disabled={!value.wardId}
-              onChange={(e) => set({ villageId: e.target.value })}
-              helperText={villages.data && villages.data.length === 0 ? 'No localities configured for this ward yet' : ' '}
+              label="Ward"
+              value={value.wardId ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                set(
+                  v === OTHER_LOCATION
+                    ? { wardId: OTHER_LOCATION, otherPlaceName: value.otherPlaceName ?? '', villageId: undefined }
+                    : { wardId: v, otherPlaceName: undefined, villageId: undefined },
+                );
+              }}
             >
-              <MenuItem value="">—</MenuItem>
-              {(villages.data ?? []).map((v) => (
-                <MenuItem key={v.id} value={v.id}>{v.order ? `${toRoman(v.order)} – ${v.name}` : v.name}</MenuItem>
+              {(wards.data ?? []).map((w) => (
+                <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
               ))}
+              <MenuItem value={OTHER_LOCATION}>Other (not in list)</MenuItem>
             </TextField>
-          )}
+
+            {value.wardId === OTHER_LOCATION ? (
+              <TextField
+                fullWidth
+                label="Ward / locality name"
+                placeholder="Type the ward or locality name"
+                value={value.otherPlaceName ?? ''}
+                onChange={(e) => set({ otherPlaceName: e.target.value })}
+              />
+            ) : (
+              <TextField
+                fullWidth
+                select
+                label="Area / Locality (optional)"
+                value={value.villageId ?? ''}
+                disabled={!value.wardId}
+                onChange={(e) => set({ villageId: e.target.value })}
+                helperText={villages.data && villages.data.length === 0 ? 'No localities configured for this ward yet' : ' '}
+              >
+                <MenuItem value="">—</MenuItem>
+                {(villages.data ?? []).map((v) => (
+                  <MenuItem key={v.id} value={v.id}>{v.order ? `${toRoman(v.order)} – ${v.name}` : v.name}</MenuItem>
+                ))}
+              </TextField>
+            )}
+          </Stack>
 
           <TextField
             label="Address / landmark (optional)"
@@ -190,35 +195,38 @@ export function CascadingLocationPicker({
 
       {value.branch === 'RURAL' && (
         <Stack spacing={2}>
-          <TextField
-            select
-            label="Gram Panchayat"
-            value={value.gramPanchayatId ?? ''}
-            onChange={(e) => {
-              const v = e.target.value;
-              set(
-                v === OTHER_LOCATION
-                  ? { gramPanchayatId: OTHER_LOCATION, otherPlaceName: value.otherPlaceName ?? '', villageId: undefined, subVillageId: undefined }
-                  : { gramPanchayatId: v, otherPlaceName: undefined, villageId: undefined, subVillageId: undefined },
-              );
-            }}
-          >
-            {(gps.data ?? []).map((g) => (
-              <MenuItem key={g.id} value={g.id}>{`${toAlpha(g.order ?? 0)} – ${g.name}`}</MenuItem>
-            ))}
-            <MenuItem value={OTHER_LOCATION}>Other (not in list)</MenuItem>
-          </TextField>
-
-          {isOtherGp ? (
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              label="Gram Panchayat / village name"
-              placeholder="Type the Gram Panchayat or village name"
-              value={value.otherPlaceName ?? ''}
-              onChange={(e) => set({ otherPlaceName: e.target.value })}
-            />
-          ) : (
-            <>
+              fullWidth
+              select
+              label="Gram Panchayat"
+              value={value.gramPanchayatId ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                set(
+                  v === OTHER_LOCATION
+                    ? { gramPanchayatId: OTHER_LOCATION, otherPlaceName: value.otherPlaceName ?? '', villageId: undefined, subVillageId: undefined }
+                    : { gramPanchayatId: v, otherPlaceName: undefined, villageId: undefined, subVillageId: undefined },
+                );
+              }}
+            >
+              {(gps.data ?? []).map((g) => (
+                <MenuItem key={g.id} value={g.id}>{`${toAlpha(g.order ?? 0)} – ${g.name}`}</MenuItem>
+              ))}
+              <MenuItem value={OTHER_LOCATION}>Other (not in list)</MenuItem>
+            </TextField>
+
+            {isOtherGp ? (
               <TextField
+                fullWidth
+                label="Gram Panchayat / village name"
+                placeholder="Type the Gram Panchayat or village name"
+                value={value.otherPlaceName ?? ''}
+                onChange={(e) => set({ otherPlaceName: e.target.value })}
+              />
+            ) : (
+              <TextField
+                fullWidth
                 select
                 label="Village / Area"
                 value={value.villageId ?? ''}
@@ -230,20 +238,23 @@ export function CascadingLocationPicker({
                   <MenuItem key={v.id} value={v.id}>{v.order ? `${toRoman(v.order)} – ${v.name}` : v.name}</MenuItem>
                 ))}
               </TextField>
+            )}
+          </Stack>
 
-              <TextField
-                select
-                label="Sub-village / Hamlet (optional)"
-                value={value.subVillageId ?? ''}
-                disabled={!value.villageId}
-                onChange={(e) => set({ subVillageId: e.target.value })}
-              >
-                <MenuItem value="">—</MenuItem>
-                {(subVillages.data ?? []).map((sv) => (
-                  <MenuItem key={sv.id} value={sv.id}>{sv.name}</MenuItem>
-                ))}
-              </TextField>
-            </>
+          {!isOtherGp && (
+            <TextField
+              fullWidth
+              select
+              label="Sub-village / Hamlet (optional)"
+              value={value.subVillageId ?? ''}
+              disabled={!value.villageId}
+              onChange={(e) => set({ subVillageId: e.target.value })}
+            >
+              <MenuItem value="">—</MenuItem>
+              {(subVillages.data ?? []).map((sv) => (
+                <MenuItem key={sv.id} value={sv.id}>{sv.name}</MenuItem>
+              ))}
+            </TextField>
           )}
 
           <TextField
