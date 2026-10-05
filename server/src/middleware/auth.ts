@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { Permission } from '@mla/shared';
+import { PERMISSIONS, type Permission } from '@mla/shared';
 import { AppError } from '../utils/AppError.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { User } from '../models/User.js';
@@ -21,23 +21,36 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
     const role = await Role.findById(user.roleId).lean();
     if (!role) throw AppError.unauthorized('Role missing');
 
+    const permissions = (role.permissions ?? []) as Permission[];
     const allPrincipalIds = (user.principalIds ?? []).map((id) => String(id));
-    // The client may ask to narrow to one principal it's actively viewing
-    // (multi-principal users only); only honored when it's actually one of
-    // this user's real principals, so the header can only narrow access,
-    // never widen it.
     const requestedPrincipal = req.get('x-principal-id');
-    const principalIds = requestedPrincipal && allPrincipalIds.includes(requestedPrincipal)
-      ? [requestedPrincipal]
-      : allPrincipalIds;
+    const hasAllView = permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW);
+
+    // A PRINCIPAL_ALL_VIEW user (e.g. Super Admin) isn't limited to their own
+    // principalIds - they may narrow to ANY single principal via the header
+    // to actually filter their view, or send none to see everything.
+    // Everyone else can only ever narrow within their own real principals
+    // (never widen past them), same as before.
+    let principalIds: string[];
+    let viewAllPrincipals: boolean;
+    if (hasAllView) {
+      principalIds = requestedPrincipal ? [requestedPrincipal] : [];
+      viewAllPrincipals = !requestedPrincipal;
+    } else {
+      principalIds = requestedPrincipal && allPrincipalIds.includes(requestedPrincipal)
+        ? [requestedPrincipal]
+        : allPrincipalIds;
+      viewAllPrincipals = false;
+    }
 
     req.auth = {
       userId: String(user._id),
       name: user.name,
       roleCode: role.code,
-      permissions: (role.permissions ?? []) as Permission[],
+      permissions,
       departmentId: user.departmentId ? String(user.departmentId) : null,
       principalIds,
+      viewAllPrincipals,
     };
     next();
   } catch (err) {

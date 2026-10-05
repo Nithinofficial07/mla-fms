@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { formatId, PERMISSIONS } from '@mla/shared';
+import { formatId } from '@mla/shared';
 import { RequestModel } from '../../models/Request.js';
 import { RequestStatus, Priority, SystemSettings } from '../../models/config.js';
 import { Constituency } from '../../models/location.js';
@@ -146,9 +146,10 @@ export const requestsService = {
       ];
     }
 
-    // Principal scoping: only PRINCIPAL_ALL_VIEW bypasses it. An empty
-    // principalIds list fails closed (matches nothing) rather than opening up.
-    if (!auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+    // Principal scoping: viewAllPrincipals (PRINCIPAL_ALL_VIEW with no
+    // narrowed X-Principal-Id) bypasses it. An empty principalIds list fails
+    // closed (matches nothing) rather than opening up.
+    if (!auth.viewAllPrincipals) {
       filter.principalId = { $in: auth.principalIds };
     }
     return filter;
@@ -164,7 +165,7 @@ export const requestsService = {
       .lean();
     if (!doc) throw AppError.notFound('Request not found');
     if (
-      !auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)
+      !auth.viewAllPrincipals
       && !auth.principalIds.includes(String((doc as any).principalId?._id ?? (doc as any).principalId))
     ) {
       throw AppError.notFound('Request not found');

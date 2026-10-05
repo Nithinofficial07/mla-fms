@@ -37,7 +37,7 @@ function scope(auth: Express.AuthContext, query: Record<string, unknown> = {}): 
       { assignedOfficerId: auth.userId },
     ];
   }
-  if (!auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+  if (!auth.viewAllPrincipals) {
     filter.principalId = { $in: auth.principalIds };
   }
   const from = query.from ? new Date(String(query.from)) : undefined;

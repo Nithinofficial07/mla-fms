@@ -35,7 +35,7 @@ router.get(
     const departmentId = req.query.departmentId;
     if (departmentId) filter.departmentId = departmentId;
     if (req.query.status) filter.status = req.query.status;
-    if (!req.auth!.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+    if (!req.auth!.viewAllPrincipals) {
       filter.principalId = { $in: req.auth!.principalIds };
     }
     ok(res, await paginate(FundingRequest, filter, params, { populate: ['principalId', 'departmentId', 'createdBy'] }));
@@ -49,7 +49,7 @@ router.get(
     const doc = await FundingRequest.findById(req.params.id).populate(['principalId', 'departmentId', 'createdBy']).lean();
     if (!doc) throw AppError.notFound('Funding request not found');
     if (
-      !req.auth!.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)
+      !req.auth!.viewAllPrincipals
       && !req.auth!.principalIds.includes(String((doc as any).principalId?._id ?? (doc as any).principalId))
     ) {
       throw AppError.notFound('Funding request not found');

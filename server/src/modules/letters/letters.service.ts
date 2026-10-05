@@ -1,4 +1,4 @@
-import { formatId, PERMISSIONS } from '@mla/shared';
+import { formatId } from '@mla/shared';
 import { Letter } from '../../models/Letter.js';
 import { DocumentModel } from '../../models/Document.js';
 import { Principal } from '../../models/Principal.js';
@@ -55,7 +55,7 @@ export const lettersService = {
       if (q('from')) (filter.date as Record<string, unknown>).$gte = new Date(String(query.from));
       if (q('to')) (filter.date as Record<string, unknown>).$lte = new Date(String(query.to));
     }
-    if (!auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)) {
+    if (!auth.viewAllPrincipals) {
       filter.principalId = { $in: auth.principalIds };
     }
     return filter;
@@ -71,7 +71,7 @@ export const lettersService = {
       .lean();
     if (!doc) throw AppError.notFound('Letter not found');
     if (
-      !auth.permissions.includes(PERMISSIONS.PRINCIPAL_ALL_VIEW)
+      !auth.viewAllPrincipals
       && !auth.principalIds.includes(String((doc as any).principalId?._id ?? (doc as any).principalId))
     ) {
       throw AppError.notFound('Letter not found');

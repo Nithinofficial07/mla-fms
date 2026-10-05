@@ -234,50 +234,14 @@ export function AppShell() {
           <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1, fontSize: { xs: '0.95rem', sm: '1rem' }, color: '#fff' }} noWrap>
             {settings?.constituencyName || 'Constituency'}
           </Typography>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <PrincipalSwitcher light />
+          </Box>
           <Tooltip title="Search everything (Ctrl+K)">
-            <Box
-              onClick={openCommandPalette}
-              sx={{
-                display: { xs: 'none', sm: 'flex' },
-                alignItems: 'center',
-                gap: 1.25,
-                cursor: 'pointer',
-                bgcolor: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                borderRadius: 2.5,
-                px: 1.75,
-                py: 0.6,
-                color: 'rgba(255,255,255,0.85)',
-                transition: 'all .2s ease',
-                '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.16)',
-                  borderColor: 'rgba(255,255,255,0.3)',
-                  boxShadow: '0 0 16px rgba(255,255,255,0.12)',
-                },
-              }}
-            >
-              <Icon name="Search" fontSize="small" />
-              <Typography variant="caption" sx={{ fontWeight: 500 }}>Search anything…</Typography>
-              <Box
-                component="span"
-                sx={{
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  borderRadius: 1,
-                  px: 0.6,
-                  py: 0.1,
-                  fontSize: '0.675rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.04em',
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                }}
-              >
-                Ctrl K
-              </Box>
-            </Box>
+            <IconButton onClick={openCommandPalette} sx={{ color: '#fff' }}>
+              <Icon name="Search" />
+            </IconButton>
           </Tooltip>
-          <IconButton onClick={openCommandPalette} sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#fff' }}>
-            <Icon name="Search" />
-          </IconButton>
           <Tooltip title="Keyboard shortcuts (?)">
             <IconButton onClick={openShortcuts} sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: '#fff' }}>
               <Icon name="Keyboard" />
@@ -298,9 +262,6 @@ export function AppShell() {
           {!online && (
             <Icon name="CloudOff" sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#FDE68A' }} />
           )}
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-            <PrincipalSwitcher light />
-          </Box>
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             <LanguageToggle light />
           </Box>
