@@ -164,13 +164,18 @@ export const requestsService = {
       ])
       .lean();
     if (!doc) throw AppError.notFound('Request not found');
-    if (
-      !auth.viewAllPrincipals
-      && !auth.principalIds.includes(String((doc as any).principalId?._id ?? (doc as any).principalId))
-    ) {
+    const principalId = (doc as any).principalId?._id ?? (doc as any).principalId;
+    if (!auth.viewAllPrincipals && !auth.principalIds.includes(String(principalId))) {
       throw AppError.notFound('Request not found');
     }
-    return withId(doc);
+    // How many times this applicant (by mobile) has come to this same principal's
+    // office in total, including this request - shown on the detail view as
+    // "Visit #N" so repeat visitors are obvious to the caseworker.
+    const visitCount = await RequestModel.countDocuments({
+      principalId,
+      'applicant.mobile': (doc as any).applicant?.mobile,
+    });
+    return withId({ ...doc, visitCount });
   },
 
   async update(id: string, patch: Record<string, unknown>) {

@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
+import { ROLES } from '@mla/shared';
 import { createApp } from '../src/app.js';
 import { auth, login, seedCore } from './helpers.js';
 import { GramPanchayat, Constituency } from '../src/models/location.js';
+import { Principal } from '../src/models/Principal.js';
+import { User } from '../src/models/User.js';
+import { hashPassword } from '../src/utils/password.js';
 
 const app = createApp();
 
@@ -11,11 +15,13 @@ describe('requests', () => {
   let priorityId: string;
   let gpId: string;
   let principalId: string;
+  let roles: Record<string, any>;
 
   beforeEach(async () => {
-    const { priority, principal } = await seedCore();
-    priorityId = String(priority._id);
-    principalId = String(principal._id);
+    const seeded = await seedCore();
+    roles = seeded.roles;
+    priorityId = String(seeded.priority._id);
+    principalId = String(seeded.principal._id);
     const c = await Constituency.findOne({ isPrimary: true });
     const gp = await GramPanchayat.create({ name: 'GP 1', constituencyId: c!._id });
     gpId = String(gp._id);
@@ -87,5 +93,39 @@ describe('requests', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('total', 1);
     expect(res.body).toHaveProperty('totalPages');
+  });
+
+  describe('visit count (repeat-applicant tracking)', () => {
+    it('counts how many requests this mobile number has filed with this principal, including the current one', async () => {
+      const first = await request(app).post('/api/requests').set(auth(token)).send(payload());
+      let detail = await request(app).get(`/api/requests/${first.body.id}`).set(auth(token));
+      expect(detail.body.visitCount).toBe(1);
+
+      const second = await request(app).post('/api/requests').set(auth(token)).send(payload());
+      detail = await request(app).get(`/api/requests/${second.body.id}`).set(auth(token));
+      expect(detail.body.visitCount).toBe(2);
+      // Earlier requests reflect the running total too, not a snapshot from when they were filed.
+      detail = await request(app).get(`/api/requests/${first.body.id}`).set(auth(token));
+      expect(detail.body.visitCount).toBe(2);
+    });
+
+    it('does not count a visit filed with a different principal', async () => {
+      const southRequest = await request(app).post('/api/requests').set(auth(token)).send(payload());
+
+      const principalN = await Principal.create({ code: 'MLA_N', label: 'MLA – North', idPrefix: 'MLA-N' });
+      await User.create({
+        name: 'Admin North', username: 'adminnorth', email: 'adminnorth@test.local',
+        passwordHash: await hashPassword('Admin@12345'),
+        roleId: roles[ROLES.SUPER_ADMIN]._id, roleCode: ROLES.SUPER_ADMIN,
+        principalIds: [principalN._id],
+      });
+      const tokenNorth = await login(app, 'adminnorth@test.local');
+
+      // Same mobile number, same subject/location - but filed against the North principal.
+      await request(app).post('/api/requests').set(auth(tokenNorth)).send({ ...payload(), principalId: String(principalN._id) });
+
+      const detail = await request(app).get(`/api/requests/${southRequest.body.id}`).set(auth(token));
+      expect(detail.body.visitCount).toBe(1);
+    });
   });
 });

@@ -546,6 +546,22 @@ export function RequestDetailContent({ id, onClose, compact }: { id: string; onC
                     </Typography>
                   </Box>
                 )}
+                <Stack direction="row" spacing={2.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Filed</Typography>
+                    <Typography variant="body2" fontWeight={700}>
+                      {dayjs().diff(dayjs(r.createdAt), 'day')} day(s) ago
+                    </Typography>
+                  </Box>
+                  {typeof r.visitCount === 'number' && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Visits</Typography>
+                      <Typography variant="body2" fontWeight={700} color={r.visitCount > 1 ? 'warning.main' : 'text.primary'}>
+                        #{r.visitCount}{r.visitCount > 1 ? ' — repeat' : ''}
+                      </Typography>
+                    </Box>
+                  )}
+                </Stack>
               </Stack>
             </CardContent>
           </Card>
