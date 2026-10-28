@@ -3,9 +3,11 @@ import { connectDb, disconnectDb } from './config/db.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { startJobs, stopJobs } from './jobs/scheduler.js';
+import { runStartupMigrations } from './migrations/startup.js';
 
 async function main() {
   await connectDb();
+  await runStartupMigrations();
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`API listening on ${env.BACKEND_URL} (env: ${env.NODE_ENV})`);

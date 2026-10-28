@@ -15,18 +15,12 @@
  * Idempotent - safe to re-run. Usage: npm run fix:status-transitions --workspace server
  */
 import { connectDb, disconnectDb } from '../config/db.js';
-import { RequestStatus } from '../models/config.js';
+import { fixStatusTransitions } from '../migrations/fixes.js';
 
 async function run() {
   await connectDb();
-
-  const res = await RequestStatus.updateMany(
-    { isTerminal: false, code: { $ne: 'COMPLETED' } },
-    { $addToSet: { transitionsTo: 'COMPLETED' } },
-  );
-
-  console.log(`Added COMPLETED as an allowed transition on ${res.modifiedCount} non-terminal status(es) (${res.matchedCount} matched, already-correct ones are no-ops).`);
-
+  const result = await fixStatusTransitions();
+  console.log('Status transition fix:', result);
   await disconnectDb();
   process.exit(0);
 }

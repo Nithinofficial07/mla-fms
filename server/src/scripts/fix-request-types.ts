@@ -14,33 +14,17 @@
  * Idempotent - safe to re-run. Usage: npm run fix:request-types --workspace server
  */
 import { connectDb, disconnectDb } from '../config/db.js';
-import { DEFAULT_REQUEST_TYPES } from '@mla/shared';
-import { Lookup } from '../models/config.js';
+import { fixRequestTypes } from '../migrations/fixes.js';
 
 async function run() {
   await connectDb();
-
-  for (let i = 0; i < DEFAULT_REQUEST_TYPES.length; i++) {
-    await Lookup.findOneAndUpdate(
-      { group: 'REQUEST_TYPE', name: DEFAULT_REQUEST_TYPES[i] },
-      { $set: { order: i, isActive: true, deletedAt: null } },
-      { upsert: true },
-    );
-  }
-  const stale = await Lookup.updateMany(
-    { group: 'REQUEST_TYPE', name: { $nin: DEFAULT_REQUEST_TYPES }, isActive: true },
-    { $set: { isActive: false, deletedAt: new Date() } },
-  );
-
-  console.log('Request Type lookup fixed:');
-  console.log(`  canonical 5 upserted/reordered: ${DEFAULT_REQUEST_TYPES.join(', ')}`);
-  console.log(`  stale options deactivated: ${stale.modifiedCount}`);
-
+  const result = await fixRequestTypes();
+  console.log('Request Type lookup fix:', result);
   await disconnectDb();
   process.exit(0);
 }
 
 run().catch((err) => {
-  console.error('Request Type fix failed:', err);
+  console.error('Request Type lookup fix failed:', err);
   process.exit(1);
 });
