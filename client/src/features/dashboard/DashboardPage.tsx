@@ -19,6 +19,8 @@ import { DataTable } from '@/components/DataTable';
 import { DashboardRangeFilter, resolveRange, type RangeKey } from '@/components/DashboardRangeFilter';
 import { StatusChip, PriorityChip, STATUS_COLORS } from '@/components/chips';
 import { Icon } from '@/components/Icon';
+import { LeaderCaption, LeaderCutout } from '@/components/LeaderPhoto';
+import { useBranding } from '@/hooks/useBranding';
 import { RequestDetailDialog } from '@/features/requests/RequestDetailDialog';
 import { MILESTONES, MILESTONE_COLORS, getMilestoneIndex } from '@/lib/milestones';
 import { api } from '@/api/client';
@@ -97,6 +99,7 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const { data: branding } = useBranding();
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0];
 
@@ -202,6 +205,31 @@ export function DashboardPage() {
           </Stack>
         }
       />
+
+      <Card
+        sx={{
+          mb: 2.5,
+          position: 'relative',
+          overflow: 'hidden',
+          color: '#fff',
+          border: 'none',
+          background: isDark
+            ? 'radial-gradient(600px 300px at 0% 0%, rgba(212,160,23,0.16) 0%, transparent 60%), linear-gradient(135deg, #0B1420 0%, #152238 100%)'
+            : 'radial-gradient(600px 300px at 0% 0%, rgba(212,160,23,0.22) 0%, transparent 60%), linear-gradient(135deg, #0B3450 0%, #134169 100%)',
+        }}
+      >
+        <Stack direction="row" alignItems="flex-end" justifyContent="space-between" sx={{ minHeight: { xs: 130, sm: 180 }, pl: { xs: 2.5, sm: 3.5 } }}>
+          <Stack spacing={0.75} sx={{ py: 2.5, pr: 2, alignSelf: 'center', minWidth: 0 }}>
+            <LeaderCaption />
+            {branding?.constituencyName && (
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>{branding.constituencyName}</Typography>
+            )}
+          </Stack>
+          <Box sx={{ pr: { xs: 1, sm: 4 }, pt: 1.5, flexShrink: 0 }}>
+            <LeaderCutout height={{ xs: 130, sm: 180 }} width={{ xs: 120, sm: 170 }} />
+          </Box>
+        </Stack>
+      </Card>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 2.5 }}>
         <DashboardRangeFilter value={range} onChange={setRange} />

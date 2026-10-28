@@ -32,6 +32,8 @@ const updateSchema = z
   .object({
     appName: z.string().min(1),
     constituencyName: z.string(),
+    leaderName: z.string().max(120),
+    leaderTitle: z.string().max(160),
     logoKey: z.string().nullable(),
     fileIdFormat: z.string().min(3),
     requestIdFormat: z.string().min(3),

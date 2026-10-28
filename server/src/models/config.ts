@@ -75,6 +75,9 @@ const systemSettingsSchema = new Schema(
     _id: { type: String, default: 'app' },
     appName: { type: String, default: 'MLA File Management System' },
     constituencyName: { type: String, default: '' },
+    // Caption shown with the leader's photo (login page, sidebar, dashboard banner).
+    leaderName: { type: String, default: '' },
+    leaderTitle: { type: String, default: '' },
     logoKey: { type: String, default: null },
     fileIdFormat: { type: String, default: 'MLA/{YYYY}/{SEQ:6}' },
     requestIdFormat: { type: String, default: 'REQ/{YYYY}/{SEQ:6}' },

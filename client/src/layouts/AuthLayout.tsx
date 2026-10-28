@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
-import { CivicIllustration } from '@/components/illustrations/Illustrations';
+import { LeaderCaption, LeaderCutout } from '@/components/LeaderPhoto';
 import { LanguageToggle } from '@/components/LanguageToggle';
 
 const TAGLINE_KEYS = ['auth.tagline1', 'auth.tagline2', 'auth.tagline3'];
@@ -54,9 +54,10 @@ export function AuthLayout({
           <LanguageToggle light />
         </Stack>
 
-        <Box sx={{ alignSelf: 'center', my: 4, opacity: 0.95 }}>
-          <CivicIllustration size={300} />
-        </Box>
+        <Stack spacing={1.5} alignItems="center" sx={{ my: 3 }}>
+          <LeaderCutout height="min(46vh, 400px)" width="min(30vh, 260px)" />
+          <LeaderCaption align="center" />
+        </Stack>
 
         <Stack spacing={1.5}>
           {TAGLINE_KEYS.map((key) => (

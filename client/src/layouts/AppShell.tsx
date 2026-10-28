@@ -18,6 +18,7 @@ import { ShortcutsDialog, openShortcuts } from '@/components/ShortcutsDialog';
 import { TopProgressBar } from '@/components/TopProgressBar';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { PrincipalSwitcher } from '@/components/PrincipalSwitcher';
+import { LeaderSidebarCard } from '@/components/LeaderPhoto';
 import { api } from '@/api/client';
 import { chrome } from '@/theme';
 
@@ -194,6 +195,8 @@ export function AppShell() {
         </Typography>
       </Toolbar>
       <Divider />
+      <LeaderSidebarCard />
+      <Divider />
       <NavList onNavigate={() => setMobileOpen(false)} />
     </Box>
   );
@@ -208,6 +211,8 @@ export function AppShell() {
           </Typography>
         )}
       </Toolbar>
+      <Divider />
+      <LeaderSidebarCard collapsed={collapsed} />
       <Divider />
       <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         <NavList collapsed={collapsed} onExpandRequest={() => setCollapsedPersist(false)} />

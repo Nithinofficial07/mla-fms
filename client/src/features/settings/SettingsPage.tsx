@@ -32,6 +32,7 @@ export function SettingsPage() {
     onSuccess: () => {
       enqueueSnackbar('Settings saved', { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['settings'] });
+      qc.invalidateQueries({ queryKey: ['branding'] });
     },
     onError: (e) => enqueueSnackbar(errorMessage(e), { variant: 'error' }),
   });
@@ -46,6 +47,8 @@ export function SettingsPage() {
     save.mutate({
       appName: form.appName,
       constituencyName: form.constituencyName,
+      leaderName: form.leaderName ?? '',
+      leaderTitle: form.leaderTitle ?? '',
       fileIdFormat: form.fileIdFormat,
       requestIdFormat: form.requestIdFormat,
       documentIdFormat: form.documentIdFormat,
@@ -86,6 +89,14 @@ export function SettingsPage() {
               <Stack spacing={2}>
                 <TextField label="Application name" value={form.appName ?? ''} onChange={(e) => set('appName', e.target.value)} />
                 <TextField label="Constituency name" value={form.constituencyName ?? ''} onChange={(e) => set('constituencyName', e.target.value)} />
+                <TextField
+                  label="Leader name" value={form.leaderName ?? ''} onChange={(e) => set('leaderName', e.target.value)}
+                  helperText="Shown with the photo on the login page, sidebar and dashboard"
+                />
+                <TextField
+                  label="Leader title" value={form.leaderTitle ?? ''} onChange={(e) => set('leaderTitle', e.target.value)}
+                  placeholder="e.g. MLA – Davanagere South"
+                />
               </Stack>
             </CardContent>
           </Card>

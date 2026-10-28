@@ -6,6 +6,7 @@ import { asyncHandler, ok } from '../../utils/http.js';
 import { AppError } from '../../utils/AppError.js';
 import { validate } from '../../middleware/validate.js';
 import { RequestModel } from '../../models/Request.js';
+import { SystemSettings } from '../../models/config.js';
 import { listTimeline } from '../workflow/timeline.service.js';
 import { readQrToken } from '../../utils/qrToken.js';
 
@@ -115,6 +116,20 @@ router.get(
     if (!doc) throw AppError.notFound('This file could not be found.');
 
     ok(res, await toPublicPayload(doc as LeanRequestDoc));
+  }),
+);
+
+/** Branding for screens shown before sign-in (login page photo caption). Display text only. */
+router.get(
+  '/branding',
+  asyncHandler(async (_req, res) => {
+    const s = await SystemSettings.findById('app').lean();
+    ok(res, {
+      appName: s?.appName ?? '',
+      constituencyName: s?.constituencyName ?? '',
+      leaderName: s?.leaderName ?? '',
+      leaderTitle: s?.leaderTitle ?? '',
+    });
   }),
 );
 
