@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import type { PipelineStage } from 'mongoose';
+import { Types, type PipelineStage } from 'mongoose';
 import PDFDocument from 'pdfkit';
 import { RequestModel } from '../../models/Request.js';
 
@@ -19,6 +19,9 @@ export interface ReportFilters {
   priorityId?: string;
 }
 
+/** aggregate() doesn't cast like find() does - a plain string id would match nothing. */
+const oid = (id: string) => (Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : id);
+
 function matchStage(f: ReportFilters): Record<string, unknown> {
   const m: Record<string, unknown> = {};
   if (f.from || f.to) {
@@ -26,12 +29,12 @@ function matchStage(f: ReportFilters): Record<string, unknown> {
     if (f.from) (m.createdAt as Record<string, unknown>).$gte = new Date(f.from);
     if (f.to) (m.createdAt as Record<string, unknown>).$lte = new Date(f.to);
   }
-  if (f.departmentId) m.primaryDepartmentId = f.departmentId;
-  if (f.wardId) m['location.wardId'] = f.wardId;
-  if (f.gramPanchayatId) m['location.gramPanchayatId'] = f.gramPanchayatId;
-  if (f.villageId) m['location.villageId'] = f.villageId;
+  if (f.departmentId) m.primaryDepartmentId = oid(f.departmentId);
+  if (f.wardId) m['location.wardId'] = oid(f.wardId);
+  if (f.gramPanchayatId) m['location.gramPanchayatId'] = oid(f.gramPanchayatId);
+  if (f.villageId) m['location.villageId'] = oid(f.villageId);
   if (f.statusCode) m.statusCode = f.statusCode;
-  if (f.priorityId) m.priorityId = f.priorityId;
+  if (f.priorityId) m.priorityId = oid(f.priorityId);
   return m;
 }
 

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import dayjs from 'dayjs';
+import { Types } from 'mongoose';
 import { PERMISSIONS } from '@mla/shared';
 import { authenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
@@ -28,17 +29,19 @@ function scope(auth: Express.AuthContext, query: Record<string, unknown> = {}): 
   // .aggregate() doesn't go through the soft-delete pre-hook that .find()/
   // .countDocuments() get (it's only registered for those), so every
   // aggregation here needs this explicitly or it double-counts deactivated
-  // requests against the count-based KPIs.
+  // requests against the count-based KPIs. For the same reason ids are cast
+  // to ObjectId by hand - aggregate() doesn't cast like find() does, so a
+  // plain string id silently matches nothing (empty charts, correct totals).
   const filter: Record<string, unknown> = { deletedAt: null };
   if (auth.roleCode === 'DEPARTMENT_OFFICER' && auth.departmentId) {
     filter.$or = [
-      { primaryDepartmentId: auth.departmentId },
-      { secondaryDepartmentId: auth.departmentId },
-      { assignedOfficerId: auth.userId },
+      { primaryDepartmentId: new Types.ObjectId(auth.departmentId) },
+      { secondaryDepartmentId: new Types.ObjectId(auth.departmentId) },
+      { assignedOfficerId: new Types.ObjectId(auth.userId) },
     ];
   }
   if (!auth.viewAllPrincipals) {
-    filter.principalId = { $in: auth.principalIds };
+    filter.principalId = { $in: auth.principalIds.map((id) => new Types.ObjectId(id)) };
   }
   const from = query.from ? new Date(String(query.from)) : undefined;
   const to = query.to ? new Date(String(query.to)) : undefined;
