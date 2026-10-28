@@ -4,6 +4,7 @@ import { DocumentModel } from '../../models/Document.js';
 import { RequestModel } from '../../models/Request.js';
 import { Letter } from '../../models/Letter.js';
 import { FundingRequest } from '../../models/FundingRequest.js';
+import { Work } from '../../models/Work.js';
 import { Department } from '../../models/Department.js';
 import { SystemSettings } from '../../models/config.js';
 import { AppError } from '../../utils/AppError.js';
@@ -12,7 +13,7 @@ import { buildDocumentKey, storage } from '../../storage/index.js';
 import { runOcr } from './ocr.service.js';
 
 /** Which record a document hangs off. */
-export type DocOwner = { kind: 'request' | 'letter' | 'funding'; id: string };
+export type DocOwner = { kind: 'request' | 'letter' | 'funding' | 'work'; id: string };
 
 interface AddFileInput {
   owner: DocOwner;
@@ -36,6 +37,10 @@ async function deptCodeForOwner(owner: DocOwner): Promise<string> {
     const letter = await Letter.findById(owner.id).lean();
     if (!letter) throw AppError.notFound('Letter not found');
     departmentId = letter.departmentId;
+  } else if (owner.kind === 'work') {
+    const work = await Work.findById(owner.id).lean();
+    if (!work) throw AppError.notFound('Work not found');
+    departmentId = work.departmentId;
   } else {
     const funding = await FundingRequest.findById(owner.id).lean();
     if (!funding) throw AppError.notFound('Funding request not found');
@@ -49,12 +54,14 @@ async function deptCodeForOwner(owner: DocOwner): Promise<string> {
 function ownerFields(owner: DocOwner) {
   if (owner.kind === 'request') return { requestId: owner.id };
   if (owner.kind === 'letter') return { letterId: owner.id };
+  if (owner.kind === 'work') return { workId: owner.id };
   return { fundingRequestId: owner.id };
 }
 
-function ownerOf(doc: { requestId?: unknown; letterId?: unknown; fundingRequestId?: unknown }): DocOwner {
+function ownerOf(doc: { requestId?: unknown; letterId?: unknown; fundingRequestId?: unknown; workId?: unknown }): DocOwner {
   if (doc.requestId) return { kind: 'request', id: String(doc.requestId) };
   if (doc.letterId) return { kind: 'letter', id: String(doc.letterId) };
+  if (doc.workId) return { kind: 'work', id: String(doc.workId) };
   return { kind: 'funding', id: String(doc.fundingRequestId) };
 }
 

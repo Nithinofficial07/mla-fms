@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from '@/layouts/AppShell';
-import { ProtectedRoute, PublicOnly, RequirePermission } from '@/routes/guards';
+import { HomeRoute, ProtectedRoute, PublicOnly, RequirePermission } from '@/routes/guards';
 import { PERMISSIONS } from '@mla/shared';
 
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -21,6 +21,9 @@ import { FundingDepartmentsPage } from '@/features/funding/FundingDepartmentsPag
 import { FundingCreatePage } from '@/features/funding/FundingCreatePage';
 import { FundingDetailPage } from '@/features/funding/FundingDetailPage';
 import { FundingListPage } from '@/features/funding/FundingListPage';
+import { WorkListPage } from '@/features/works/WorkListPage';
+import { WorkCreatePage } from '@/features/works/WorkCreatePage';
+import { WorkDetailPage } from '@/features/works/WorkDetailPage';
 import { ImportPage } from '@/features/imports/ImportPage';
 import {
   AreaTypesPage, WardsPage, GramPanchayatsPage, VillagesPage, SubVillagesPage,
@@ -52,7 +55,7 @@ export function App() {
       <Route path="/403" element={<ForbiddenPage />} />
 
       <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
-        <Route index element={<RequirePermission permission={PERMISSIONS.DASHBOARD_VIEW}><DashboardPage /></RequirePermission>} />
+        <Route index element={<HomeRoute><DashboardPage /></HomeRoute>} />
 
         <Route path="requests">
           <Route index element={<RequirePermission permission={PERMISSIONS.REQUEST_VIEW}><RequestListPage /></RequirePermission>} />
@@ -78,6 +81,13 @@ export function App() {
           <Route path="requests" element={<RequirePermission permission={PERMISSIONS.LETTER_VIEW}><FundingListPage /></RequirePermission>} />
           <Route path="new/:departmentId" element={<RequirePermission permission={PERMISSIONS.LETTER_CREATE}><FundingCreatePage /></RequirePermission>} />
           <Route path=":id" element={<RequirePermission permission={PERMISSIONS.LETTER_VIEW}><FundingDetailPage /></RequirePermission>} />
+        </Route>
+
+        <Route path="works">
+          <Route index element={<RequirePermission permission={PERMISSIONS.WORK_VIEW}><WorkListPage /></RequirePermission>} />
+          <Route path="new" element={<RequirePermission permission={PERMISSIONS.WORK_CREATE}><WorkCreatePage /></RequirePermission>} />
+          <Route path=":id" element={<RequirePermission permission={PERMISSIONS.WORK_VIEW}><WorkDetailPage /></RequirePermission>} />
+          <Route path=":id/edit" element={<RequirePermission permission={PERMISSIONS.WORK_EDIT}><WorkCreatePage /></RequirePermission>} />
         </Route>
 
         <Route path="locations">

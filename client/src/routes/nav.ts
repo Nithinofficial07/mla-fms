@@ -54,6 +54,16 @@ export const NAV: NavItem[] = [
     ],
   },
   {
+    label: 'Works',
+    labelKey: 'nav.works',
+    icon: 'Construction',
+    permission: PERMISSIONS.WORK_VIEW,
+    children: [
+      { label: 'All Works', labelKey: 'nav.allWorks', to: '/works', icon: 'ListAlt' },
+      { label: 'New Work', labelKey: 'nav.newWork', to: '/works/new', icon: 'AddCircleOutline', permission: PERMISSIONS.WORK_CREATE },
+    ],
+  },
+  {
     label: 'Locations',
     labelKey: 'nav.locations',
     icon: 'Place',

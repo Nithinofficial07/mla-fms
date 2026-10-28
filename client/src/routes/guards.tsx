@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
+import { PERMISSIONS } from '@mla/shared';
 import { useAuth } from '@/app/AuthProvider';
 
 function FullScreenLoader() {
@@ -26,6 +27,14 @@ export function RequirePermission({ permission, children }: { permission: string
   const { can } = useAuth();
   if (!can(permission)) return <Navigate to="/403" replace />;
   return <>{children}</>;
+}
+
+/** "/" - the dashboard, or Works for a Works-only login (e.g. an implementing agency). */
+export function HomeRoute({ children }: { children: ReactNode }) {
+  const { can } = useAuth();
+  if (can(PERMISSIONS.DASHBOARD_VIEW)) return <>{children}</>;
+  if (can(PERMISSIONS.WORK_VIEW)) return <Navigate to="/works" replace />;
+  return <Navigate to="/403" replace />;
 }
 
 export function PublicOnly({ children }: { children: ReactNode }) {

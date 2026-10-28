@@ -52,6 +52,12 @@ export const PERMISSIONS = {
 
   // notifications
   NOTIFICATION_VIEW: 'notification.view',
+
+  // works (sanctioned development works)
+  WORK_VIEW: 'work.view',
+  WORK_CREATE: 'work.create',
+  WORK_EDIT: 'work.edit',
+  WORK_DELETE: 'work.delete',
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

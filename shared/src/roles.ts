@@ -11,6 +11,7 @@ export const ROLES = {
   DEPARTMENT_OFFICER: 'DEPARTMENT_OFFICER',
   DATA_ENTRY_OPERATOR: 'DATA_ENTRY_OPERATOR',
   VIEWER: 'VIEWER',
+  IMPLEMENTING_AGENCY: 'IMPLEMENTING_AGENCY',
 } as const;
 
 export type RoleCode = (typeof ROLES)[keyof typeof ROLES];
@@ -30,6 +31,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Permission[]> = {
     P.DEPARTMENT_MANAGE, P.LOCATION_MANAGE, P.CATEGORY_MANAGE, P.STATUS_MANAGE, P.PRINCIPAL_MANAGE,
     P.USER_MANAGE,
     P.REPORT_VIEW, P.AUDIT_VIEW, P.DASHBOARD_VIEW, P.NOTIFICATION_VIEW,
+    P.WORK_VIEW, P.WORK_CREATE, P.WORK_EDIT, P.WORK_DELETE,
   ],
 
   [ROLES.MLA]: [
@@ -39,6 +41,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Permission[]> = {
     P.DOCUMENT_VIEW, P.DOCUMENT_DOWNLOAD, P.DOCUMENT_UPLOAD,
     P.REMARK_ADD,
     P.REPORT_VIEW, P.DASHBOARD_VIEW, P.NOTIFICATION_VIEW,
+    P.WORK_VIEW, P.WORK_CREATE,
   ],
 
   [ROLES.DEPARTMENT_OFFICER]: [
@@ -46,6 +49,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Permission[]> = {
     P.DOCUMENT_UPLOAD, P.DOCUMENT_VIEW, P.DOCUMENT_DOWNLOAD,
     P.REMARK_ADD,
     P.DASHBOARD_VIEW, P.NOTIFICATION_VIEW,
+    P.WORK_VIEW,
   ],
 
   [ROLES.DATA_ENTRY_OPERATOR]: [
@@ -53,11 +57,21 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Permission[]> = {
     P.LETTER_CREATE, P.LETTER_VIEW, P.LETTER_EDIT,
     P.DOCUMENT_UPLOAD, P.DOCUMENT_VIEW,
     P.NOTIFICATION_VIEW,
+    P.WORK_VIEW, P.WORK_CREATE, P.WORK_EDIT,
   ],
 
   [ROLES.VIEWER]: [
     P.REQUEST_VIEW, P.LETTER_VIEW, P.DOCUMENT_VIEW, P.REPORT_VIEW, P.DASHBOARD_VIEW,
     P.NOTIFICATION_VIEW,
+    P.WORK_VIEW,
+  ],
+
+  // Works menu only, and only their own agency's works (scoped server-side
+  // by User.implementingAgency). Can update a work and its photos/estimate,
+  // but not create or delete one.
+  [ROLES.IMPLEMENTING_AGENCY]: [
+    P.WORK_VIEW, P.WORK_EDIT,
+    P.DOCUMENT_UPLOAD, P.DOCUMENT_VIEW, P.DOCUMENT_DOWNLOAD,
   ],
 };
 
@@ -68,4 +82,5 @@ export const SYSTEM_ROLE_DESCRIPTIONS: Record<RoleCode, string> = {
   [ROLES.DEPARTMENT_OFFICER]: 'Access limited to requests assigned to their department.',
   [ROLES.DATA_ENTRY_OPERATOR]: 'Creates requests and uploads/scans documents.',
   [ROLES.VIEWER]: 'Read-only access.',
+  [ROLES.IMPLEMENTING_AGENCY]: "Implementing agency staff - sees and updates only their own agency's works.",
 };

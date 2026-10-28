@@ -46,10 +46,11 @@ const DRAWER_WIDTH = 264;
 const RAIL_WIDTH = 76;
 const SIDEBAR_COLLAPSE_KEY = 'mla-fms:sidebar-collapsed';
 
-/** The MLA's own login gets a deliberately minimal nav - just the two tabs they use day to day. */
+/** The MLA's own login gets a deliberately minimal nav - just the tabs they use day to day. */
 const MLA_NAV: NavItem[] = [
   { label: 'Dashboard', labelKey: 'nav.dashboard', to: '/', icon: 'Dashboard' },
   { label: 'Requests', labelKey: 'nav.requests', to: '/requests', icon: 'FolderShared' },
+  { label: 'Works', labelKey: 'nav.works', to: '/works', icon: 'Construction' },
 ];
 
 function filterNav(items: NavItem[], can: (p: string) => boolean): NavItem[] {

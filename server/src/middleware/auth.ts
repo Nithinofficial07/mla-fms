@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { PERMISSIONS, type Permission } from '@mla/shared';
+import { PERMISSIONS, ROLES, type Permission } from '@mla/shared';
 import { AppError } from '../utils/AppError.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { User } from '../models/User.js';
@@ -51,6 +51,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       departmentId: user.departmentId ? String(user.departmentId) : null,
       principalIds,
       viewAllPrincipals,
+      implementingAgency: role.code === ROLES.IMPLEMENTING_AGENCY ? (user.implementingAgency ?? '') : null,
     };
     next();
   } catch (err) {

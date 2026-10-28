@@ -3,7 +3,7 @@ import {
   Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { PERMISSIONS } from '@mla/shared';
+import { IMPLEMENTING_AGENCIES, PERMISSIONS, ROLES } from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { Icon } from '@/components/Icon';
@@ -27,6 +27,8 @@ export function UsersPage() {
   const principals = usePrincipals();
   const roles = useQuery({ queryKey: ['roles', 'all'], queryFn: () => api.get('/roles', { params: { pageSize: 100 } }).then((r) => r.data.data) });
 
+  const isAgencyRole = (roles.data ?? []).find((r: any) => r.id === form.roleId)?.code === ROLES.IMPLEMENTING_AGENCY;
+
   const openCreate = () => { setEditing({}); setForm({ mustChangePassword: true, principalIds: [] }); };
   const openEdit = (row: any) => {
     setEditing(row);
@@ -34,12 +36,15 @@ export function UsersPage() {
       name: row.name, email: row.email, mobile: row.mobile, designation: row.designation,
       roleId: row.roleId?.id ?? row.roleId, departmentId: row.departmentId?.id ?? row.departmentId ?? '',
       principalIds: (row.principalIds ?? []).map((p: any) => p.id ?? p),
+      implementingAgency: row.implementingAgency ?? '',
     });
   };
 
   const save = async () => {
     const body = { ...form };
     if (!body.departmentId) delete body.departmentId;
+    // Only agency logins carry an agency; clear it if the role changed away.
+    if (!isAgencyRole || !body.implementingAgency) body.implementingAgency = null;
     if (editing?.id) { delete body.password; delete body.username; await update.mutateAsync({ id: editing.id, body }); }
     else await create.mutateAsync(body);
     setEditing(null);
@@ -50,7 +55,7 @@ export function UsersPage() {
     { field: 'username', headerName: 'Username', width: 140 },
     { field: 'email', headerName: 'Email', width: 200 },
     { field: 'roleCode', headerName: 'Role', width: 170 },
-    { field: 'department', headerName: 'Department', width: 170, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? '—' },
+    { field: 'department', headerName: 'Department / Agency', width: 170, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? r.implementingAgency ?? '—' },
     {
       field: 'principals', headerName: 'Principals', width: 180, sortable: false,
       renderCell: (p: any) => (
@@ -94,6 +99,15 @@ export function UsersPage() {
             <TextField select label="Role" value={form.roleId ?? ''} onChange={(e) => setForm((s: any) => ({ ...s, roleId: e.target.value }))} required>
               {(roles.data ?? []).map((r: any) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
             </TextField>
+            {isAgencyRole && (
+              <TextField
+                select required label="Implementing Agency" value={form.implementingAgency ?? ''}
+                onChange={(e) => setForm((s: any) => ({ ...s, implementingAgency: e.target.value }))}
+                helperText="This login will only see and update this agency's works"
+              >
+                {IMPLEMENTING_AGENCIES.filter((a) => a !== 'Other').map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+              </TextField>
+            )}
             <TextField select label="Department (required for officers)" value={form.departmentId ?? ''} onChange={(e) => setForm((s: any) => ({ ...s, departmentId: e.target.value }))}>
               <MenuItem value="">—</MenuItem>
               {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}

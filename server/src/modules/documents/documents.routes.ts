@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { PERMISSIONS } from '@mla/shared';
+import { PERMISSIONS, WORK_DOC_TYPES, WORK_PHOTO_LIMIT } from '@mla/shared';
 import { authenticate, optionalAuth } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
@@ -14,9 +14,12 @@ import { verifyRawToken } from '../../storage/rawUrl.js';
 import { RequestModel } from '../../models/Request.js';
 import { Letter } from '../../models/Letter.js';
 import { FundingRequest } from '../../models/FundingRequest.js';
+import { Work } from '../../models/Work.js';
+import { DocumentModel } from '../../models/Document.js';
 import { addTimeline } from '../workflow/timeline.service.js';
 import { notifyUsers } from '../notifications/notify.js';
 import { documentsService, type DocOwner } from './documents.service.js';
+import { worksService } from '../works/works.service.js';
 
 const router = Router();
 
@@ -84,15 +87,31 @@ async function ownerLabel(owner: DocOwner): Promise<{ label: string; link: strin
     if (!l) throw AppError.notFound('Letter not found');
     return { label: l.letterNo, link: `/letters/${owner.id}`, notify: [String(l.createdBy)] };
   }
+  if (owner.kind === 'work') {
+    const w = await Work.findById(owner.id).lean();
+    if (!w) throw AppError.notFound('Work not found');
+    return { label: w.workId, link: `/works/${owner.id}`, notify: [String(w.createdBy)] };
+  }
   const f = await FundingRequest.findById(owner.id).lean();
   if (!f) throw AppError.notFound('Funding request not found');
   return { label: f.fundingRequestId, link: `/funding/${owner.id}`, notify: [String(f.createdBy)] };
+}
+
+/** Before/After photos are capped per stage; reject an upload that would overflow it. */
+async function assertWorkPhotoRoom(workId: string, documentType: string, adding: number) {
+  const photoTypes: string[] = [WORK_DOC_TYPES.BEFORE_PHOTO, WORK_DOC_TYPES.AFTER_PHOTO];
+  if (!photoTypes.includes(documentType)) return;
+  const existing = await DocumentModel.countDocuments({ workId, documentType });
+  if (existing + adding > WORK_PHOTO_LIMIT) {
+    throw AppError.badRequest(`At most ${WORK_PHOTO_LIMIT} ${documentType.toLowerCase()}s are allowed (${existing} already uploaded)`);
+  }
 }
 
 async function handleUpload(owner: DocOwner, req: Request, res: Response) {
   const files = (req.files as Express.Multer.File[]) ?? [];
   if (!files.length) throw AppError.badRequest('At least one file is required');
   const meta = await ownerLabel(owner);
+  if (owner.kind === 'work') await assertWorkPhotoRoom(owner.id, req.body.documentType, files.length);
 
   const docs = [];
   for (const f of files) {
@@ -228,6 +247,37 @@ router.post(
   upload.single('file'),
   validate({ body: scanBody }),
   asyncHandler((req, res) => handleScan({ kind: 'funding', id: req.params.fundingRequestId }, req, res)),
+);
+
+/* ------------------------------- work docs ------------------------------ */
+// Same principal + agency scoping as the work itself (getDetail 404s otherwise).
+const workInScope = asyncHandler(async (req, _res, next) => {
+  await worksService.getDetail(req.params.workId, req.auth!);
+  next();
+});
+router.get(
+  '/work/:workId',
+  requirePermission(PERMISSIONS.DOCUMENT_VIEW),
+  workInScope,
+  asyncHandler(async (req, res) =>
+    ok(res, withId(await documentsService.listForOwner({ kind: 'work', id: req.params.workId }))),
+  ),
+);
+router.post(
+  '/work/:workId',
+  requirePermission(PERMISSIONS.DOCUMENT_UPLOAD),
+  workInScope,
+  upload.array('files', 20),
+  validate({ body: uploadBody }),
+  asyncHandler((req, res) => handleUpload({ kind: 'work', id: req.params.workId }, req, res)),
+);
+router.post(
+  '/work/:workId/scan',
+  requirePermission(PERMISSIONS.DOCUMENT_UPLOAD),
+  workInScope,
+  upload.single('file'),
+  validate({ body: scanBody }),
+  asyncHandler((req, res) => handleScan({ kind: 'work', id: req.params.workId }, req, res)),
 );
 
 /* --------------------------- shared by id ----------------------------- */

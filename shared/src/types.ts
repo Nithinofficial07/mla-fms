@@ -33,6 +33,8 @@ export interface AuthUser {
   permissions: Permission[];
   departmentId: string | null;
   principalIds: string[];
+  /** Set only for IMPLEMENTING_AGENCY users - the agency whose works they're limited to. */
+  implementingAgency: string | null;
   mustChangePassword: boolean;
 }
 
