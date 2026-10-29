@@ -67,10 +67,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Permission[]> = {
   ],
 
   // Works menu only, and only their own agency's works (scoped server-side
-  // by User.implementingAgency). Can update a work and its photos/estimate,
-  // but not create or delete one.
+  // by User.implementingAgency). Can add new works for their agency and
+  // update them with photos/estimate, but not delete one.
   [ROLES.IMPLEMENTING_AGENCY]: [
-    P.WORK_VIEW, P.WORK_EDIT,
+    P.WORK_VIEW, P.WORK_CREATE, P.WORK_EDIT,
     P.DOCUMENT_UPLOAD, P.DOCUMENT_VIEW, P.DOCUMENT_DOWNLOAD,
   ],
 };
@@ -82,5 +82,5 @@ export const SYSTEM_ROLE_DESCRIPTIONS: Record<RoleCode, string> = {
   [ROLES.DEPARTMENT_OFFICER]: 'Access limited to requests assigned to their department.',
   [ROLES.DATA_ENTRY_OPERATOR]: 'Creates requests and uploads/scans documents.',
   [ROLES.VIEWER]: 'Read-only access.',
-  [ROLES.IMPLEMENTING_AGENCY]: "Implementing agency staff - sees and updates only their own agency's works.",
+  [ROLES.IMPLEMENTING_AGENCY]: "Implementing agency staff - adds, sees and updates only their own agency's works.",
 };

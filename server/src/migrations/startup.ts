@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 import { logger } from '../config/logger.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
-import { backfillPrincipal, fixRequestTypes, fixStatusTransitions } from './fixes.js';
+import { backfillPrincipal, fixRequestTypes, fixStatusTransitions, grantAgencyWorkCreate } from './fixes.js';
 
 /** One row per migration that has completed on this database. */
 const Migration = model(
@@ -25,6 +25,7 @@ const MIGRATIONS: { name: string; run: () => Promise<unknown> }[] = [
   // Creates the IMPLEMENTING_AGENCY role and grants the Works permissions.
   // Note: resets system roles' permissions to the code defaults.
   { name: '2026-10-works-roles', run: seedConfigDefaults },
+  { name: '2026-10-agency-work-create', run: grantAgencyWorkCreate },
 ];
 
 /**

@@ -1,4 +1,4 @@
-import { DEFAULT_REQUEST_TYPES } from '@mla/shared';
+import { DEFAULT_REQUEST_TYPES, PERMISSIONS, ROLES } from '@mla/shared';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import { Principal } from '../models/Principal.js';
 import { RequestModel } from '../models/Request.js';
@@ -6,6 +6,7 @@ import { Letter } from '../models/Letter.js';
 import { FundingRequest } from '../models/FundingRequest.js';
 import { User } from '../models/User.js';
 import { Lookup, RequestStatus } from '../models/config.js';
+import { Role } from '../models/Role.js';
 
 /**
  * The data fixes behind the one-off scripts in src/scripts/, as plain
@@ -72,6 +73,19 @@ export async function fixStatusTransitions() {
   const res = await RequestStatus.updateMany(
     { isTerminal: false, code: { $ne: 'COMPLETED' } },
     { $addToSet: { transitionsTo: 'COMPLETED' } },
+  );
+  return { updated: res.modifiedCount, matched: res.matchedCount };
+}
+
+/**
+ * Lets implementing-agency users add works (New Work menu). Targeted
+ * $addToSet rather than seedConfigDefaults, so other roles' permissions
+ * customised in the admin panel are left alone.
+ */
+export async function grantAgencyWorkCreate() {
+  const res = await Role.updateOne(
+    { code: ROLES.IMPLEMENTING_AGENCY },
+    { $addToSet: { permissions: PERMISSIONS.WORK_CREATE } },
   );
   return { updated: res.modifiedCount, matched: res.matchedCount };
 }

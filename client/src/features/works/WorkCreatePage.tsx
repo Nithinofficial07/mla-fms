@@ -122,7 +122,8 @@ export function WorkCreatePage() {
   const departments = useDepartments();
   const years = useMemo(() => financialYears(), []);
 
-  const [form, setForm] = useState<FormState>(EMPTY);
+  const blank: FormState = agencyLocked ? { ...EMPTY, implementingAgency: user!.implementingAgency! } : EMPTY;
+  const [form, setForm] = useState<FormState>(blank);
   const [estimation, setEstimation] = useState<File | null>(null);
   const [beforePhotos, setBeforePhotos] = useState<File[]>([]);
   const [afterPhotos, setAfterPhotos] = useState<File[]>([]);
@@ -209,7 +210,7 @@ export function WorkCreatePage() {
   const clear = async () => {
     const ok = await confirm({ title: 'Clear the form?', message: 'Everything entered so far will be removed.', confirmLabel: 'Clear', destructive: true });
     if (!ok) return;
-    setForm(editing && existing.data ? fromWork(existing.data) : EMPTY);
+    setForm(editing && existing.data ? fromWork(existing.data) : blank);
     setEstimation(null);
     setBeforePhotos([]);
     setAfterPhotos([]);

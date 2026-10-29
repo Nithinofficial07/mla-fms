@@ -80,7 +80,14 @@ router.post(
   requirePermission(PERMISSIONS.WORK_CREATE),
   validate({ body: createWorkSchema }),
   asyncHandler(async (req, res) => {
-    const doc = await worksService.create({ body: req.body, actorId: req.auth!.userId });
+    const auth = req.auth!;
+    // Agency users always create under their own agency, and nobody may file
+    // a work under a principal outside their offices.
+    if (auth.implementingAgency !== null) req.body.implementingAgency = auth.implementingAgency;
+    if (!auth.viewAllPrincipals && !auth.principalIds.includes(String(req.body.principalId))) {
+      throw AppError.forbidden('You can only add works for your own office');
+    }
+    const doc = await worksService.create({ body: req.body, actorId: auth.userId });
     recordAudit(req, { action: 'CREATE', entity: 'Work', entityId: String(doc._id), after: { workId: doc.workId } });
     created(res, doc);
   }),
