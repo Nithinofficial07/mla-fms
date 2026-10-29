@@ -27,7 +27,8 @@ export default crudRouter({
   entity: 'Department',
   createSchema: z.object(base),
   updateSchema: z.object(base).partial(),
-  permissions: { read: PERMISSIONS.DASHBOARD_VIEW, write: PERMISSIONS.DEPARTMENT_MANAGE },
+  // WORK_VIEW too: agency logins have no dashboard but need departments for the Works form.
+  permissions: { read: [PERMISSIONS.DASHBOARD_VIEW, PERMISSIONS.WORK_VIEW], write: PERMISSIONS.DEPARTMENT_MANAGE },
   searchFields: ['name', 'code', 'headName', 'officerName'],
   async beforeDelete(id) {
     // Do not allow removal while requests or officers still reference it.

@@ -20,7 +20,8 @@ export default crudRouter({
   entity: 'Principal',
   createSchema: z.object(base),
   updateSchema: z.object(base).omit({ code: true }).partial(),
-  permissions: { read: PERMISSIONS.DASHBOARD_VIEW, write: PERMISSIONS.PRINCIPAL_MANAGE },
+  // WORK_VIEW too: agency logins need their office to file new works under.
+  permissions: { read: [PERMISSIONS.DASHBOARD_VIEW, PERMISSIONS.WORK_VIEW], write: PERMISSIONS.PRINCIPAL_MANAGE },
   searchFields: ['label', 'code', 'idPrefix'],
   async beforeDelete(id) {
     const [reqCount, letterCount, fundingCount, userCount] = await Promise.all([

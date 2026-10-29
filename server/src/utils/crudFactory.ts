@@ -3,7 +3,7 @@ import type { Model, FilterQuery } from 'mongoose';
 import { z } from 'zod';
 import type { Permission } from '@mla/shared';
 import { authenticate } from '../middleware/auth.js';
-import { requirePermission } from '../middleware/rbac.js';
+import { requireAnyPermission, requirePermission } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler, created, noContent, ok } from './http.js';
 import { AppError } from './AppError.js';
@@ -15,8 +15,8 @@ interface CrudOptions<T> {
   entity: string;
   createSchema: z.ZodTypeAny;
   updateSchema: z.ZodTypeAny;
-  /** permissions: [read, write] */
-  permissions: { read: Permission; write: Permission };
+  /** permissions: [read, write]. A read list means any one of them is enough. */
+  permissions: { read: Permission | Permission[]; write: Permission };
   /** regex-searched fields for ?search= */
   searchFields?: string[];
   /** query keys copied verbatim into the Mongo filter (equality) */
@@ -46,7 +46,7 @@ export function crudRouter<T>(o: CrudOptions<T>): Router {
 
   r.get(
     '/',
-    requirePermission(o.permissions.read),
+    requireAnyPermission(...[o.permissions.read].flat()),
     asyncHandler(async (req, res) => {
       const query = { ...req.query } as Record<string, unknown>;
       if (!query.sort && o.defaultSort) query.sort = o.defaultSort;
@@ -70,7 +70,7 @@ export function crudRouter<T>(o: CrudOptions<T>): Router {
 
   r.get(
     '/:id',
-    requirePermission(o.permissions.read),
+    requireAnyPermission(...[o.permissions.read].flat()),
     asyncHandler(async (req, res) => {
       let q = o.model.findById(req.params.id);
       if (o.populate) q = q.populate(o.populate as string);

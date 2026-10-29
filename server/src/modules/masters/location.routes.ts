@@ -7,12 +7,13 @@ import {
 import { RequestModel } from '../../models/Request.js';
 import { crudRouter } from '../../utils/crudFactory.js';
 import { authenticate } from '../../middleware/auth.js';
-import { requirePermission } from '../../middleware/rbac.js';
+import { requireAnyPermission } from '../../middleware/rbac.js';
 import { asyncHandler, ok } from '../../utils/http.js';
 import { withId } from '../../utils/queryFeatures.js';
 import { AppError } from '../../utils/AppError.js';
 
-const READ = PERMISSIONS.DASHBOARD_VIEW;
+// WORK_VIEW too: agency logins have no dashboard but pick locations on the Works form.
+const READ = [PERMISSIONS.DASHBOARD_VIEW, PERMISSIONS.WORK_VIEW];
 const WRITE = PERMISSIONS.LOCATION_MANAGE;
 
 const named = { name: z.string().min(1), code: z.string().optional(), description: z.string().optional() };
@@ -112,7 +113,7 @@ export const subVillageRouter = crudRouter({
  * a village only appears for its own GP/Ward.
  */
 export const locationOptionsRouter = Router();
-locationOptionsRouter.use(authenticate, requirePermission(READ));
+locationOptionsRouter.use(authenticate, requireAnyPermission(...READ));
 
 locationOptionsRouter.get(
   '/area-types',

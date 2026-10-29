@@ -15,6 +15,16 @@ export function requirePermission(...needed: Permission[]) {
   };
 }
 
+/** Requires the caller to hold AT LEAST ONE of the listed permissions (SUPER_ADMIN bypasses). */
+export function requireAnyPermission(...anyOf: Permission[]) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.auth) return next(AppError.unauthorized());
+    if (req.auth.roleCode === ROLES.SUPER_ADMIN) return next();
+    if (anyOf.some((p) => req.auth!.permissions.includes(p))) return next();
+    next(AppError.forbidden(`Missing permission: one of ${anyOf.join(', ')}`));
+  };
+}
+
 /** Requires the caller's role code to be one of the listed. */
 export function requireRole(...roles: string[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
