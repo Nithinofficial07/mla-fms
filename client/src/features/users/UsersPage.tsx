@@ -2,14 +2,15 @@ import { useState } from 'react';
 import {
   Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField,
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
 import { IMPLEMENTING_AGENCIES, PERMISSIONS, ROLES } from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { Icon } from '@/components/Icon';
 import { useResource } from '@/hooks/useResourceList';
 import { useDepartments, usePrincipals } from '@/hooks/useOptions';
-import { api } from '@/api/client';
+import { api, errorMessage } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 
 export function UsersPage() {
@@ -18,6 +19,18 @@ export function UsersPage() {
   const [page, setPage] = useState({ page: 0, pageSize: 25 });
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
+  const [resetting, setResetting] = useState<any | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const { enqueueSnackbar } = useSnackbar();
+  const resetPassword = useMutation({
+    mutationFn: () => api.post(`/users/${resetting.id}/reset-password`, { password: newPassword }),
+    onSuccess: () => {
+      enqueueSnackbar(`Password reset for ${resetting.username}. They must change it at next login.`, { variant: 'success' });
+      setResetting(null);
+    },
+    onError: (e) => enqueueSnackbar(errorMessage(e), { variant: 'error' }),
+  });
+  const newPasswordValid = newPassword.length >= 8 && /\d/.test(newPassword) && /[a-zA-Z]/.test(newPassword);
 
   const { useList, useCreate, useUpdate } = useResource<{ id: string }>('/users');
   const list = useList({ page: page.page + 1, pageSize: page.pageSize });
@@ -67,7 +80,15 @@ export function UsersPage() {
       ),
     },
     { field: 'isActive', headerName: 'Status', width: 100, renderCell: (p: any) => <Chip size="small" color={p.row.isActive ? 'success' : 'default'} label={p.row.isActive ? 'Active' : 'Inactive'} /> },
-    { field: 'actions', headerName: '', width: 90, sortable: false, renderCell: (p: any) => <Button size="small" disabled={!canWrite} onClick={() => openEdit(p.row)}>Edit</Button> },
+    {
+      field: 'actions', headerName: '', width: 190, sortable: false,
+      renderCell: (p: any) => (
+        <Stack direction="row" spacing={0.5}>
+          <Button size="small" disabled={!canWrite} onClick={() => openEdit(p.row)}>Edit</Button>
+          <Button size="small" disabled={!canWrite} onClick={() => { setResetting(p.row); setNewPassword(''); }}>Reset password</Button>
+        </Stack>
+      ),
+    },
   ];
 
   return (
@@ -129,12 +150,32 @@ export function UsersPage() {
               )}
               renderTags={(value, getTagProps) => value.map((option, index) => <Chip size="small" label={option.label} {...getTagProps({ index })} key={option.id} />)}
             />
-            {!editing?.id && <TextField label="Temporary password" type="text" value={form.password ?? ''} onChange={(e) => setForm((s: any) => ({ ...s, password: e.target.value }))} required helperText="User must change it at first login" />}
+            {!editing?.id && <TextField label="Temporary password" type="text" value={form.password ?? ''} onChange={(e) => setForm((s: any) => ({ ...s, password: e.target.value }))} required helperText="At least 8 characters with a letter and a number. User must change it at first login." inputProps={{ autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }} />}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditing(null)}>Cancel</Button>
           <Button variant="contained" onClick={save} disabled={create.isPending || update.isPending}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!resetting} onClose={() => setResetting(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Reset password</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="User" value={resetting ? `${resetting.name} (${resetting.username})` : ''} disabled />
+            <TextField
+              autoFocus label="New temporary password" type="text" value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              error={!!newPassword && !newPasswordValid}
+              helperText="At least 8 characters with a letter and a number. Give it to the user exactly as typed - they'll set their own at next login."
+              inputProps={{ autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetting(null)}>Cancel</Button>
+          <Button variant="contained" disabled={!newPasswordValid || resetPassword.isPending} onClick={() => resetPassword.mutate()}>Reset</Button>
         </DialogActions>
       </Dialog>
     </Box>

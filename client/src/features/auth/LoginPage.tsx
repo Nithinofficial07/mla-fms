@@ -64,6 +64,7 @@ export function LoginPage() {
             label={t('auth.usernameOrEmail')}
             autoFocus
             autoComplete="username"
+            inputProps={{ autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }}
             {...register('usernameOrEmail')}
             error={!!formState.errors.usernameOrEmail}
             helperText={formState.errors.usernameOrEmail?.message}
@@ -73,6 +74,7 @@ export function LoginPage() {
             label={t('auth.password')}
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
+            inputProps={{ autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }}
             {...register('password')}
             error={!!formState.errors.password}
             helperText={formState.errors.password?.message}
