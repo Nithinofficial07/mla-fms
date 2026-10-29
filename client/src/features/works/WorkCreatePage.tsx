@@ -7,7 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import {
-  IMPLEMENTING_AGENCIES, THIRD_PARTY_INSPECTION_STATUSES, WORK_DOC_TYPES, financialYears,
+  IMPLEMENTING_AGENCIES, ROLES, THIRD_PARTY_INSPECTION_STATUSES, WORK_DOC_TYPES, financialYears,
   type ThirdPartyInspectionStatus,
 } from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
@@ -118,11 +118,13 @@ export function WorkCreatePage() {
   const { confirm, dialog } = useConfirm();
   const { user } = useAuth();
   // Agency logins can't move a work to another agency (the server rejects it too).
-  const agencyLocked = !!user?.implementingAgency;
+  const isAgencyUser = user?.roleCode === ROLES.IMPLEMENTING_AGENCY;
+  const ownAgency = user?.implementingAgency || '';
+  const agencyLocked = isAgencyUser || !!ownAgency;
   const departments = useDepartments();
   const years = useMemo(() => financialYears(), []);
 
-  const blank: FormState = agencyLocked ? { ...EMPTY, implementingAgency: user!.implementingAgency! } : EMPTY;
+  const blank: FormState = ownAgency ? { ...EMPTY, implementingAgency: ownAgency } : EMPTY;
   const [form, setForm] = useState<FormState>(blank);
   const [estimation, setEstimation] = useState<File | null>(null);
   const [beforePhotos, setBeforePhotos] = useState<File[]>([]);
@@ -139,6 +141,11 @@ export function WorkCreatePage() {
   useEffect(() => {
     if (existing.data) setForm(fromWork(existing.data));
   }, [existing.data]);
+
+  // Fill the agency in once the login is known, if the form opened before it was.
+  useEffect(() => {
+    if (!editing && ownAgency) setForm((f) => (f.implementingAgency ? f : { ...f, implementingAgency: ownAgency }));
+  }, [editing, ownAgency]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -233,6 +240,11 @@ export function WorkCreatePage() {
       <Card>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+          {isAgencyUser && !ownAgency && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              No implementing agency is set on your login, so works can't be saved. Ask the admin to set it under Users → Edit.
+            </Alert>
+          )}
 
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>

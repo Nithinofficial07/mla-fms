@@ -83,6 +83,7 @@ router.post(
     const auth = req.auth!;
     // Agency users always create under their own agency, and nobody may file
     // a work under a principal outside their offices.
+    if (auth.implementingAgency === '') throw AppError.forbidden('No implementing agency is set on your login - ask the admin to set it under Users');
     if (auth.implementingAgency !== null) req.body.implementingAgency = auth.implementingAgency;
     if (!auth.viewAllPrincipals && !auth.principalIds.includes(String(req.body.principalId))) {
       throw AppError.forbidden('You can only add works for your own office');
