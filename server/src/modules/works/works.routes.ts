@@ -46,7 +46,7 @@ router.get(
       .populate(['departmentId', 'location.wardId', 'location.gramPanchayatId', 'location.villageId'])
       .sort('-createdAt')
       .lean();
-    const columns = ['workId', 'nameOfWork', 'department', 'implementingAgency', 'agencyInspectorName', 'agencyInspectorContact', 'fundingYear', 'location', 'address', 'amountLakhs', 'thirdPartyInspection', 'tpiOfficerName', 'tpiOfficerContact'];
+    const columns = ['workId', 'nameOfWork', 'department', 'implementingAgency', 'agencyInspectorName', 'agencyInspectorContact', 'fundingYear', 'location', 'address', 'amountLakhs', 'thirdPartyInspection', 'tpiOfficerName', 'tpiOfficerContact', 'remarks'];
     const data = rows.map((r: any) => ({
       workId: r.workId,
       nameOfWork: r.nameOfWork,
@@ -60,6 +60,7 @@ router.get(
       amountLakhs: r.amountLakhs,
       thirdPartyInspection: r.thirdPartyInspection,
       tpiOfficerName: r.tpiOfficerName ?? '',
+      remarks: r.remarks ?? '',
       tpiOfficerContact: r.tpiOfficerContact ?? '',
     }));
     const buf = await toXlsx('Works', columns, data);

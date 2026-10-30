@@ -238,6 +238,9 @@ export function WorkDetailPage() {
                 value={w.tpiOfficerContact ? <a href={`tel:${w.tpiOfficerContact}`}>{w.tpiOfficerContact}</a> : undefined}
               />
             </Grid>
+            <Grid item xs={12}>
+              <DetailField icon="Comment" label="Remarks / Queries" value={w.remarks ? <Box component="span" sx={{ whiteSpace: 'pre-wrap' }}>{w.remarks}</Box> : undefined} />
+            </Grid>
             <Grid item xs={12} sm={6}><DetailField icon="Person" label="Engineer" value={w.engineerName} /></Grid>
             <Grid item xs={12} sm={6}>
               <DetailField icon="Phone" label="Engineer Contact" value={w.engineerContact ? <a href={`tel:${w.engineerContact}`}>{w.engineerContact}</a> : undefined} />

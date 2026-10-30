@@ -39,6 +39,7 @@ interface FormState {
   engineerContact: string;
   location: WorkLocationValue;
   address: string;
+  remarks: string;
   amountLakhs: string;
   thirdPartyInspection: ThirdPartyInspectionStatus;
   tpiOfficerName: string;
@@ -58,6 +59,7 @@ const EMPTY: FormState = {
   engineerContact: '',
   location: { branch: 'GP' },
   address: '',
+  remarks: '',
   amountLakhs: '',
   thirdPartyInspection: 'Not Completed',
   tpiOfficerName: '',
@@ -88,6 +90,7 @@ function fromWork(w: any): FormState {
       roadName: l.roadName ?? '',
     },
     address: w.address ?? '',
+    remarks: w.remarks ?? '',
     amountLakhs: w.amountLakhs != null ? String(w.amountLakhs) : '',
     thirdPartyInspection: w.thirdPartyInspection ?? 'Not Completed',
     tpiOfficerName: w.tpiOfficerName ?? '',
@@ -179,6 +182,7 @@ export function WorkCreatePage() {
     engineerContact: form.engineerContact.trim(),
     location: buildWorkLocationPayload(form.location),
     address: form.address.trim(),
+    remarks: form.remarks.trim(),
     amountLakhs: Math.round(amount * 100) / 100,
     thirdPartyInspection: form.thirdPartyInspection,
     tpiOfficerName: form.tpiOfficerName.trim(),
@@ -350,6 +354,13 @@ export function WorkCreatePage() {
               />
             </Grid>
           </Grid>
+          <TextField
+            fullWidth multiline minRows={3} label="Remarks / Queries" value={form.remarks}
+            onChange={(e) => set('remarks', e.target.value)}
+            placeholder="Any remarks or open queries about this work"
+            inputProps={{ maxLength: 2000 }}
+            sx={{ mt: 1 }}
+          />
 
           {!editing && (
             <>

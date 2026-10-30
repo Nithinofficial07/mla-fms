@@ -37,6 +37,8 @@ const workSchema = new Schema(
 
     // Free-text site address / landmark, on top of the structured location.
     address: { type: String, trim: true },
+    // Free-text remarks / open queries about the work.
+    remarks: { type: String, trim: true },
 
     amountLakhs: { type: Number, required: true, min: 0.01 },
     thirdPartyInspection: { type: String, enum: ['Completed', 'Not Completed'], default: 'Not Completed' },

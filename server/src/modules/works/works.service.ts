@@ -30,6 +30,7 @@ export const worksService = {
       engineerContact: body.engineerContact || undefined,
       location: body.location,
       address: body.address || undefined,
+      remarks: body.remarks || undefined,
       amountLakhs: body.amountLakhs,
       thirdPartyInspection: body.thirdPartyInspection ?? 'Not Completed',
       tpiOfficerName: body.tpiOfficerName || undefined,
