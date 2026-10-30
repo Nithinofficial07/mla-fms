@@ -26,7 +26,7 @@ const createSchema = z.object({
   roleId: z.string().length(24),
   departmentId: z.string().length(24).nullable().optional(),
   principalIds: z.array(z.string().length(24)).optional(),
-  implementingAgency: z.enum(IMPLEMENTING_AGENCIES).nullable().optional(),
+  implementingAgencies: z.array(z.enum(IMPLEMENTING_AGENCIES)).optional(),
   password: z.string().min(8).regex(/\d/).regex(/[a-zA-Z]/),
   mustChangePassword: z.boolean().optional(),
 });
@@ -36,11 +36,11 @@ const updateSchema = createSchema
   .partial()
   .extend({ isActive: z.boolean().optional() });
 
-async function assertRoleAndDept(roleId: string, departmentId?: string | null, implementingAgency?: string | null): Promise<string> {
+async function assertRoleAndDept(roleId: string, departmentId?: string | null, implementingAgencies?: string[] | null): Promise<string> {
   const role = await Role.findById(roleId).lean();
   if (!role) throw AppError.badRequest('Unknown role');
-  if (role.code === ROLES.IMPLEMENTING_AGENCY && !implementingAgency) {
-    throw AppError.badRequest('Implementing agency users must be linked to an agency');
+  if (role.code === ROLES.IMPLEMENTING_AGENCY && !implementingAgencies?.length) {
+    throw AppError.badRequest('Implementing agency users must be linked to at least one agency');
   }
   if (role.code === ROLES.DEPARTMENT_OFFICER && !departmentId) {
     throw AppError.badRequest('Department officers must be linked to a department');
@@ -80,7 +80,7 @@ router.post(
   '/',
   validate({ body: createSchema }),
   asyncHandler(async (req, res) => {
-    const roleCode = await assertRoleAndDept(req.body.roleId, req.body.departmentId, req.body.implementingAgency);
+    const roleCode = await assertRoleAndDept(req.body.roleId, req.body.departmentId, req.body.implementingAgencies);
     const user = await User.create({
       ...req.body,
       roleCode,
@@ -103,7 +103,7 @@ router.patch(
       patch.roleCode = await assertRoleAndDept(
         req.body.roleId,
         req.body.departmentId ?? before.departmentId,
-        req.body.implementingAgency !== undefined ? req.body.implementingAgency : before.implementingAgency,
+        req.body.implementingAgencies !== undefined ? req.body.implementingAgencies : before.implementingAgencies,
       );
     }
     const user = await User.findByIdAndUpdate(req.params.id, patch, { new: true, runValidators: true });

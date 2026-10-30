@@ -120,10 +120,12 @@ export function WorkCreatePage() {
   const { enqueueSnackbar } = useSnackbar();
   const { confirm, dialog } = useConfirm();
   const { user } = useAuth();
-  // Agency logins can't move a work to another agency (the server rejects it too).
+  // Agency logins can only pick one of their own agencies (the server enforces it too);
+  // with a single agency it's filled in and locked.
   const isAgencyUser = user?.roleCode === ROLES.IMPLEMENTING_AGENCY;
-  const ownAgency = user?.implementingAgency || '';
-  const agencyLocked = isAgencyUser || !!ownAgency;
+  const agencyOptions: readonly string[] = isAgencyUser ? (user?.implementingAgencies ?? []) : IMPLEMENTING_AGENCIES;
+  const ownAgency = isAgencyUser && agencyOptions.length === 1 ? agencyOptions[0] : '';
+  const agencyLocked = isAgencyUser && agencyOptions.length <= 1;
   const departments = useDepartments();
   const years = useMemo(() => financialYears(), []);
 
@@ -244,7 +246,7 @@ export function WorkCreatePage() {
       <Card>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-          {isAgencyUser && !ownAgency && (
+          {isAgencyUser && !agencyOptions.length && (
             <Alert severity="warning" sx={{ mb: 2 }}>
               No implementing agency is set on your login, so works can't be saved. Ask the admin to set it under Users → Edit.
             </Alert>
@@ -258,7 +260,7 @@ export function WorkCreatePage() {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField fullWidth required select label="Implementing Agency" value={form.implementingAgency} disabled={agencyLocked} onChange={(e) => set('implementingAgency', e.target.value)}>
-                {IMPLEMENTING_AGENCIES.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+                {agencyOptions.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
               </TextField>
             </Grid>
             {form.implementingAgency === 'Other' && (

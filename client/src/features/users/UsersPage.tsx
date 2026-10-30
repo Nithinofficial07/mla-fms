@@ -49,15 +49,15 @@ export function UsersPage() {
       name: row.name, email: row.email, mobile: row.mobile, designation: row.designation,
       roleId: row.roleId?.id ?? row.roleId, departmentId: row.departmentId?.id ?? row.departmentId ?? '',
       principalIds: (row.principalIds ?? []).map((p: any) => p.id ?? p),
-      implementingAgency: row.implementingAgency ?? '',
+      implementingAgencies: row.implementingAgencies ?? [],
     });
   };
 
   const save = async () => {
     const body = { ...form };
     if (!body.departmentId) delete body.departmentId;
-    // Only agency logins carry an agency; clear it if the role changed away.
-    if (!isAgencyRole || !body.implementingAgency) body.implementingAgency = null;
+    // Only agency logins carry agencies; clear them if the role changed away.
+    if (!isAgencyRole) body.implementingAgencies = [];
     if (editing?.id) { delete body.password; delete body.username; await update.mutateAsync({ id: editing.id, body }); }
     else await create.mutateAsync(body);
     setEditing(null);
@@ -68,7 +68,7 @@ export function UsersPage() {
     { field: 'username', headerName: 'Username', width: 140 },
     { field: 'email', headerName: 'Email', width: 200 },
     { field: 'roleCode', headerName: 'Role', width: 170 },
-    { field: 'department', headerName: 'Department / Agency', width: 170, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? r.implementingAgency ?? '—' },
+    { field: 'department', headerName: 'Department / Agency', width: 170, valueGetter: (_v: unknown, r: any) => r.departmentId?.name ?? (r.implementingAgencies?.join(', ') || '—') },
     {
       field: 'principals', headerName: 'Principals', width: 180, sortable: false,
       renderCell: (p: any) => (
@@ -121,13 +121,20 @@ export function UsersPage() {
               {(roles.data ?? []).map((r: any) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
             </TextField>
             {isAgencyRole && (
-              <TextField
-                select required label="Implementing Agency" value={form.implementingAgency ?? ''}
-                onChange={(e) => setForm((s: any) => ({ ...s, implementingAgency: e.target.value }))}
-                helperText="This login will only see and update this agency's works"
-              >
-                {IMPLEMENTING_AGENCIES.filter((a) => a !== 'Other').map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-              </TextField>
+              <Autocomplete
+                multiple
+                options={IMPLEMENTING_AGENCIES.filter((a) => a !== 'Other')}
+                value={form.implementingAgencies ?? []}
+                onChange={(_e, v) => setForm((s: any) => ({ ...s, implementingAgencies: v }))}
+                renderTags={(value, getTagProps) => value.map((option, index) => <Chip size="small" label={option} {...getTagProps({ index })} key={option} />)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    required label="Implementing Agencies"
+                    helperText="This login will only see, add and update works of these agencies"
+                  />
+                )}
+              />
             )}
             <TextField select label="Department (required for officers)" value={form.departmentId ?? ''} onChange={(e) => setForm((s: any) => ({ ...s, departmentId: e.target.value }))}>
               <MenuItem value="">—</MenuItem>

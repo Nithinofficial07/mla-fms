@@ -89,3 +89,15 @@ export async function grantAgencyWorkCreate() {
   );
   return { updated: res.modifiedCount, matched: res.matchedCount };
 }
+
+/**
+ * Agency logins moved from one agency (implementingAgency) to a list
+ * (implementingAgencies). Copies the old value across and drops the old field.
+ */
+export async function migrateUserAgencies() {
+  const res = await User.collection.updateMany(
+    { implementingAgency: { $type: 'string', $ne: '' } },
+    [{ $set: { implementingAgencies: ['$implementingAgency'] } }, { $unset: 'implementingAgency' }],
+  );
+  return { updated: res.modifiedCount, matched: res.matchedCount };
+}

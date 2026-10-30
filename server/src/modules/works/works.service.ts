@@ -57,8 +57,11 @@ export const worksService = {
     if (q('gramPanchayatId')) filter['location.gramPanchayatId'] = query.gramPanchayatId;
     if (q('villageId')) filter['location.villageId'] = query.villageId;
 
-    // Agency users only ever see their own agency's works, whatever they ask for.
-    if (auth.implementingAgency !== null) filter.implementingAgency = auth.implementingAgency;
+    // Agency users only ever see their own agencies' works, whatever they ask for.
+    const own = auth.implementingAgencies;
+    if (own !== null) {
+      filter.implementingAgency = own.includes(String(q('implementingAgency'))) ? query.implementingAgency : { $in: own };
+    }
 
     // Principal scoping: viewAllPrincipals bypasses it, same fail-closed
     // rule as every other module.
@@ -77,7 +80,7 @@ export const worksService = {
     if (!auth.viewAllPrincipals && !auth.principalIds.includes(String(principalId))) {
       throw AppError.notFound('Work not found');
     }
-    if (auth.implementingAgency !== null && (doc as any).implementingAgency !== auth.implementingAgency) {
+    if (auth.implementingAgencies !== null && !auth.implementingAgencies.includes((doc as any).implementingAgency)) {
       throw AppError.notFound('Work not found');
     }
     return withId(doc);

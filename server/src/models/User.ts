@@ -20,8 +20,8 @@ const userSchema = new Schema(
     // Department officers must be linked to a department.
     departmentId: { type: Schema.Types.ObjectId, ref: 'Department', default: null },
 
-    // Implementing-agency users are limited to this agency's works (e.g. "PWD").
-    implementingAgency: { type: String, trim: true, default: null },
+    // Implementing-agency users are limited to these agencies' works (e.g. ["PWD", "KRIDL"]).
+    implementingAgencies: { type: [String], default: [] },
 
     // Which principal(s) - MLA South / MLA North / MP - this user may act on
     // behalf of. Empty + no PRINCIPAL_ALL_VIEW permission means they see

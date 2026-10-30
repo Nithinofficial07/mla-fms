@@ -67,7 +67,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Permission[]> = {
   ],
 
   // Works menu only, and only their own agency's works (scoped server-side
-  // by User.implementingAgency). Can add new works for their agency and
+  // by User.implementingAgencies). Can add new works for their agencies and
   // update them with photos/estimate, but not delete one.
   [ROLES.IMPLEMENTING_AGENCY]: [
     P.WORK_VIEW, P.WORK_CREATE, P.WORK_EDIT,

@@ -84,8 +84,12 @@ router.post(
     const auth = req.auth!;
     // Agency users always create under their own agency, and nobody may file
     // a work under a principal outside their offices.
-    if (auth.implementingAgency === '') throw AppError.forbidden('No implementing agency is set on your login - ask the admin to set it under Users');
-    if (auth.implementingAgency !== null) req.body.implementingAgency = auth.implementingAgency;
+    const own = auth.implementingAgencies;
+    if (own !== null && !own.includes(req.body.implementingAgency)) {
+      if (!own.length) throw AppError.forbidden('No implementing agency is set on your login - ask the admin to set it under Users');
+      if (own.length > 1) throw AppError.forbidden(`You can only add works for ${own.join(', ')}`);
+      req.body.implementingAgency = own[0];
+    }
     if (!auth.viewAllPrincipals && !auth.principalIds.includes(String(req.body.principalId))) {
       throw AppError.forbidden('You can only add works for your own office');
     }
@@ -103,8 +107,9 @@ router.patch(
     // getDetail also enforces principal scoping - 404s outside the user's offices.
     const before = await worksService.getDetail(req.params.id, req.auth!);
     // An agency user can't hand a work over to a different agency.
-    if (req.auth!.implementingAgency !== null && req.body.implementingAgency && req.body.implementingAgency !== req.auth!.implementingAgency) {
-      throw AppError.forbidden('You can only update works of your own agency');
+    const own = req.auth!.implementingAgencies;
+    if (own !== null && req.body.implementingAgency && !own.includes(req.body.implementingAgency)) {
+      throw AppError.forbidden('You can only update works of your own agencies');
     }
     const doc = await Work.findByIdAndUpdate(
       req.params.id,

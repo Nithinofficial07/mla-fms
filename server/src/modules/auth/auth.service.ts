@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { AuthUser, LoginResponse } from '@mla/shared';
+import { ROLES } from '@mla/shared';
 import { User } from '../../models/User.js';
 import { Role } from '../../models/Role.js';
 import { AppError } from '../../utils/AppError.js';
@@ -19,7 +20,7 @@ function toAuthUser(user: any, role: any): AuthUser {
     permissions: role.permissions ?? [],
     departmentId: user.departmentId ? String(user.departmentId) : null,
     principalIds: (user.principalIds ?? []).map((id: unknown) => String(id)),
-    implementingAgency: user.implementingAgency ?? null,
+    implementingAgencies: role.code === ROLES.IMPLEMENTING_AGENCY ? (user.implementingAgencies ?? []) : null,
     mustChangePassword: !!user.mustChangePassword,
   };
 }

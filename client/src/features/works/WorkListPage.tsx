@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Chip, Grid, InputAdornment, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { IMPLEMENTING_AGENCIES, PERMISSIONS, THIRD_PARTY_INSPECTION_STATUSES, financialYears } from '@mla/shared';
+import { IMPLEMENTING_AGENCIES, PERMISSIONS, ROLES, THIRD_PARTY_INSPECTION_STATUSES, financialYears } from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { EmptyState } from '@/components/EmptyState';
@@ -30,7 +30,7 @@ const lakhs = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 
 export function WorkListPage() {
   const navigate = useNavigate();
   const { can, user } = useAuth();
-  const myAgency = user?.implementingAgency ?? null;
+  const myAgencies = user?.roleCode === ROLES.IMPLEMENTING_AGENCY ? (user.implementingAgencies ?? []) : null;
   const { enqueueSnackbar } = useSnackbar();
   const [sp, setSp] = useSearchParams();
   const [page, setPage] = useState({ page: 0, pageSize: 25 });
@@ -116,7 +116,7 @@ export function WorkListPage() {
     <Box>
       <PageHeader
         title="Works"
-        subtitle={myAgency ? `Works implemented by ${myAgency}` : 'Sanctioned development works across the constituency'}
+        subtitle={myAgencies ? `Works implemented by ${myAgencies.join(', ')}` : 'Sanctioned development works across the constituency'}
         crumbs={[{ label: 'Home', to: '/' }, { label: 'Works' }]}
         action={
           <Stack direction="row" spacing={1}>
@@ -173,10 +173,10 @@ export function WorkListPage() {
                 {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
               </TextField>
             </Grid>
-            {!myAgency && <Grid item xs={12} sm={6} md={3}>
+            {(!myAgencies || myAgencies.length > 1) && <Grid item xs={12} sm={6} md={3}>
               <TextField fullWidth size="small" select label="Agency" value={get('implementingAgency')} onChange={(e) => setFilters({ implementingAgency: e.target.value })}>
                 <MenuItem value="">All agencies</MenuItem>
-                {IMPLEMENTING_AGENCIES.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+                {(myAgencies ?? IMPLEMENTING_AGENCIES).map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
               </TextField>
             </Grid>}
             <Grid item xs={12} sm={6} md={3}>

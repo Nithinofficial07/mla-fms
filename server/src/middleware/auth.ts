@@ -51,7 +51,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       departmentId: user.departmentId ? String(user.departmentId) : null,
       principalIds,
       viewAllPrincipals,
-      implementingAgency: role.code === ROLES.IMPLEMENTING_AGENCY ? (user.implementingAgency ?? '') : null,
+      implementingAgencies: role.code === ROLES.IMPLEMENTING_AGENCY ? (user.implementingAgencies ?? []) : null,
     };
     next();
   } catch (err) {
