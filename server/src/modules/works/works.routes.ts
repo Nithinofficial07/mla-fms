@@ -9,7 +9,7 @@ import { recordAudit } from '../../utils/audit.js';
 import { parseListParams, paginate } from '../../utils/queryFeatures.js';
 import { toXlsx } from '../reports/reports.service.js';
 import { Work } from '../../models/Work.js';
-import { worksService } from './works.service.js';
+import { officerDepartment, worksService } from './works.service.js';
 import { createWorkSchema, updateWorkSchema } from './works.validation.js';
 
 const router = Router();
@@ -84,6 +84,9 @@ router.post(
     const auth = req.auth!;
     // Agency users always create under their own agency, and nobody may file
     // a work under a principal outside their offices.
+    // Department officers always file works under their own department.
+    const dept = officerDepartment(auth);
+    if (dept) req.body.departmentId = dept;
     const own = auth.implementingAgencies;
     if (own !== null && !own.includes(req.body.implementingAgency)) {
       if (!own.length) throw AppError.forbidden('No implementing agency is set on your login - ask the admin to set it under Users');
@@ -106,6 +109,11 @@ router.patch(
   asyncHandler(async (req, res) => {
     // getDetail also enforces principal scoping - 404s outside the user's offices.
     const before = await worksService.getDetail(req.params.id, req.auth!);
+    // A department officer can't move a work to another department.
+    const dept = officerDepartment(req.auth!);
+    if (dept && req.body.departmentId && req.body.departmentId !== dept) {
+      throw AppError.forbidden('You can only update works of your own department');
+    }
     // An agency user can't hand a work over to a different agency.
     const own = req.auth!.implementingAgencies;
     if (own !== null && req.body.implementingAgency && !own.includes(req.body.implementingAgency)) {

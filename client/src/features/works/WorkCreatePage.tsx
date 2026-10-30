@@ -126,10 +126,12 @@ export function WorkCreatePage() {
   const agencyOptions: readonly string[] = isAgencyUser ? (user?.implementingAgencies ?? []) : IMPLEMENTING_AGENCIES;
   const ownAgency = isAgencyUser && agencyOptions.length === 1 ? agencyOptions[0] : '';
   const agencyLocked = isAgencyUser && agencyOptions.length <= 1;
+  // Department officers file works under their own department only (enforced server-side too).
+  const ownDepartment = user?.roleCode === ROLES.DEPARTMENT_OFFICER ? (user.departmentId ?? '') : '';
   const departments = useDepartments();
   const years = useMemo(() => financialYears(), []);
 
-  const blank: FormState = ownAgency ? { ...EMPTY, implementingAgency: ownAgency } : EMPTY;
+  const blank: FormState = { ...EMPTY, implementingAgency: ownAgency, departmentId: ownDepartment };
   const [form, setForm] = useState<FormState>(blank);
   const [estimation, setEstimation] = useState<File | null>(null);
   const [beforePhotos, setBeforePhotos] = useState<File[]>([]);
@@ -147,10 +149,15 @@ export function WorkCreatePage() {
     if (existing.data) setForm(fromWork(existing.data));
   }, [existing.data]);
 
-  // Fill the agency in once the login is known, if the form opened before it was.
+  // Fill the agency / department in once the login is known, if the form opened before it was.
   useEffect(() => {
-    if (!editing && ownAgency) setForm((f) => (f.implementingAgency ? f : { ...f, implementingAgency: ownAgency }));
-  }, [editing, ownAgency]);
+    if (editing) return;
+    setForm((f) => ({
+      ...f,
+      implementingAgency: f.implementingAgency || ownAgency,
+      departmentId: f.departmentId || ownDepartment,
+    }));
+  }, [editing, ownAgency, ownDepartment]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -254,7 +261,7 @@ export function WorkCreatePage() {
 
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth required select label="Department Name" value={form.departmentId} onChange={(e) => set('departmentId', e.target.value)}>
+              <TextField fullWidth required select label="Department Name" value={form.departmentId} disabled={!!ownDepartment} onChange={(e) => set('departmentId', e.target.value)}>
                 {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
               </TextField>
             </Grid>

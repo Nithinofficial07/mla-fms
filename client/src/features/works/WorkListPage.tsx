@@ -31,6 +31,8 @@ export function WorkListPage() {
   const navigate = useNavigate();
   const { can, user } = useAuth();
   const myAgencies = user?.roleCode === ROLES.IMPLEMENTING_AGENCY ? (user.implementingAgencies ?? []) : null;
+  // Department officers only see their own department's works, so no department filter.
+  const isOfficer = user?.roleCode === ROLES.DEPARTMENT_OFFICER;
   const { enqueueSnackbar } = useSnackbar();
   const [sp, setSp] = useSearchParams();
   const [page, setPage] = useState({ page: 0, pageSize: 25 });
@@ -167,12 +169,12 @@ export function WorkListPage() {
                 {(wards.data ?? []).map((w) => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            {!isOfficer && <Grid item xs={12} sm={6} md={3}>
               <TextField fullWidth size="small" select label="Department" value={get('departmentId')} onChange={(e) => setFilters({ departmentId: e.target.value })}>
                 <MenuItem value="">All departments</MenuItem>
                 {(departments.data ?? []).map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
               </TextField>
-            </Grid>
+            </Grid>}
             {(!myAgencies || myAgencies.length > 1) && <Grid item xs={12} sm={6} md={3}>
               <TextField fullWidth size="small" select label="Agency" value={get('implementingAgency')} onChange={(e) => setFilters({ implementingAgency: e.target.value })}>
                 <MenuItem value="">All agencies</MenuItem>

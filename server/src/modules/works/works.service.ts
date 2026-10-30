@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { formatId } from '@mla/shared';
+import { ROLES, formatId } from '@mla/shared';
 import { Work } from '../../models/Work.js';
 import { AppError } from '../../utils/AppError.js';
 import { nextSequence } from '../../utils/sequence.js';
@@ -8,6 +8,11 @@ import { escapeRegex, withId } from '../../utils/queryFeatures.js';
 export interface CreateWorkInput {
   body: Record<string, any>;
   actorId: string;
+}
+
+/** A department officer's own department - their Works are limited to it. Null for everyone else. */
+export function officerDepartment(auth: Express.AuthContext): string | null {
+  return auth.roleCode === ROLES.DEPARTMENT_OFFICER ? auth.departmentId : null;
 }
 
 export const worksService = {
@@ -63,6 +68,10 @@ export const worksService = {
       filter.implementingAgency = own.includes(String(q('implementingAgency'))) ? query.implementingAgency : { $in: own };
     }
 
+    // Department officers only see their own department's works.
+    const dept = officerDepartment(auth);
+    if (dept) filter.departmentId = dept;
+
     // Principal scoping: viewAllPrincipals bypasses it, same fail-closed
     // rule as every other module.
     if (!auth.viewAllPrincipals) {
@@ -78,6 +87,10 @@ export const worksService = {
     if (!doc) throw AppError.notFound('Work not found');
     const principalId = (doc as any).principalId;
     if (!auth.viewAllPrincipals && !auth.principalIds.includes(String(principalId))) {
+      throw AppError.notFound('Work not found');
+    }
+    const dept = officerDepartment(auth);
+    if (dept && String((doc as any).departmentId?._id ?? (doc as any).departmentId) !== dept) {
       throw AppError.notFound('Work not found');
     }
     if (auth.implementingAgencies !== null && !auth.implementingAgencies.includes((doc as any).implementingAgency)) {

@@ -49,7 +49,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Permission[]> = {
     P.DOCUMENT_UPLOAD, P.DOCUMENT_VIEW, P.DOCUMENT_DOWNLOAD,
     P.REMARK_ADD,
     P.DASHBOARD_VIEW, P.NOTIFICATION_VIEW,
-    P.WORK_VIEW,
+    P.WORK_VIEW, P.WORK_CREATE, P.WORK_EDIT,
   ],
 
   [ROLES.DATA_ENTRY_OPERATOR]: [
@@ -79,7 +79,7 @@ export const SYSTEM_ROLE_DESCRIPTIONS: Record<RoleCode, string> = {
   [ROLES.SUPER_ADMIN]: 'Full, unrestricted access including system configuration.',
   [ROLES.ADMIN]: 'Manages requests, departments, locations, users, documents and reports.',
   [ROLES.MLA]: 'Principal user. Oversight dashboard, can add/forward/close requests.',
-  [ROLES.DEPARTMENT_OFFICER]: 'Access limited to requests assigned to their department.',
+  [ROLES.DEPARTMENT_OFFICER]: "Access limited to their department's requests and works.",
   [ROLES.DATA_ENTRY_OPERATOR]: 'Creates requests and uploads/scans documents.',
   [ROLES.VIEWER]: 'Read-only access.',
   [ROLES.IMPLEMENTING_AGENCY]: "Implementing agency staff - adds, sees and updates only their own agency's works.",

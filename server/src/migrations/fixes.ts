@@ -101,3 +101,12 @@ export async function migrateUserAgencies() {
   );
   return { updated: res.modifiedCount, matched: res.matchedCount };
 }
+
+/** Lets department officers add and update works (New Work menu), without resetting other roles. */
+export async function grantOfficerWorkCreate() {
+  const res = await Role.updateOne(
+    { code: ROLES.DEPARTMENT_OFFICER },
+    { $addToSet: { permissions: { $each: [PERMISSIONS.WORK_CREATE, PERMISSIONS.WORK_EDIT] } } },
+  );
+  return { updated: res.modifiedCount, matched: res.matchedCount };
+}

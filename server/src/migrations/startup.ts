@@ -1,7 +1,9 @@
 import { Schema, model } from 'mongoose';
 import { logger } from '../config/logger.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
-import { backfillPrincipal, fixRequestTypes, fixStatusTransitions, grantAgencyWorkCreate, migrateUserAgencies } from './fixes.js';
+import {
+  backfillPrincipal, fixRequestTypes, fixStatusTransitions, grantAgencyWorkCreate, grantOfficerWorkCreate, migrateUserAgencies,
+} from './fixes.js';
 
 /** One row per migration that has completed on this database. */
 const Migration = model(
@@ -27,6 +29,7 @@ const MIGRATIONS: { name: string; run: () => Promise<unknown> }[] = [
   { name: '2026-10-works-roles', run: seedConfigDefaults },
   { name: '2026-10-agency-work-create', run: grantAgencyWorkCreate },
   { name: '2026-10-user-agencies-list', run: migrateUserAgencies },
+  { name: '2026-10-officer-work-create', run: grantOfficerWorkCreate },
 ];
 
 /**
