@@ -23,6 +23,7 @@ import { useDepartments, useStatuses, usePriorities } from '@/hooks/useOptions';
 import { useViewMode, type ViewMode } from '@/hooks/useViewMode';
 import { RequestDetailDialog } from './RequestDetailDialog';
 import { RequestKanbanView } from './RequestKanbanView';
+import { QuickRequestDialog } from './QuickRequestDialog';
 import { PERMISSIONS } from '@mla/shared';
 
 const BUCKETS: Record<string, string[]> = {
@@ -46,6 +47,7 @@ export function RequestListPage() {
   const [exporting, setExporting] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
 
   const departments = useDepartments();
   const statuses = useStatuses();
@@ -136,9 +138,14 @@ export function RequestListPage() {
         crumbs={[{ label: t('common.home'), to: '/' }, { label: t('nav.requests') }]}
         action={
           can(PERMISSIONS.REQUEST_CREATE) && (
-            <Button variant="contained" startIcon={<Icon name="Add" />} onClick={() => navigate('/requests/new')}>
-              {t('requests.newRequest')}
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" startIcon={<Icon name="Bolt" />} onClick={() => setQuickOpen(true)}>
+                Quick Request
+              </Button>
+              <Button variant="contained" startIcon={<Icon name="Add" />} onClick={() => navigate('/requests/new')}>
+                {t('requests.newRequest')}
+              </Button>
+            </Stack>
           )
         }
       />
@@ -248,6 +255,7 @@ export function RequestListPage() {
       )}
 
       <RequestDetailDialog id={detailId} onClose={() => setDetailId(null)} />
+      <QuickRequestDialog open={quickOpen} onClose={() => setQuickOpen(false)} onCreated={(id) => setDetailId(id)} />
     </Box>
   );
 }

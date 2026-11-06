@@ -18,7 +18,7 @@ import { notifyRequestToDepartment } from '../notifications/requestNotify.js';
 import { requestsService } from './requests.service.js';
 import {
   assignSchema, createRequestSchema, duplicateCheckSchema,
-  forwardSchema, statusChangeSchema, updateRequestSchema,
+  forwardSchema, quickRequestSchema, statusChangeSchema, updateRequestSchema,
 } from './requests.validation.js';
 
 const router = Router();
@@ -97,6 +97,33 @@ router.post(
         actorId: req.auth!.userId,
       });
     }
+    created(res, doc);
+  }),
+);
+
+router.post(
+  '/quick',
+  requirePermission(PERMISSIONS.REQUEST_CREATE),
+  validate({ body: quickRequestSchema }),
+  asyncHandler(async (req, res) => {
+    const { principalId, name, mobile, comment } = req.body as {
+      principalId: string; name: string; mobile: string; comment?: string;
+    };
+    const doc = await requestsService.create({
+      body: {
+        principalId,
+        subject: `Quick request - ${name}`,
+        description: comment ?? '',
+        interventionInstructions: comment ?? '',
+        applicant: { firstName: name, lastName: '', mobile, accompanyingCount: 0 },
+        location: {},
+        isQuick: true,
+        submit: true,
+      },
+      actorId: req.auth!.userId,
+      actorName: req.auth!.name,
+    });
+    recordAudit(req, { action: 'CREATE', entity: 'Request', entityId: String(doc._id), after: { fileId: doc.fileId, quick: true } });
     created(res, doc);
   }),
 );

@@ -67,6 +67,7 @@ export const requestsService = {
       secondaryDepartmentId: body.secondaryDepartmentId ?? null,
       assignedOfficerId: body.assignedOfficerId ?? null,
       interventionInstructions: body.interventionInstructions ?? '',
+      isQuick: !!body.isQuick,
       statusId: status._id,
       statusCode: status.code,
       slaDays,

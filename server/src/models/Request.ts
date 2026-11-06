@@ -67,6 +67,8 @@ const requestSchema = new Schema(
     secondaryDepartmentId: { type: Schema.Types.ObjectId, ref: 'Department', default: null },
     assignedOfficerId: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
     interventionInstructions: { type: String, trim: true, default: '' },
+    // Created via the Quick Request dialog - details still to be completed.
+    isQuick: { type: Boolean, default: false, index: true },
 
     statusId: { type: Schema.Types.ObjectId, ref: 'RequestStatus', required: true, index: true },
     statusCode: { type: String, required: true, index: true }, // denormalised

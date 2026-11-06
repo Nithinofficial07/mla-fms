@@ -72,6 +72,16 @@ export const createRequestSchema = z.object({
   submit: z.boolean().optional(), // true => go straight to SUBMITTED
 });
 
+/** Quick Request: walk-in intake with only name, mobile and a comment.
+ *  The document photo is uploaded right after via /documents/request/:id.
+ *  Staff fill in subject, location, department etc. later from the file. */
+export const quickRequestSchema = z.object({
+  principalId: objectId,
+  name: z.string().trim().min(1, 'Name is required').max(200),
+  mobile,
+  comment: z.string().trim().max(2000).optional(),
+});
+
 export const updateRequestSchema = createRequestSchema.partial().omit({ submit: true });
 
 export const assignSchema = z.object({
