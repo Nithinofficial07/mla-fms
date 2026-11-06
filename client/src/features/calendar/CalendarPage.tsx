@@ -7,7 +7,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
-import { CALENDAR_DEADLINE_COLOR, CALENDAR_EVENT_TYPES, PERMISSIONS } from '@mla/shared';
+import { CALENDAR_DEADLINE_COLOR, CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_TYPES, PERMISSIONS } from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { Icon } from '@/components/Icon';
 import { api } from '@/api/client';
@@ -30,7 +30,7 @@ const PREFS_KEY = 'calendar:prefs';
 function readPrefs(): { hidden: string[]; deadlines: boolean } {
   try {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
-    return { hidden: Array.isArray(p.hidden) ? p.hidden : [], deadlines: p.deadlines !== false };
+    return { hidden: Array.isArray(p.hidden) ? p.hidden.filter((c: string) => ALL_TYPES.includes(c)) : [], deadlines: p.deadlines !== false };
   } catch {
     return { hidden: [], deadlines: true };
   }
@@ -210,19 +210,29 @@ export function CalendarPage() {
                       {prefs.hidden.length ? 'All' : 'None'}
                     </Button>
                   </Stack>
-                  <Stack>
-                    {CALENDAR_EVENT_TYPES.map((t) => (
-                      <FormControlLabel
-                        key={t.code}
-                        sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontSize: '0.85rem', fontWeight: 500 } }}
-                        control={(
-                          <Checkbox
-                            size="small" checked={!prefs.hidden.includes(t.code)} onChange={() => toggleType(t.code)}
-                            sx={{ py: 0.4, color: t.color, '&.Mui-checked': { color: t.color } }}
-                          />
-                        )}
-                        label={t.label}
-                      />
+                  <Stack spacing={0.75}>
+                    {CALENDAR_EVENT_GROUPS.map((g) => (
+                      <Box key={g.code}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', fontSize: 10.5 }}>
+                          {g.label}
+                        </Typography>
+                        <Stack>
+                          {CALENDAR_EVENT_TYPES.filter((t) => t.group === g.code).map((t) => (
+                            <Tooltip key={t.code} title={`${t.colorName} · ${t.hint}`} placement="right">
+                              <FormControlLabel
+                                sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontSize: '0.85rem', fontWeight: 500 } }}
+                                control={(
+                                  <Checkbox
+                                    size="small" checked={!prefs.hidden.includes(t.code)} onChange={() => toggleType(t.code)}
+                                    sx={{ py: 0.3, color: t.color, '&.Mui-checked': { color: t.color } }}
+                                  />
+                                )}
+                                label={t.label}
+                              />
+                            </Tooltip>
+                          ))}
+                        </Stack>
+                      </Box>
                     ))}
                   </Stack>
                   {canSeeRequests && (

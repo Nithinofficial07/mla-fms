@@ -7,7 +7,9 @@ import { useTheme } from '@mui/material/styles';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import dayjs, { type Dayjs } from 'dayjs';
-import { CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPES, CALENDAR_RECURRENCE } from '@mla/shared';
+import {
+  CALENDAR_DEFAULT_TYPE, CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPES, CALENDAR_RECURRENCE, calendarTypeMeta,
+} from '@mla/shared';
 import { api, errorMessage } from '@/api/client';
 import { useGramPanchayats, useWards } from '@/hooks/useOptions';
 import { Icon } from '@/components/Icon';
@@ -44,7 +46,7 @@ function fromItem(item: CalendarItem): FormState {
   const e = dayjs(item.seriesEnd ?? item.end);
   return {
     title: item.title,
-    type: item.type,
+    type: calendarTypeMeta(item.type).code === 'UNKNOWN' ? CALENDAR_DEFAULT_TYPE : calendarTypeMeta(item.type).code,
     status: item.status ?? 'SCHEDULED',
     allDay: !!item.allDay,
     startDate: s.format('YYYY-MM-DD'), startTime: s.format('HH:mm'),
@@ -65,7 +67,7 @@ function fromItem(item: CalendarItem): FormState {
 
 function blank(start: Dayjs, end: Dayjs, allDay: boolean): FormState {
   return {
-    title: '', type: 'MEETING', status: 'SCHEDULED', allDay,
+    title: '', type: CALENDAR_DEFAULT_TYPE, status: 'SCHEDULED', allDay,
     startDate: start.format('YYYY-MM-DD'), startTime: start.format('HH:mm'),
     endDate: end.format('YYYY-MM-DD'), endTime: end.format('HH:mm'),
     recurrence: 'NONE', recurrenceUntil: '',
@@ -178,26 +180,38 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
 
           <Box>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Event type</Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {CALENDAR_EVENT_TYPES.map((t) => {
-                const selected = form.type === t.code;
-                return (
-                  <Chip
-                    key={t.code}
-                    label={t.label}
-                    onClick={() => set('type', t.code)}
-                    icon={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: t.color, ml: '8px !important' }} />}
-                    variant={selected ? 'filled' : 'outlined'}
-                    sx={{
-                      bgcolor: selected ? `${t.color}29` : 'transparent',
-                      borderColor: selected ? t.color : 'divider',
-                      color: selected ? 'text.primary' : 'text.secondary',
-                      fontWeight: selected ? 700 : 600,
-                    }}
-                  />
-                );
-              })}
+            <Stack spacing={1}>
+              {CALENDAR_EVENT_GROUPS.map((g) => (
+                <Stack key={g.code} direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 1.5 }} alignItems={{ sm: 'center' }}>
+                  <Typography variant="caption" sx={{ width: 84, flexShrink: 0, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+                    {g.label}
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {CALENDAR_EVENT_TYPES.filter((t) => t.group === g.code).map((t) => {
+                      const selected = form.type === t.code;
+                      return (
+                        <Chip
+                          key={t.code}
+                          label={t.label}
+                          onClick={() => set('type', t.code)}
+                          icon={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: t.color, ml: '8px !important' }} />}
+                          variant={selected ? 'filled' : 'outlined'}
+                          sx={{
+                            bgcolor: selected ? `${t.color}29` : 'transparent',
+                            borderColor: selected ? t.color : 'divider',
+                            color: selected ? 'text.primary' : 'text.secondary',
+                            fontWeight: selected ? 700 : 600,
+                          }}
+                        />
+                      );
+                    })}
+                  </Stack>
+                </Stack>
+              ))}
             </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              {(() => { const m = calendarTypeMeta(form.type); return `${m.colorName} · ${m.hint}`; })()}
+            </Typography>
           </Box>
 
           <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider', bgcolor: 'action.hover' }}>

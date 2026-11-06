@@ -3,17 +3,30 @@
  * Shared by server (validation, recurrence expansion) and client (colours, labels).
  */
 
+/**
+ * Event types, colour-coded with Google Calendar's named colours (as the
+ * office already uses them), grouped for the filter list and the picker.
+ */
+export const CALENDAR_EVENT_GROUPS = [
+  { code: 'MEETING', label: 'Meetings' },
+  { code: 'EVENT', label: 'Events' },
+  { code: 'FIELD', label: 'Field work' },
+  { code: 'PERSONAL', label: 'Personal' },
+  { code: 'PARTY', label: 'Party' },
+] as const;
+
 export const CALENDAR_EVENT_TYPES = [
-  { code: 'MEETING', label: 'Meeting', color: '#3B82F6' },
-  { code: 'PUBLIC_EVENT', label: 'Public Event', color: '#C99700' },
-  { code: 'SITE_VISIT', label: 'Site Visit', color: '#10B981' },
-  { code: 'JANATA_DARSHAN', label: 'Janata Darshan', color: '#8B5CF6' },
-  { code: 'REVIEW', label: 'Review Meeting', color: '#0EA5E9' },
-  { code: 'ASSEMBLY', label: 'Assembly / Session', color: '#EF4444' },
-  { code: 'INAUGURATION', label: 'Inauguration / Foundation', color: '#F97316' },
-  { code: 'DEADLINE', label: 'Deadline', color: '#E11D48' },
-  { code: 'PERSONAL', label: 'Personal', color: '#64748B' },
-  { code: 'OTHER', label: 'Other', color: '#14B8A6' },
+  { code: 'MEETING_OFFICIAL', group: 'MEETING', label: 'Official MLA Meeting', colorName: 'Blueberry', color: '#3F51B5', hint: 'Official MLA meetings' },
+  { code: 'MEETING_GOVERNANCE', group: 'MEETING', label: 'Governance Meeting', colorName: 'Lavender', color: '#7986CB', hint: 'Governance / review meetings' },
+  { code: 'EVENT_T1', group: 'EVENT', label: 'Event T1 - Chief Guest', colorName: 'Flamingo', color: '#E67C73', hint: 'Chief guest, felicitation, etc.' },
+  { code: 'EVENT_T2', group: 'EVENT', label: 'Event T2 - Family Function', colorName: 'Mango', color: '#F09300', hint: 'Wedding, Namakarana, Shreemathi Karya, Gruhapravesha, Birthday, etc.' },
+  { code: 'EVENT_T2B', group: 'EVENT', label: 'Event T2B - Store Opening', colorName: 'Banana', color: '#F6BF26', hint: 'Store / shop openings' },
+  { code: 'EVENT_T3', group: 'EVENT', label: 'Event T3 - Devasthana / Matha', colorName: 'Tangerine', color: '#F4511E', hint: 'Temple (Devasthana) and Matha events' },
+  { code: 'SITE_VISIT', group: 'FIELD', label: 'Site Visit', colorName: 'Basil', color: '#0B8043', hint: 'Work sites, inspections' },
+  { code: 'JANA_SAMPARKA', group: 'FIELD', label: 'Jana Samparka', colorName: 'Sage', color: '#33B679', hint: 'Meeting the public' },
+  { code: 'BOOTH_NADIGE', group: 'FIELD', label: 'Boothina Nadige', colorName: 'Pistachio', color: '#7CB342', hint: 'Booth-level visits' },
+  { code: 'PERSONAL', group: 'PERSONAL', label: 'Personal', colorName: 'Tomato', color: '#D50000', hint: 'Personal / family time' },
+  { code: 'PARTY', group: 'PARTY', label: 'Congress Party Event', colorName: 'Citron', color: '#E4C441', hint: 'INC party programmes and meetings' },
 ] as const;
 
 export type CalendarEventType = (typeof CALENDAR_EVENT_TYPES)[number]['code'];
@@ -33,11 +46,32 @@ export const CALENDAR_RECURRENCE = [
 export type CalendarRecurrence = (typeof CALENDAR_RECURRENCE)[number]['code'];
 export const CALENDAR_RECURRENCE_CODES = CALENDAR_RECURRENCE.map((r) => r.code) as [CalendarRecurrence, ...CalendarRecurrence[]];
 
-/** Colour for the read-only "request deadline" layer. */
-export const CALENDAR_DEADLINE_COLOR = '#DC2626';
+/** Colour for the read-only "request deadline" layer (Graphite - kept apart from Tomato / Personal). */
+export const CALENDAR_DEADLINE_COLOR = '#616161';
 
-export function calendarTypeMeta(code: string) {
-  return CALENDAR_EVENT_TYPES.find((t) => t.code === code) ?? CALENDAR_EVENT_TYPES[CALENDAR_EVENT_TYPES.length - 1];
+export const CALENDAR_DEFAULT_TYPE: CalendarEventType = 'MEETING_OFFICIAL';
+
+/**
+ * Old type codes from the first version of the calendar, and what they now
+ * map to. Used by the startup migration so existing events keep a valid type.
+ */
+export const CALENDAR_LEGACY_TYPE_MAP: Record<string, CalendarEventType> = {
+  MEETING: 'MEETING_OFFICIAL',
+  REVIEW: 'MEETING_GOVERNANCE',
+  ASSEMBLY: 'MEETING_OFFICIAL',
+  DEADLINE: 'MEETING_OFFICIAL',
+  OTHER: 'MEETING_GOVERNANCE',
+  PUBLIC_EVENT: 'EVENT_T1',
+  INAUGURATION: 'EVENT_T1',
+  JANATA_DARSHAN: 'JANA_SAMPARKA',
+};
+
+type TypeMeta = { code: string; group: string; label: string; colorName: string; color: string; hint: string };
+const UNKNOWN_TYPE: TypeMeta = { code: 'UNKNOWN', group: 'MEETING', label: 'Event', colorName: 'Graphite', color: '#616161', hint: '' };
+
+export function calendarTypeMeta(code: string): TypeMeta {
+  const mapped = CALENDAR_LEGACY_TYPE_MAP[code] ?? code;
+  return CALENDAR_EVENT_TYPES.find((t) => t.code === mapped) ?? UNKNOWN_TYPE;
 }
 
 const DAY = 86_400_000;

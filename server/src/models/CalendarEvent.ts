@@ -1,5 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
-import { CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPE_CODES, CALENDAR_RECURRENCE_CODES } from '@mla/shared';
+import { CALENDAR_DEFAULT_TYPE, CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPE_CODES, CALENDAR_RECURRENCE_CODES } from '@mla/shared';
 import { applyCommonPlugins, softDeleteFields } from './plugins.js';
 
 /** An entry on the MLA office calendar (meeting, site visit, public event...). */
@@ -11,7 +11,7 @@ const calendarEventSchema = new Schema(
 
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: '' },
-    type: { type: String, enum: CALENDAR_EVENT_TYPE_CODES, default: 'MEETING', index: true },
+    type: { type: String, enum: CALENDAR_EVENT_TYPE_CODES, default: CALENDAR_DEFAULT_TYPE, index: true },
     status: { type: String, enum: CALENDAR_EVENT_STATUSES, default: 'SCHEDULED' },
 
     start: { type: Date, required: true, index: true },

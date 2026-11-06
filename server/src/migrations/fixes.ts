@@ -1,4 +1,5 @@
-import { DEFAULT_REQUEST_TYPES, PERMISSIONS, ROLES } from '@mla/shared';
+import { CALENDAR_LEGACY_TYPE_MAP, DEFAULT_REQUEST_TYPES, PERMISSIONS, ROLES } from '@mla/shared';
+import { CalendarEvent } from '../models/CalendarEvent.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import { Principal } from '../models/Principal.js';
 import { RequestModel } from '../models/Request.js';
@@ -126,6 +127,16 @@ export async function grantCalendarPermissions() {
   let updated = 0;
   for (const [code, perms] of grants) {
     const res = await Role.updateOne({ code }, { $addToSet: { permissions: { $each: perms } } });
+    updated += res.modifiedCount;
+  }
+  return { updated };
+}
+
+/** Calendar event types were replaced by the office's own colour scheme - remap any event saved with an old code. */
+export async function remapCalendarTypes() {
+  let updated = 0;
+  for (const [oldCode, newCode] of Object.entries(CALENDAR_LEGACY_TYPE_MAP)) {
+    const res = await CalendarEvent.collection.updateMany({ type: oldCode }, { $set: { type: newCode } });
     updated += res.modifiedCount;
   }
   return { updated };
