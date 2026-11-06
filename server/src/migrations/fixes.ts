@@ -110,3 +110,23 @@ export async function grantOfficerWorkCreate() {
   );
   return { updated: res.modifiedCount, matched: res.matchedCount };
 }
+
+/**
+ * Calendar module: grants the calendar permissions to the system roles that
+ * get them by default. Targeted $addToSet so permissions customised in the
+ * Roles admin page are kept.
+ */
+export async function grantCalendarPermissions() {
+  const grants: [string, string[]][] = [
+    [ROLES.ADMIN, [PERMISSIONS.CALENDAR_VIEW, PERMISSIONS.CALENDAR_MANAGE]],
+    [ROLES.MLA, [PERMISSIONS.CALENDAR_VIEW, PERMISSIONS.CALENDAR_MANAGE]],
+    [ROLES.DATA_ENTRY_OPERATOR, [PERMISSIONS.CALENDAR_VIEW, PERMISSIONS.CALENDAR_MANAGE]],
+    [ROLES.VIEWER, [PERMISSIONS.CALENDAR_VIEW]],
+  ];
+  let updated = 0;
+  for (const [code, perms] of grants) {
+    const res = await Role.updateOne({ code }, { $addToSet: { permissions: { $each: perms } } });
+    updated += res.modifiedCount;
+  }
+  return { updated };
+}

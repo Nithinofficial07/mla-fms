@@ -5,7 +5,8 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { Icon } from '@/components/Icon';
-import { api, errorMessage, getActivePrincipal } from '@/api/client';
+import { api, errorMessage } from '@/api/client';
+import { OfficeField, useOfficeChoice } from '../calendar/OfficeField';
 
 const MOBILE_RE = /^[6-9]\d{9}$/;
 
@@ -31,6 +32,8 @@ export function QuickRequestDialog({ open, onClose, onCreated }: Props) {
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [office, setOffice] = useState('');
+  const officeChoice = useOfficeChoice(office, setOffice);
 
   useEffect(() => {
     if (!photo) { setPreview(null); return; }
@@ -44,12 +47,12 @@ export function QuickRequestDialog({ open, onClose, onCreated }: Props) {
   };
 
   const mobileInvalid = !!mobile && !MOBILE_RE.test(mobile);
-  const canSave = name.trim().length > 0 && MOBILE_RE.test(mobile) && !!photo;
+  const canSave = name.trim().length > 0 && MOBILE_RE.test(mobile) && !!photo && !!officeChoice.principalId;
 
   const create = useMutation({
     mutationFn: async () => {
       const { data } = await api.post('/requests/quick', {
-        principalId: getActivePrincipal(),
+        principalId: officeChoice.principalId,
         name: name.trim(),
         mobile,
         comment: comment.trim() || undefined,
@@ -91,6 +94,9 @@ export function QuickRequestDialog({ open, onClose, onCreated }: Props) {
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+          {officeChoice.needsPick && (
+            <OfficeField value={office} onChange={setOffice} options={officeChoice.options} />
+          )}
           <TextField
             autoFocus fullWidth required label="Name"
             value={name} onChange={(e) => setName(e.target.value)}

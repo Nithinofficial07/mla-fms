@@ -1,0 +1,343 @@
+import { useEffect, useState } from 'react';
+import {
+  Alert, Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
+  Grid, MenuItem, Stack, Switch, TextField, Typography, useMediaQuery,
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
+import dayjs, { type Dayjs } from 'dayjs';
+import { CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPES, CALENDAR_RECURRENCE } from '@mla/shared';
+import { api, errorMessage } from '@/api/client';
+import { useGramPanchayats, useWards } from '@/hooks/useOptions';
+import { Icon } from '@/components/Icon';
+import type { CalendarItem } from './calendarUtils';
+import { OfficeField, useOfficeChoice } from './OfficeField';
+
+const STATUS_LABEL: Record<string, string> = {
+  SCHEDULED: 'Scheduled', TENTATIVE: 'Tentative', COMPLETED: 'Completed', CANCELLED: 'Cancelled',
+};
+
+interface FormState {
+  title: string;
+  type: string;
+  status: string;
+  allDay: boolean;
+  startDate: string; startTime: string;
+  endDate: string; endTime: string;
+  recurrence: string;
+  recurrenceUntil: string;
+  venue: string;
+  placeKind: '' | 'ward' | 'gp';
+  wardId: string;
+  gramPanchayatId: string;
+  organizer: string;
+  contactName: string;
+  contactPhone: string;
+  attendees: string[];
+  description: string;
+}
+
+function fromItem(item: CalendarItem): FormState {
+  // Editing an occurrence edits the whole series, so use the series' own dates.
+  const s = dayjs(item.seriesStart ?? item.start);
+  const e = dayjs(item.seriesEnd ?? item.end);
+  return {
+    title: item.title,
+    type: item.type,
+    status: item.status ?? 'SCHEDULED',
+    allDay: !!item.allDay,
+    startDate: s.format('YYYY-MM-DD'), startTime: s.format('HH:mm'),
+    endDate: e.format('YYYY-MM-DD'), endTime: e.format('HH:mm'),
+    recurrence: item.recurrence ?? 'NONE',
+    recurrenceUntil: item.recurrenceUntil ? dayjs(item.recurrenceUntil).format('YYYY-MM-DD') : '',
+    venue: item.venue ?? '',
+    placeKind: item.wardId ? 'ward' : item.gramPanchayatId ? 'gp' : '',
+    wardId: item.wardId?.id ?? '',
+    gramPanchayatId: item.gramPanchayatId?.id ?? '',
+    organizer: item.organizer ?? '',
+    contactName: item.contactName ?? '',
+    contactPhone: item.contactPhone ?? '',
+    attendees: item.attendees ?? [],
+    description: item.description ?? '',
+  };
+}
+
+function blank(start: Dayjs, end: Dayjs, allDay: boolean): FormState {
+  return {
+    title: '', type: 'MEETING', status: 'SCHEDULED', allDay,
+    startDate: start.format('YYYY-MM-DD'), startTime: start.format('HH:mm'),
+    endDate: end.format('YYYY-MM-DD'), endTime: end.format('HH:mm'),
+    recurrence: 'NONE', recurrenceUntil: '',
+    venue: '', placeKind: '', wardId: '', gramPanchayatId: '',
+    organizer: '', contactName: '', contactPhone: '', attendees: [], description: '',
+  };
+}
+
+export interface EventDialogProps {
+  open: boolean;
+  onClose: () => void;
+  /** Existing event to edit; omit to create. */
+  item?: CalendarItem | null;
+  /** Pre-filled slot for a new event. */
+  defaults?: { start: Dayjs; end: Dayjs; allDay?: boolean } | null;
+}
+
+export function EventDialog({ open, onClose, item, defaults }: EventDialogProps) {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const qc = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
+  const wards = useWards();
+  const gps = useGramPanchayats();
+  const editing = !!item?.eventId;
+  const [form, setForm] = useState<FormState>(() => blank(dayjs(), dayjs().add(1, 'hour'), false));
+  const [error, setError] = useState<string | null>(null);
+  const [office, setOffice] = useState('');
+  const officeChoice = useOfficeChoice(office, setOffice);
+
+  useEffect(() => {
+    if (!open) return;
+    setError(null);
+    if (item) setForm(fromItem(item));
+    else {
+      const s = defaults?.start ?? dayjs().add(1, 'hour').startOf('hour');
+      const e = defaults?.end ?? s.add(1, 'hour');
+      setForm(blank(s, e, !!defaults?.allDay));
+    }
+  }, [open, item, defaults]);
+
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  const startAt = form.allDay ? dayjs(form.startDate).startOf('day') : dayjs(`${form.startDate}T${form.startTime}`);
+  const endAt = form.allDay ? dayjs(form.endDate).endOf('day').millisecond(0) : dayjs(`${form.endDate}T${form.endTime}`);
+  const rangeValid = startAt.isValid() && endAt.isValid() && !endAt.isBefore(startAt);
+  const canSave = form.title.trim().length > 0 && rangeValid && (editing || !!officeChoice.principalId);
+
+  // Keep the end after the start when the start moves.
+  const moveStart = (date: string, time: string) => {
+    const oldS = form.allDay ? dayjs(form.startDate) : dayjs(`${form.startDate}T${form.startTime}`);
+    const oldE = form.allDay ? dayjs(form.endDate) : dayjs(`${form.endDate}T${form.endTime}`);
+    const dur = oldE.isValid() && oldS.isValid() ? Math.max(0, oldE.diff(oldS, 'minute')) : 60;
+    const ns = dayjs(`${date}T${time || '00:00'}`);
+    if (!ns.isValid()) { setForm((f) => ({ ...f, startDate: date, startTime: time })); return; }
+    const ne = ns.add(dur, 'minute');
+    setForm((f) => ({ ...f, startDate: date, startTime: time, endDate: ne.format('YYYY-MM-DD'), endTime: ne.format('HH:mm') }));
+  };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const body: Record<string, unknown> = {
+        title: form.title.trim(),
+        type: form.type,
+        status: form.status,
+        allDay: form.allDay,
+        start: startAt.toISOString(),
+        end: endAt.toISOString(),
+        recurrence: form.recurrence,
+        recurrenceUntil: form.recurrence !== 'NONE' && form.recurrenceUntil ? dayjs(form.recurrenceUntil).startOf('day').toISOString() : null,
+        venue: form.venue.trim(),
+        wardId: form.placeKind === 'ward' && form.wardId ? form.wardId : null,
+        gramPanchayatId: form.placeKind === 'gp' && form.gramPanchayatId ? form.gramPanchayatId : null,
+        organizer: form.organizer.trim(),
+        contactName: form.contactName.trim(),
+        contactPhone: form.contactPhone.trim(),
+        attendees: form.attendees,
+        description: form.description.trim(),
+      };
+      if (editing) return api.patch(`/calendar/events/${item!.eventId}`, body).then((r) => r.data);
+      return api.post('/calendar/events', { ...body, principalId: officeChoice.principalId }).then((r) => r.data);
+    },
+    onSuccess: () => {
+      enqueueSnackbar(editing ? 'Event updated' : 'Event added to calendar', { variant: 'success' });
+      qc.invalidateQueries({ queryKey: ['calendar'] });
+      onClose();
+    },
+    onError: (e) => setError(errorMessage(e)),
+  });
+
+  return (
+    <Dialog open={open} onClose={save.isPending ? undefined : onClose} fullWidth maxWidth="md" fullScreen={fullScreen}>
+      <DialogTitle sx={{ pb: 1 }}>{editing ? 'Edit event' : 'New event'}</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2.5}>
+          {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+          {editing && item?.isRecurring && (
+            <Alert severity="info" icon={<Icon name="Autorenew" />}>This is a repeating event - changes apply to every occurrence.</Alert>
+          )}
+
+          {!editing && officeChoice.needsPick && (
+            <OfficeField value={office} onChange={setOffice} options={officeChoice.options} />
+          )}
+
+          <TextField
+            autoFocus fullWidth required label="Title" value={form.title}
+            onChange={(e) => set('title', e.target.value)}
+            placeholder="e.g. Review meeting with PWD engineers"
+          />
+
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Event type</Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {CALENDAR_EVENT_TYPES.map((t) => {
+                const selected = form.type === t.code;
+                return (
+                  <Chip
+                    key={t.code}
+                    label={t.label}
+                    onClick={() => set('type', t.code)}
+                    icon={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: t.color, ml: '8px !important' }} />}
+                    variant={selected ? 'filled' : 'outlined'}
+                    sx={{
+                      bgcolor: selected ? `${t.color}29` : 'transparent',
+                      borderColor: selected ? t.color : 'divider',
+                      color: selected ? 'text.primary' : 'text.secondary',
+                      fontWeight: selected ? 700 : 600,
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+          </Box>
+
+          <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider', bgcolor: 'action.hover' }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+              <Typography variant="subtitle2"><Icon name="Event" fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />When</Typography>
+              <FormControlLabel
+                control={<Switch checked={form.allDay} onChange={(e) => set('allDay', e.target.checked)} />}
+                label="All day"
+              />
+            </Stack>
+            <Grid container spacing={1.5}>
+              <Grid item xs={form.allDay ? 6 : 7} sm={form.allDay ? 6 : 3}>
+                <TextField
+                  fullWidth size="small" type="date" label="Start date" InputLabelProps={{ shrink: true }}
+                  value={form.startDate} onChange={(e) => moveStart(e.target.value, form.startTime)}
+                />
+              </Grid>
+              {!form.allDay && (
+                <Grid item xs={5} sm={3}>
+                  <TextField
+                    fullWidth size="small" type="time" label="Start" InputLabelProps={{ shrink: true }}
+                    value={form.startTime} onChange={(e) => moveStart(form.startDate, e.target.value)}
+                  />
+                </Grid>
+              )}
+              <Grid item xs={form.allDay ? 6 : 7} sm={form.allDay ? 6 : 3}>
+                <TextField
+                  fullWidth size="small" type="date" label="End date" InputLabelProps={{ shrink: true }}
+                  value={form.endDate} onChange={(e) => set('endDate', e.target.value)}
+                  error={!rangeValid}
+                />
+              </Grid>
+              {!form.allDay && (
+                <Grid item xs={5} sm={3}>
+                  <TextField
+                    fullWidth size="small" type="time" label="End" InputLabelProps={{ shrink: true }}
+                    value={form.endTime} onChange={(e) => set('endTime', e.target.value)}
+                    error={!rangeValid}
+                  />
+                </Grid>
+              )}
+              {!rangeValid && (
+                <Grid item xs={12}><Typography variant="caption" color="error">End must be after the start.</Typography></Grid>
+              )}
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth size="small" select label="Repeat" value={form.recurrence} onChange={(e) => set('recurrence', e.target.value)}>
+                  {CALENDAR_RECURRENCE.map((r) => <MenuItem key={r.code} value={r.code}>{r.label}</MenuItem>)}
+                </TextField>
+              </Grid>
+              {form.recurrence !== 'NONE' && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth size="small" type="date" label="Repeat until (optional)" InputLabelProps={{ shrink: true }}
+                    value={form.recurrenceUntil} onChange={(e) => set('recurrenceUntil', e.target.value)}
+                    helperText="Leave empty to repeat with no end"
+                  />
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+
+          <Box>
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth size="small" label="Venue" value={form.venue} onChange={(e) => set('venue', e.target.value)} placeholder="e.g. MLA Office, Davanagere" />
+            </Grid>
+            <Grid item xs={12} sm={2}>
+              <TextField
+                fullWidth size="small" select label="Area" value={form.placeKind}
+                onChange={(e) => setForm((f) => ({ ...f, placeKind: e.target.value as FormState['placeKind'], wardId: '', gramPanchayatId: '' }))}
+              >
+                <MenuItem value="">—</MenuItem>
+                <MenuItem value="ward">Ward</MenuItem>
+                <MenuItem value="gp">GP</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              {form.placeKind === 'gp' ? (
+                <TextField fullWidth size="small" select label="Gram Panchayat" value={form.gramPanchayatId} onChange={(e) => set('gramPanchayatId', e.target.value)}>
+                  <MenuItem value="">—</MenuItem>
+                  {(gps.data ?? []).map((g) => <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
+                </TextField>
+              ) : (
+                <TextField
+                  fullWidth size="small" select label="Ward" value={form.wardId} disabled={form.placeKind !== 'ward'}
+                  onChange={(e) => set('wardId', e.target.value)}
+                >
+                  <MenuItem value="">—</MenuItem>
+                  {(wards.data ?? []).map((w) => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}
+                </TextField>
+              )}
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField fullWidth size="small" label="Organiser" value={form.organizer} onChange={(e) => set('organizer', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField fullWidth size="small" label="Contact person" value={form.contactName} onChange={(e) => set('contactName', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth size="small" label="Contact phone" value={form.contactPhone}
+                onChange={(e) => set('contactPhone', e.target.value.replace(/[^\d+ ]/g, '').slice(0, 15))}
+                inputProps={{ inputMode: 'tel' }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Autocomplete
+                multiple freeSolo options={[] as string[]} value={form.attendees}
+                onChange={(_e, v) => set('attendees', (v as string[]).map((s) => s.trim()).filter(Boolean))}
+                renderTags={(value, getTagProps) => value.map((opt, i) => <Chip size="small" label={opt} {...getTagProps({ index: i })} key={`${opt}-${i}`} />)}
+                renderInput={(params) => (
+                  <TextField {...params} size="small" label="Attendees" placeholder="Type a name and press Enter" />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth multiline minRows={3} label="Notes / agenda" value={form.description}
+                onChange={(e) => set('description', e.target.value)}
+              />
+            </Grid>
+            {editing && (
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth size="small" select label="Status" value={form.status} onChange={(e) => set('status', e.target.value)}>
+                  {CALENDAR_EVENT_STATUSES.map((s) => <MenuItem key={s} value={s}>{STATUS_LABEL[s]}</MenuItem>)}
+                </TextField>
+              </Grid>
+            )}
+          </Grid>
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose} disabled={save.isPending}>Cancel</Button>
+        <Button variant="contained" onClick={() => save.mutate()} disabled={!canSave || save.isPending} startIcon={<Icon name="CheckCircle" />}>
+          {save.isPending ? 'Saving…' : editing ? 'Save changes' : 'Add event'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+export { STATUS_LABEL };

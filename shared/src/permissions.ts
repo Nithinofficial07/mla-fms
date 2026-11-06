@@ -58,6 +58,10 @@ export const PERMISSIONS = {
   WORK_CREATE: 'work.create',
   WORK_EDIT: 'work.edit',
   WORK_DELETE: 'work.delete',
+
+  // calendar (MLA schedule / office events)
+  CALENDAR_VIEW: 'calendar.view',
+  CALENDAR_MANAGE: 'calendar.manage',
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

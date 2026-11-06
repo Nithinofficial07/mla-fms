@@ -24,6 +24,7 @@ import geoRoutes from '../modules/geo/geo.routes.js';
 import reportsRoutes from '../modules/reports/reports.routes.js';
 import auditRoutes from '../modules/audit/audit.routes.js';
 import settingsRoutes from '../modules/settings/settings.routes.js';
+import calendarRoutes from '../modules/calendar/calendar.routes.js';
 
 export const api = Router();
 
@@ -61,3 +62,4 @@ api.use('/geo', geoRoutes);
 api.use('/reports', reportsRoutes);
 api.use('/audit-logs', auditRoutes);
 api.use('/settings', settingsRoutes);
+api.use('/calendar', calendarRoutes);

@@ -15,6 +15,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "calendar": "Calendar",
     "requests": "Requests",
     "allRequests": "All Requests",
     "newRequest": "New Request",

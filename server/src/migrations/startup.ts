@@ -3,6 +3,7 @@ import { logger } from '../config/logger.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import {
   backfillPrincipal, fixRequestTypes, fixStatusTransitions, grantAgencyWorkCreate, grantOfficerWorkCreate, migrateUserAgencies,
+  grantCalendarPermissions,
 } from './fixes.js';
 
 /** One row per migration that has completed on this database. */
@@ -30,6 +31,7 @@ const MIGRATIONS: { name: string; run: () => Promise<unknown> }[] = [
   { name: '2026-10-agency-work-create', run: grantAgencyWorkCreate },
   { name: '2026-10-user-agencies-list', run: migrateUserAgencies },
   { name: '2026-10-officer-work-create', run: grantOfficerWorkCreate },
+  { name: '2026-11-calendar-permissions', run: grantCalendarPermissions },
 ];
 
 /**

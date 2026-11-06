@@ -13,6 +13,7 @@ export interface NavItem {
 /** Sidebar structure. Items are filtered by permission at render time. */
 export const NAV: NavItem[] = [
   { label: 'Dashboard', labelKey: 'nav.dashboard', to: '/', icon: 'Dashboard', permission: PERMISSIONS.DASHBOARD_VIEW },
+  { label: 'Calendar', labelKey: 'nav.calendar', to: '/calendar', icon: 'Event', permission: PERMISSIONS.CALENDAR_VIEW },
   {
     label: 'Requests',
     labelKey: 'nav.requests',

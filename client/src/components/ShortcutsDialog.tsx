@@ -15,6 +15,15 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
     ],
   },
   {
+    title: 'Calendar',
+    items: [
+      ['T', 'Jump to today'],
+      ['← / →', 'Previous / next period'],
+      ['M / W / D / A', 'Month, week, day or agenda view'],
+      ['N', 'New event'],
+    ],
+  },
+  {
     title: 'Lists',
     items: [
       ['Click a row', 'Open quick view'],
