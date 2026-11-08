@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { Box, ButtonBase, IconButton, Stack, Tooltip, Typography, useMediaQuery } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import dayjs, { type Dayjs } from 'dayjs';
-import { CALENDAR_DEADLINE_COLOR, calendarTypeMeta } from '@cal/shared';
+import { CALENDAR_DEADLINE_COLOR, calendarMemberMeta, calendarTypeMeta } from '@cal/shared';
 import { Icon } from '@/components/Icon';
 import {
   isAllDayLike, layoutDay, onDay, roundTo, timeLabel, viewRange, type CalendarItem,
@@ -13,10 +13,36 @@ export const itemColor = (item: CalendarItem) =>
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-type SlotHandler = (start: Dayjs, end: Dayjs, allDay: boolean) => void;
+type SlotHandler = (start: Dayjs, end: Dayjs, allDay: boolean, member?: string) => void;
+
+/** Small coloured tags saying whose event it is (S / N / MP). Hidden when only one calendar is on screen. */
+export function MemberBadges({ members, size = 'sm' }: { members?: string[]; size?: 'sm' | 'md' }) {
+  if (!members?.length) return null;
+  return (
+    <Box component="span" sx={{ display: 'inline-flex', gap: 0.3, flexShrink: 0, verticalAlign: 'middle' }}>
+      {members.map((code) => {
+        const m = calendarMemberMeta(code);
+        if (!m) return null;
+        return (
+          <Box
+            key={code} component="span" title={m.label}
+            sx={{
+              px: size === 'md' ? 0.75 : 0.4, minWidth: size === 'md' ? 22 : 15, height: size === 'md' ? 20 : 14, borderRadius: 0.75,
+              display: 'inline-grid', placeItems: 'center',
+              fontSize: size === 'md' ? 11 : 9, fontWeight: 800, lineHeight: 1, letterSpacing: 0.2,
+              color: '#fff', bgcolor: m.color,
+            }}
+          >
+            {m.badge}
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
 
 /* --------------------------------- pill ---------------------------------- */
-function EventPill({ item, onClick, compact }: { item: CalendarItem; onClick: (i: CalendarItem) => void; compact?: boolean }) {
+function EventPill({ item, onClick, compact, badges = true }: { item: CalendarItem; onClick: (i: CalendarItem) => void; compact?: boolean; badges?: boolean }) {
   const color = itemColor(item);
   const filled = isAllDayLike(item) || item.kind === 'deadline';
   const muted = item.status === 'CANCELLED' || item.status === 'COMPLETED';
@@ -35,6 +61,7 @@ function EventPill({ item, onClick, compact }: { item: CalendarItem; onClick: (i
         '&:hover': { bgcolor: alpha(color, filled ? 0.26 : 0.12) },
       }}
     >
+      {badges && <MemberBadges members={item.members} />}
       {!filled && <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />}
       {!filled && (
         <Box component="span" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
@@ -58,9 +85,9 @@ function EventPill({ item, onClick, compact }: { item: CalendarItem; onClick: (i
 
 /* --------------------------------- month --------------------------------- */
 export function MonthView({
-  date, items, onSelect, onSlot, onShowDay,
+  date, items, onSelect, onSlot, onShowDay, badges = true,
 }: {
-  date: Dayjs; items: CalendarItem[]; onSelect: (i: CalendarItem) => void; onSlot?: SlotHandler; onShowDay: (d: Dayjs) => void;
+  date: Dayjs; items: CalendarItem[]; onSelect: (i: CalendarItem) => void; onSlot?: SlotHandler; onShowDay: (d: Dayjs) => void; badges?: boolean;
 }) {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
@@ -125,7 +152,7 @@ export function MonthView({
                 </Stack>
               ) : (
                 <Stack spacing={0.35}>
-                  {dayItems.slice(0, maxShown).map((it) => <EventPill key={it.id} item={it} onClick={onSelect} compact />)}
+                  {dayItems.slice(0, maxShown).map((it) => <EventPill key={it.id} item={it} onClick={onSelect} compact badges={badges} />)}
                   {extra > 0 && (
                     <ButtonBase
                       onClick={(e) => { e.stopPropagation(); onShowDay(d); }}
@@ -148,15 +175,26 @@ export function MonthView({
 const HOUR_PX = 52;
 
 export function TimeGridView({
-  date, days: dayCount, items, onSelect, onSlot, onShowDay,
+  date, days: dayCount, items, onSelect, onSlot, onShowDay, lanes, badges = true,
 }: {
   date: Dayjs; days: 1 | 7; items: CalendarItem[]; onSelect: (i: CalendarItem) => void; onSlot?: SlotHandler; onShowDay: (d: Dayjs) => void;
+  /** Day view only: one column per person (side by side) instead of one column for the day. */
+  lanes?: string[];
+  badges?: boolean;
 }) {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(dayjs());
   const { from } = viewRange(dayCount === 7 ? 'week' : 'day', date);
   const days = useMemo(() => Array.from({ length: dayCount }, (_, i) => from.add(i, 'day')), [from, dayCount]);
+  // A column is a day (week view) or a person on one day (side-by-side day view).
+  const columns = useMemo(() => {
+    if (dayCount === 1 && lanes && lanes.length > 1) {
+      return lanes.map((code) => ({ key: code, day: days[0], member: code, match: (it: CalendarItem) => (it.members ?? []).includes(code) }));
+    }
+    return days.map((d) => ({ key: d.toString(), day: d, member: undefined as string | undefined, match: (_it: CalendarItem) => true }));
+  }, [days, dayCount, lanes]);
+  const laneMode = !!columns[0]?.member;
 
   useEffect(() => {
     const t = setInterval(() => setNow(dayjs()), 60_000);
@@ -168,15 +206,15 @@ export function TimeGridView({
 
   const allDay = items.filter(isAllDayLike);
   const timed = items.filter((i) => !isAllDayLike(i));
-  const cols = `56px repeat(${dayCount}, minmax(0, 1fr))`;
+  const cols = `56px repeat(${columns.length}, minmax(0, 1fr))`;
   const gridLine = theme.palette.divider;
 
-  const slotClick = (d: Dayjs, e: MouseEvent<HTMLDivElement>) => {
+  const slotClick = (d: Dayjs, e: MouseEvent<HTMLDivElement>, member?: string) => {
     if (!onSlot) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const mins = ((e.clientY - rect.top) / HOUR_PX) * 60;
     const start = roundTo(d.startOf('day').add(Math.floor(mins / 30) * 30, 'minute'), 30);
-    onSlot(start, start.add(1, 'hour'), false);
+    onSlot(start, start.add(1, 'hour'), false, member);
   };
 
   return (
@@ -184,10 +222,19 @@ export function TimeGridView({
       {/* header */}
       <Box sx={{ display: 'grid', gridTemplateColumns: cols, borderBottom: 1, borderColor: 'divider' }}>
         <Box />
-        {days.map((d) => {
+        {columns.map(({ key, day: d, member }) => {
           const isToday = d.isSame(now, 'day');
+          const m = member ? calendarMemberMeta(member) : undefined;
+          if (m) {
+            return (
+              <Box key={key} sx={{ py: 1.25, px: 1, borderLeft: 1, borderColor: 'divider', textAlign: 'center', borderTop: `3px solid ${m.color}` }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: m.color, lineHeight: 1.2 }} noWrap>{m.short === 'MP' ? 'MP' : `MLA ${m.short}`}</Typography>
+                <Typography variant="caption" color="text.secondary" noWrap component="div">{m.label}</Typography>
+              </Box>
+            );
+          }
           return (
-            <ButtonBase key={d.toString()} onClick={() => onShowDay(d)} sx={{ py: 1, flexDirection: 'column', borderLeft: 1, borderColor: 'divider' }}>
+            <ButtonBase key={key} onClick={() => onShowDay(d)} sx={{ py: 1, flexDirection: 'column', borderLeft: 1, borderColor: 'divider' }}>
               <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: isToday ? 'secondary.main' : d.day() === 0 ? 'error.main' : 'text.secondary' }}>
                 {d.format('ddd')}
               </Typography>
@@ -211,13 +258,13 @@ export function TimeGridView({
         <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', textAlign: 'right', pr: 1, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
           All day
         </Typography>
-        {days.map((d) => (
+        {columns.map(({ key, day: d, member, match }) => (
           <Stack
-            key={d.toString()} spacing={0.35}
-            onClick={() => onSlot?.(d.startOf('day'), d.startOf('day'), true)}
+            key={key} spacing={0.35}
+            onClick={() => onSlot?.(d.startOf('day'), d.startOf('day'), true, member)}
             sx={{ p: 0.4, borderLeft: 1, borderColor: 'divider', cursor: onSlot ? 'pointer' : 'default', minWidth: 0 }}
           >
-            {allDay.filter((it) => onDay(it, d)).map((it) => <EventPill key={it.id} item={it} onClick={onSelect} compact />)}
+            {allDay.filter((it) => onDay(it, d) && match(it)).map((it) => <EventPill key={it.id} item={it} onClick={onSelect} compact badges={badges && !laneMode} />)}
           </Stack>
         ))}
       </Box>
@@ -235,13 +282,13 @@ export function TimeGridView({
               </Typography>
             ))}
           </Box>
-          {days.map((d) => {
+          {columns.map(({ key, day: d, member, match }) => {
             const isToday = d.isSame(now, 'day');
-            const positioned = layoutDay(timed.filter((it) => onDay(it, d)), d);
+            const positioned = layoutDay(timed.filter((it) => onDay(it, d) && match(it)), d);
             return (
               <Box
-                key={d.toString()}
-                onClick={(e) => slotClick(d, e)}
+                key={key}
+                onClick={(e) => slotClick(d, e, member)}
                 sx={{
                   position: 'relative', borderLeft: 1, borderColor: 'divider', cursor: onSlot ? 'pointer' : 'default',
                   backgroundImage: `repeating-linear-gradient(to bottom, ${gridLine} 0, ${gridLine} 1px, transparent 1px, transparent ${HOUR_PX}px)`,
@@ -273,6 +320,7 @@ export function TimeGridView({
                       }}
                     >
                       <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: short ? 'nowrap' : 'normal', textDecoration: item.status === 'CANCELLED' ? 'line-through' : 'none' }}>
+                        {badges && !laneMode && <><MemberBadges members={item.members} />{' '}</>}
                         {item.title}
                       </Typography>
                       <Typography variant="caption" sx={{ fontSize: 10.5, color: 'text.secondary', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
@@ -296,7 +344,7 @@ export function TimeGridView({
 }
 
 /* --------------------------------- agenda -------------------------------- */
-export function AgendaView({ date, items, onSelect }: { date: Dayjs; items: CalendarItem[]; onSelect: (i: CalendarItem) => void }) {
+export function AgendaView({ date, items, onSelect, badges = true }: { date: Dayjs; items: CalendarItem[]; onSelect: (i: CalendarItem) => void; badges?: boolean }) {
   const { from } = viewRange('agenda', date);
   const groups = useMemo(() => {
     const out: { day: Dayjs; items: CalendarItem[] }[] = [];
@@ -355,9 +403,12 @@ export function AgendaView({ date, items, onSelect }: { date: Dayjs; items: Cale
                       </Typography>
                     </Box>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, textDecoration: it.status === 'CANCELLED' ? 'line-through' : 'none' }} noWrap>
-                        {it.title}
-                      </Typography>
+                      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
+                        {badges && <MemberBadges members={it.members} size="md" />}
+                        <Typography variant="body2" sx={{ fontWeight: 700, textDecoration: it.status === 'CANCELLED' ? 'line-through' : 'none' }} noWrap>
+                          {it.title}
+                        </Typography>
+                      </Stack>
                       <Typography variant="caption" color="text.secondary" noWrap component="div">
                         {[it.kind === 'deadline' ? 'Request deadline' : calendarTypeMeta(it.type).label, it.venue, it.area].filter(Boolean).join(' · ')}
                       </Typography>

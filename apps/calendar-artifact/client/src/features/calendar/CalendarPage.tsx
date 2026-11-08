@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Alert, Box, Button, ButtonBase, Card, CardContent, Checkbox, FormControlLabel, Grid, IconButton, LinearProgress, ListItemIcon,
-  ListItemText, Menu, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography, useMediaQuery,
+  ListItemText, Menu, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography, useMediaQuery,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useSnackbar } from 'notistack';
 import dayjs, { type Dayjs } from 'dayjs';
-import { CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_TYPES } from '@cal/shared';
+import { CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_TYPES, CALENDAR_MEMBERS } from '@cal/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { Icon } from '@/components/Icon';
 import { useCalendarStore } from '@/data/CalendarStore';
@@ -27,13 +27,59 @@ const VIEWS: { value: CalendarView; label: string; icon: string; key: string }[]
 const ALL_TYPES = CALENDAR_EVENT_TYPES.map((t) => t.code as string);
 const PREFS_KEY = 'calendar:prefs';
 
-function readPrefs(): { hidden: string[] } {
+const ALL_MEMBERS = CALENDAR_MEMBERS.map((m) => m.code as string);
+
+interface Prefs { hidden: string[]; hiddenMembers: string[]; sideBySide: boolean }
+function readPrefs(): Prefs {
   try {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
-    return { hidden: Array.isArray(p.hidden) ? p.hidden.filter((c: string) => ALL_TYPES.includes(c)) : [] };
+    return {
+      hidden: Array.isArray(p.hidden) ? p.hidden.filter((c: string) => ALL_TYPES.includes(c)) : [],
+      hiddenMembers: Array.isArray(p.hiddenMembers) ? p.hiddenMembers.filter((c: string) => ALL_MEMBERS.includes(c)) : [],
+      sideBySide: p.sideBySide !== false,
+    };
   } catch {
-    return { hidden: [] };
+    return { hidden: [], hiddenMembers: [], sideBySide: true };
   }
+}
+
+/** One of the three calendars: click to show/hide it. */
+function MemberCard({
+  member, on, today, week, onToggle, onOnly,
+}: { member: (typeof CALENDAR_MEMBERS)[number]; on: boolean; today: number | string; week: number | string; onToggle: () => void; onOnly: () => void }) {
+  return (
+    <ButtonBase
+      onClick={onToggle}
+      onDoubleClick={onOnly}
+      aria-pressed={on}
+      sx={{
+        flex: 1, minWidth: { xs: 0, sm: 180 }, justifyContent: 'flex-start', textAlign: 'left', gap: { xs: 0.75, sm: 1.25 },
+        p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, border: 1.5,
+        borderColor: on ? member.color : 'divider',
+        bgcolor: on ? alpha(member.color, 0.08) : 'transparent',
+        opacity: on ? 1 : 0.55,
+        transition: 'all .15s ease',
+        '&:hover': { borderColor: member.color },
+      }}
+    >
+      <Box sx={{ width: 22, height: 22, borderRadius: 1, flexShrink: 0, display: 'grid', placeItems: 'center', bgcolor: on ? member.color : 'transparent', border: `2px solid ${member.color}` }}>
+        {on && <Icon name="CheckCircle" sx={{ fontSize: 16, color: '#fff' }} />}
+      </Box>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography variant="body2" sx={{ fontWeight: 800, color: member.color, lineHeight: 1.2, fontSize: { xs: '0.78rem', sm: '0.875rem' } }} noWrap>
+          {member.short === 'MP' ? 'MP' : `MLA ${member.short}`}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" noWrap component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>{member.label}</Typography>
+        <Typography variant="caption" color="text.secondary" noWrap component="div" sx={{ display: { xs: 'block', sm: 'none' }, fontSize: 10.5 }}>
+          {today} today
+        </Typography>
+      </Box>
+      <Box sx={{ textAlign: 'right', flexShrink: 0, display: { xs: 'none', sm: 'block' } }}>
+        <Typography variant="body2" sx={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{today}</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>today · {week} wk</Typography>
+      </Box>
+    </ButtonBase>
+  );
 }
 
 /** The view lives in the URL hash (#month, #week, #day, #agenda) so it survives a reload. */
@@ -90,10 +136,31 @@ export function CalendarPage() {
   useEffect(() => {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* storage unavailable */ }
   }, [prefs]);
-  const visibleEvents = useMemo(
+  const visibleMembers = ALL_MEMBERS.filter((m) => !prefs.hiddenMembers.includes(m));
+  const multiMember = visibleMembers.length > 1;
+  const typeFiltered = useMemo(
     () => store.events.filter((e) => !prefs.hidden.includes(e.type) || !ALL_TYPES.includes(e.type)),
     [store.events, prefs.hidden],
   );
+  const visibleEvents = useMemo(
+    () => typeFiltered.filter((e) => e.members.some((m) => !prefs.hiddenMembers.includes(m))),
+    [typeFiltered, prefs.hiddenMembers],
+  );
+  // Per-person counts for the calendar cards (ignore the person filter, respect the type filter).
+  const memberCounts = useMemo(() => {
+    const t0 = dayjs().startOf('day');
+    const week = expandToItems(typeFiltered, t0, t0.add(7, 'day'));
+    return Object.fromEntries(ALL_MEMBERS.map((m) => {
+      const mine = week.filter((i) => i.members?.includes(m) && i.status !== 'CANCELLED');
+      return [m, { today: mine.filter((i) => onDay(i, t0)).length, week: mine.length }];
+    }));
+  }, [typeFiltered]);
+  const toggleMember = (code: string) =>
+    setPrefs((p) => {
+      const hidden = p.hiddenMembers.includes(code) ? p.hiddenMembers.filter((c) => c !== code) : [...p.hiddenMembers, code];
+      return { ...p, hiddenMembers: hidden.length === ALL_MEMBERS.length ? p.hiddenMembers : hidden }; // keep at least one visible
+    });
+  const onlyMember = (code: string) => setPrefs((p) => ({ ...p, hiddenMembers: ALL_MEMBERS.filter((c) => c !== code) }));
 
   const { from, to } = viewRange(view, date);
   const items = useMemo(() => expandToItems(visibleEvents, from, to), [visibleEvents, from.valueOf(), to.valueOf()]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -128,7 +195,7 @@ export function CalendarPage() {
   const copyDay = async () => {
     const today = dayjs();
     const day = view === 'day' || !(today.isAfter(from) && today.isBefore(to)) ? date : today;
-    const text = dayScheduleText(day, expandToItems(visibleEvents, day.startOf('day'), day.startOf('day').add(1, 'day')));
+    const text = dayScheduleText(day, expandToItems(visibleEvents, day.startOf('day'), day.startOf('day').add(1, 'day')), visibleMembers);
     try {
       await navigator.clipboard.writeText(text);
       enqueueSnackbar(`Schedule for ${day.format('D MMM')} copied - paste it in WhatsApp`, { variant: 'success' });
@@ -152,14 +219,16 @@ export function CalendarPage() {
   };
 
   const [selected, setSelected] = useState<CalendarItem | null>(null);
-  const [editor, setEditor] = useState<{ item?: CalendarItem | null; defaults?: { start: Dayjs; end: Dayjs; allDay?: boolean } | null } | null>(null);
+  const [editor, setEditor] = useState<{ item?: CalendarItem | null; defaults?: { start: Dayjs; end: Dayjs; allDay?: boolean; members?: string[] } | null } | null>(null);
 
+  // New events start assigned to the person whose column was clicked, or to the only calendar on screen.
+  const defaultMembers = (member?: string) => (member ? [member] : visibleMembers.length === 1 ? [...visibleMembers] : []);
   const onSlot = canManage
-    ? (start: Dayjs, end: Dayjs, allDay: boolean) => setEditor({ defaults: { start, end, allDay } })
+    ? (start: Dayjs, end: Dayjs, allDay: boolean, member?: string) => setEditor({ defaults: { start, end, allDay, members: defaultMembers(member) } })
     : undefined;
   const newEvent = () => {
     const base = date.isSame(dayjs(), 'day') ? dayjs().add(1, 'hour').startOf('hour') : date.hour(10);
-    setEditor({ defaults: { start: base, end: base.add(1, 'hour') } });
+    setEditor({ defaults: { start: base, end: base.add(1, 'hour'), members: defaultMembers() } });
   };
 
   // Keyboard: T today, ←/→ step, M/W/D/A views, N new event.
@@ -188,8 +257,8 @@ export function CalendarPage() {
   return (
     <Box>
       <PageHeader
-        title="MLA Office Calendar"
-        subtitle="Davanagere South - meetings, events, site visits and Jana Samparka"
+        title="Office Calendar"
+        subtitle="Schedules of MLA Davanagere South, MLA Davanagere North and MP Davanagere"
         action={(
           <Stack direction="row" spacing={1}>
             <Tooltip title="Copy the day's schedule as text (for WhatsApp)">
@@ -329,10 +398,14 @@ export function CalendarPage() {
 
         {/* ------------------------------- main -------------------------------- */}
         <Grid item xs={12} md={isNarrow ? 12 : 9}>
-          <Stack direction="row" spacing={{ xs: 2, sm: 4 }} sx={{ mb: 2, px: 0.5, overflowX: 'auto' }}>
-            <StatTile label="Today" value={loaded ? todayCount : '—'} icon="Today" color={theme.palette.secondary.main} />
-            <StatTile label={isMobile ? '7 days' : 'Next 7 days'} value={loaded ? weekCount : '—'} icon="Event" color={theme.palette.info.main} />
-            <StatTile label={isMobile ? 'Total' : 'Events saved'} value={loaded ? store.events.length : '—'} icon="FolderCopy" color={theme.palette.success.main} />
+          <Stack direction="row" spacing={{ xs: 0.75, sm: 1.5 }} sx={{ mb: 2 }}>
+            {CALENDAR_MEMBERS.map((m) => (
+              <MemberCard
+                key={m.code} member={m} on={!prefs.hiddenMembers.includes(m.code)}
+                today={loaded ? memberCounts[m.code].today : '—'} week={loaded ? memberCounts[m.code].week : '—'}
+                onToggle={() => toggleMember(m.code)} onOnly={() => onlyMember(m.code)}
+              />
+            ))}
           </Stack>
 
           <Card sx={{ overflow: 'hidden', '&:hover': { transform: 'none' } }}>
@@ -350,6 +423,13 @@ export function CalendarPage() {
                 </Tooltip>
                 <Typography variant="h6" noWrap sx={{ fontWeight: 700, ml: 0.5 }}>{rangeTitle(view, date)}</Typography>
               </Stack>
+              {view === 'day' && multiMember && (
+                <FormControlLabel
+                  sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontSize: '0.85rem', fontWeight: 600 } }}
+                  control={<Switch size="small" checked={prefs.sideBySide} onChange={(e) => setPrefs((p) => ({ ...p, sideBySide: e.target.checked }))} />}
+                  label="Side by side"
+                />
+              )}
               {isMobile ? (
                 <TextField select size="small" value={view} onChange={(e) => setNav({ view: e.target.value as CalendarView })}>
                   {VIEWS.map((v) => <MenuItem key={v.value} value={v.value}>{v.label}</MenuItem>)}
@@ -369,10 +449,15 @@ export function CalendarPage() {
             </Stack>
             <Box sx={{ height: 3 }}>{store.status === 'connecting' && <LinearProgress color="secondary" sx={{ height: 3 }} />}</Box>
 
-            {view === 'month' && <MonthView date={date} items={items} onSelect={setSelected} onSlot={onSlot} onShowDay={showDay} />}
-            {view === 'week' && <TimeGridView date={date} days={7} items={items} onSelect={setSelected} onSlot={onSlot} onShowDay={showDay} />}
-            {view === 'day' && <TimeGridView date={date} days={1} items={items} onSelect={setSelected} onSlot={onSlot} onShowDay={showDay} />}
-            {view === 'agenda' && <AgendaView date={date} items={items} onSelect={setSelected} />}
+            {view === 'month' && <MonthView date={date} items={items} onSelect={setSelected} onSlot={onSlot} onShowDay={showDay} badges={multiMember} />}
+            {view === 'week' && <TimeGridView date={date} days={7} items={items} onSelect={setSelected} onSlot={onSlot} onShowDay={showDay} badges={multiMember} />}
+            {view === 'day' && (
+              <TimeGridView
+                date={date} days={1} items={items} onSelect={setSelected} onSlot={onSlot} onShowDay={showDay}
+                lanes={prefs.sideBySide && multiMember ? visibleMembers : undefined} badges={multiMember}
+              />
+            )}
+            {view === 'agenda' && <AgendaView date={date} items={items} onSelect={setSelected} badges={multiMember} />}
           </Card>
 
           {isNarrow && (

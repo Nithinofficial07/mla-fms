@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { CALENDAR_DEFAULT_MEMBER, CALENDAR_MEMBER_CODES } from '@cal/shared';
 import { useCapability, type Db, type DbError, type DownloadsCap, type UserCap } from './claude';
 
 /** One event as saved in the artifact database (collection `events`). */
@@ -7,6 +8,8 @@ export interface StoredEvent {
   title: string;
   description: string;
   type: string;
+  /** Who the event is for: MLA_S / MLA_N / MP (at least one). */
+  members: string[];
   status: string;
   start: string; // ISO
   end: string;
@@ -55,6 +58,10 @@ function toEvent(id: string, d: Record<string, unknown>): StoredEvent | null {
     title: str(d.title, '(untitled)'),
     description: str(d.description),
     type: str(d.type, 'MEETING_OFFICIAL'),
+    members: (() => {
+      const m = Array.isArray(d.members) ? d.members.filter((x): x is string => typeof x === 'string' && (CALENDAR_MEMBER_CODES as readonly string[]).includes(x)) : [];
+      return m.length ? m : [CALENDAR_DEFAULT_MEMBER];
+    })(),
     status: str(d.status, 'SCHEDULED'),
     start,
     end: Number.isNaN(Date.parse(end)) ? start : end,

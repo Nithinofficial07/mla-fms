@@ -5,7 +5,7 @@ import {
 import { useState } from 'react';
 import { useSnackbar } from 'notistack';
 import dayjs from 'dayjs';
-import { CALENDAR_DEADLINE_COLOR, CALENDAR_RECURRENCE, calendarTypeMeta } from '@cal/shared';
+import { CALENDAR_DEADLINE_COLOR, calendarMemberMeta, CALENDAR_RECURRENCE, calendarTypeMeta } from '@cal/shared';
 import { useCalendarStore } from '@/data/CalendarStore';
 import { Icon } from '@/components/Icon';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -92,6 +92,16 @@ export function EventDetailsDialog({ item, canManage, onClose, onEdit }: Props) 
           </Stack>
 
           <Stack spacing={1.5}>
+            {!!item.members?.length && (
+              <Row icon="Person">
+                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                  {item.members.map((code) => {
+                    const m = calendarMemberMeta(code);
+                    return m ? <Chip key={code} size="small" label={m.label} sx={{ height: 24, fontWeight: 700, color: '#fff', bgcolor: m.color }} /> : null;
+                  })}
+                </Stack>
+              </Row>
+            )}
             <Row icon="Event">
               <Typography variant="body2" fontWeight={600}>{dayjs(item.start).format('dddd, D MMMM YYYY')}</Typography>
               <Typography variant="body2" color="text.secondary">

@@ -13,6 +13,7 @@ export interface CalendarItem {
   title: string;
   description?: string;
   type: string;
+  members?: string[];
   status?: string;
   start: string;
   end: string;

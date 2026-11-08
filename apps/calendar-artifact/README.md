@@ -1,6 +1,6 @@
 # MLA Office Calendar (Claude artifact)
 
-Standalone calendar for the Davanagere South MLA office. Published as a Claude
+Standalone calendar for three people: MLA Davanagere South (MLA_S), MLA Davanagere North (MLA_N) and MP Davanagere (MP). Published as a Claude
 artifact: https://claude.ai/artifact/K3PqppEspCaBeDPYBMxL2q
 (slug `921a0f67-e565-4c4b-9041-869744496cee`).
 
@@ -14,6 +14,7 @@ artifact: https://claude.ai/artifact/K3PqppEspCaBeDPYBMxL2q
 Events live in the artifact's own database, collection `events`, one document
 per event:
 
+    members[] (MLA_S / MLA_N / MP, at least one; missing = MLA_S),
     title, description, type, status, start, end (ISO), allDay,
     recurrence, recurrenceUntil, venue, area, organizer, contactName,
     contactPhone, attendees[], createdBy, createdAt, updatedBy, updatedAt

@@ -5,7 +5,7 @@ import { expandToItems } from './calendarUtils';
 import { dayScheduleText, eventsToIcs, itemsToCsv } from './exporters';
 
 const base: StoredEvent = {
-  id: 'e1', title: 'Jana Samparka', description: '', type: 'JANA_SAMPARKA', status: 'SCHEDULED',
+  id: 'e1', title: 'Jana Samparka', description: '', type: 'JANA_SAMPARKA', members: ['MLA_S'], status: 'SCHEDULED',
   start: '2026-11-06T10:30:00.000Z', end: '2026-11-06T12:30:00.000Z', allDay: false,
   recurrence: 'WEEKLY', recurrenceUntil: null, venue: 'MLA Office', area: 'Ward 09',
   organizer: '', contactName: 'PA', contactPhone: '9876543210', attendees: [],
@@ -26,6 +26,8 @@ describe('exports', () => {
     const items = expandToItems([base, { ...base, id: 'e2', title: 'Cancelled thing', recurrence: 'NONE', status: 'CANCELLED' }], day, day.add(1, 'day'));
     const text = dayScheduleText(day, items);
     expect(text).toContain('Friday, 6 November 2026');
+    expect(text).toContain('*MLA - Davanagere South*');
+    expect(text).toContain('*MP - Davanagere*');
     expect(text).toContain('Jana Samparka');
     expect(text).toContain('MLA Office, Ward 09');
     expect(text).not.toContain('Cancelled thing');
@@ -41,8 +43,23 @@ describe('exports', () => {
   it('ICS carries repeat rules and all-day dates', () => {
     const ics = eventsToIcs([base, { ...base, id: 'e3', allDay: true, recurrence: 'NONE', start: '2026-10-31T18:30:00.000Z', end: '2026-11-01T18:29:00.000Z' }]);
     expect(ics).toContain('RRULE:FREQ=WEEKLY');
+    expect(ics).toContain('SUMMARY:[S] Jana Samparka');
     expect(ics).toContain('DTSTART:20261106T103000Z');
     expect(ics).toMatch(/DTSTART;VALUE=DATE:\d{8}/);
     expect(ics.startsWith('BEGIN:VCALENDAR')).toBe(true);
+  });
+});
+
+describe('members', () => {
+  it('one-person copy text lists only that person', () => {
+    const day = dayjs('2026-11-06');
+    const evs = [base, { ...base, id: 'n1', title: 'North only', recurrence: 'NONE', members: ['MLA_N'] }];
+    const text = dayScheduleText(day, expandToItems(evs, day, day.add(1, 'day')), ['MLA_N']);
+    expect(text).toContain('North only');
+    expect(text).not.toContain('Jana Samparka');
+  });
+  it('CSV has a For column with names', () => {
+    const csv = itemsToCsv(expandToItems([{ ...base, recurrence: 'NONE', members: ['MLA_S', 'MP'] }], dayjs('2026-11-01'), dayjs('2026-12-01')));
+    expect(csv).toContain('MLA - Davanagere South + MP - Davanagere');
   });
 });

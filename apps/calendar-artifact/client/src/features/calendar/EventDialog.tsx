@@ -7,7 +7,7 @@ import { useTheme } from '@mui/material/styles';
 import { useSnackbar } from 'notistack';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
-  CALENDAR_DEFAULT_TYPE, CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPES, CALENDAR_RECURRENCE, calendarTypeMeta,
+  CALENDAR_DEFAULT_TYPE, CALENDAR_EVENT_GROUPS, CALENDAR_MEMBERS, CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPES, CALENDAR_RECURRENCE, calendarTypeMeta,
 } from '@cal/shared';
 import { useCalendarStore } from '@/data/CalendarStore';
 import { Icon } from '@/components/Icon';
@@ -18,6 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 interface FormState {
+  members: string[];
   title: string;
   type: string;
   status: string;
@@ -40,6 +41,7 @@ function fromItem(item: CalendarItem): FormState {
   const s = dayjs(item.seriesStart ?? item.start);
   const e = dayjs(item.seriesEnd ?? item.end);
   return {
+    members: item.members ?? [],
     title: item.title,
     type: calendarTypeMeta(item.type).code === 'UNKNOWN' ? CALENDAR_DEFAULT_TYPE : calendarTypeMeta(item.type).code,
     status: item.status ?? 'SCHEDULED',
@@ -58,8 +60,9 @@ function fromItem(item: CalendarItem): FormState {
   };
 }
 
-function blank(start: Dayjs, end: Dayjs, allDay: boolean): FormState {
+function blank(start: Dayjs, end: Dayjs, allDay: boolean, members: string[]): FormState {
   return {
+    members,
     title: '', type: CALENDAR_DEFAULT_TYPE, status: 'SCHEDULED', allDay,
     startDate: start.format('YYYY-MM-DD'), startTime: start.format('HH:mm'),
     endDate: end.format('YYYY-MM-DD'), endTime: end.format('HH:mm'),
@@ -75,7 +78,7 @@ export interface EventDialogProps {
   /** Existing event to edit; omit to create. */
   item?: CalendarItem | null;
   /** Pre-filled slot for a new event. */
-  defaults?: { start: Dayjs; end: Dayjs; allDay?: boolean } | null;
+  defaults?: { start: Dayjs; end: Dayjs; allDay?: boolean; members?: string[] } | null;
 }
 
 export function EventDialog({ open, onClose, item, defaults }: EventDialogProps) {
@@ -85,7 +88,7 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
   const store = useCalendarStore();
   const [saving, setSaving] = useState(false);
   const editing = !!item?.eventId;
-  const [form, setForm] = useState<FormState>(() => blank(dayjs(), dayjs().add(1, 'hour'), false));
+  const [form, setForm] = useState<FormState>(() => blank(dayjs(), dayjs().add(1, 'hour'), false, []));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,7 +98,7 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
     else {
       const s = defaults?.start ?? dayjs().add(1, 'hour').startOf('hour');
       const e = defaults?.end ?? s.add(1, 'hour');
-      setForm(blank(s, e, !!defaults?.allDay));
+      setForm(blank(s, e, !!defaults?.allDay, defaults?.members ?? []));
     }
   }, [open, item, defaults]);
 
@@ -104,7 +107,7 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
   const startAt = form.allDay ? dayjs(form.startDate).startOf('day') : dayjs(`${form.startDate}T${form.startTime}`);
   const endAt = form.allDay ? dayjs(form.endDate).endOf('day').millisecond(0) : dayjs(`${form.endDate}T${form.endTime}`);
   const rangeValid = startAt.isValid() && endAt.isValid() && !endAt.isBefore(startAt);
-  const canSave = form.title.trim().length > 0 && rangeValid;
+  const canSave = form.title.trim().length > 0 && rangeValid && form.members.length > 0;
 
   // Keep the end after the start when the start moves.
   const moveStart = (date: string, time: string) => {
@@ -125,6 +128,7 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
     setError(null);
     try {
       await store.save(editing ? item!.eventId! : null, {
+        members: form.members,
         title: form.title.trim(),
         type: form.type,
         status: form.status,
@@ -159,6 +163,35 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
           {editing && item?.isRecurring && (
             <Alert severity="info" icon={<Icon name="Autorenew" />}>This is a repeating event - changes apply to every occurrence.</Alert>
           )}
+
+          <Box>
+            <Typography variant="caption" color={form.members.length ? 'text.secondary' : 'error'} sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
+              For * {form.members.length ? '' : '- choose whose event this is'}
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {CALENDAR_MEMBERS.map((m) => {
+                const on = form.members.includes(m.code);
+                return (
+                  <Chip
+                    key={m.code}
+                    label={m.label}
+                    onClick={() => set('members', on ? form.members.filter((c) => c !== m.code) : CALENDAR_MEMBERS.map((x) => x.code).filter((c) => c === m.code || form.members.includes(c)))}
+                    icon={<Icon name={on ? 'CheckCircle' : 'Person'} sx={{ color: `${on ? '#fff' : m.color} !important` }} />}
+                    sx={{
+                      fontWeight: 700, height: 34, px: 0.5,
+                      bgcolor: on ? m.color : 'transparent',
+                      color: on ? '#fff' : 'text.primary',
+                      border: 1.5, borderColor: on ? m.color : 'divider',
+                      '&:hover': { bgcolor: on ? m.color : `${m.color}1F` },
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+              Pick more than one for a joint programme.
+            </Typography>
+          </Box>
 
           <TextField
             autoFocus fullWidth required label="Title" value={form.title}
@@ -267,14 +300,14 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
               <Autocomplete
                 freeSolo options={venueOptions} value={form.venue}
                 onInputChange={(_e, v) => set('venue', v)}
-                renderInput={(params) => <TextField {...params} size="small" label="Venue" placeholder="e.g. MLA Office, Davanagere" />}
+                renderInput={(params) => <TextField {...params} size="small" label="Venue" placeholder="e.g. MLA Office, Davanagere" InputLabelProps={{ ...params.InputLabelProps, shrink: form.venue ? true : undefined }} />}
               />
             </Grid>
             <Grid item xs={12} sm={5}>
               <Autocomplete
                 freeSolo options={areaOptions} value={form.area}
                 onInputChange={(_e, v) => set('area', v)}
-                renderInput={(params) => <TextField {...params} size="small" label="Ward / Village" placeholder="e.g. Ward 09, Battlakatte" />}
+                renderInput={(params) => <TextField {...params} size="small" label="Ward / Village" placeholder="e.g. Ward 09, Battlakatte" InputLabelProps={{ ...params.InputLabelProps, shrink: form.area ? true : undefined }} />}
               />
             </Grid>
             <Grid item xs={12} sm={4}>

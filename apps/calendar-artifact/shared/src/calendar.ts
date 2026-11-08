@@ -4,6 +4,24 @@
  */
 
 /**
+ * The three people whose schedules this calendar manages. Every event is
+ * assigned to at least one of them. `color` marks the person (badges,
+ * side-by-side columns); the event TYPE colour stays the main fill.
+ */
+export const CALENDAR_MEMBERS = [
+  { code: 'MLA_S', label: 'MLA - Davanagere South', short: 'South', badge: 'S', color: '#1E88E5' },
+  { code: 'MLA_N', label: 'MLA - Davanagere North', short: 'North', badge: 'N', color: '#00897B' },
+  { code: 'MP', label: 'MP - Davanagere', short: 'MP', badge: 'MP', color: '#8E24AA' },
+] as const;
+export type CalendarMember = (typeof CALENDAR_MEMBERS)[number]['code'];
+export const CALENDAR_MEMBER_CODES = CALENDAR_MEMBERS.map((m) => m.code) as [CalendarMember, ...CalendarMember[]];
+/** Events saved before the calendar covered three people belonged to MLA South. */
+export const CALENDAR_DEFAULT_MEMBER: CalendarMember = 'MLA_S';
+export function calendarMemberMeta(code: string) {
+  return CALENDAR_MEMBERS.find((m) => m.code === code);
+}
+
+/**
  * Event types, colour-coded with Google Calendar's named colours (as the
  * office already uses them), grouped for the filter list and the picker.
  */

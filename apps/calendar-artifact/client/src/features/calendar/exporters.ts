@@ -1,19 +1,34 @@
 import dayjs, { type Dayjs } from 'dayjs';
-import { CALENDAR_RECURRENCE, calendarTypeMeta } from '@cal/shared';
+import { CALENDAR_MEMBERS, CALENDAR_RECURRENCE, calendarMemberMeta, calendarTypeMeta } from '@cal/shared';
 import type { StoredEvent } from '@/data/CalendarStore';
 import { timeLabel, type CalendarItem } from './calendarUtils';
 
 /** A day's schedule as plain text, ready to paste into WhatsApp. */
-export function dayScheduleText(day: Dayjs, items: CalendarItem[]): string {
-  const lines = [`*MLA Schedule - ${day.format('dddd, D MMMM YYYY')}*`, ''];
+const memberNames = (codes?: string[]) => (codes ?? []).map((c) => calendarMemberMeta(c)?.label ?? c).join(' + ');
+
+/** A day's schedule as plain text, ready to paste into WhatsApp - one section per person shown. */
+export function dayScheduleText(day: Dayjs, items: CalendarItem[], members: string[] = CALENDAR_MEMBERS.map((m) => m.code)): string {
+  const lines = [`*Schedule - ${day.format('dddd, D MMMM YYYY')}*`];
   const list = items.filter((i) => i.status !== 'CANCELLED');
-  if (!list.length) lines.push('No events scheduled.');
-  list.forEach((it, i) => {
+  const line = (it: CalendarItem, i: number) => {
     lines.push(`${i + 1}. ${it.allDay ? 'All day' : dayjs(it.start).format('h:mm A')} - ${it.title}`);
     const where = [it.venue, it.area].filter(Boolean).join(', ');
     if (where) lines.push(`   📍 ${where}`);
     if (it.contactName || it.contactPhone) lines.push(`   📞 ${[it.contactName, it.contactPhone].filter(Boolean).join(' ')}`);
-  });
+  };
+  if (members.length === 1) {
+    lines.push(`_${calendarMemberMeta(members[0])?.label ?? ''}_`, '');
+    const mine = list.filter((i) => i.members?.includes(members[0]));
+    if (!mine.length) lines.push('No events scheduled.');
+    mine.forEach(line);
+    return lines.join('\n');
+  }
+  for (const code of members) {
+    const mine = list.filter((i) => i.members?.includes(code));
+    lines.push('', `*${calendarMemberMeta(code)?.label ?? code}*`);
+    if (!mine.length) lines.push('No events scheduled.');
+    mine.forEach(line);
+  }
   return lines.join('\n');
 }
 
@@ -24,11 +39,12 @@ const csvCell = (v: unknown) => {
 
 /** Occurrences in range as CSV (opens in Excel). BOM so Kannada text shows correctly. */
 export function itemsToCsv(items: CalendarItem[]): string {
-  const head = ['Date', 'Day', 'Time', 'Title', 'Type', 'Status', 'Venue', 'Ward / Village', 'Organiser', 'Contact', 'Phone', 'Attendees', 'Notes'];
+  const head = ['Date', 'Day', 'Time', 'For', 'Title', 'Type', 'Status', 'Venue', 'Ward / Village', 'Organiser', 'Contact', 'Phone', 'Attendees', 'Notes'];
   const rows = items.map((it) => [
     dayjs(it.start).format('DD-MM-YYYY'),
     dayjs(it.start).format('ddd'),
     timeLabel(it),
+    memberNames(it.members),
     it.title,
     calendarTypeMeta(it.type).label,
     it.status ?? '',
@@ -66,10 +82,12 @@ export function eventsToIcs(events: StoredEvent[]): string {
       const until = ev.recurrenceUntil ? `;UNTIL=${dayjs(ev.recurrenceUntil).format('YYYYMMDD')}T235959Z` : '';
       lines.push(`RRULE:${RRULE[ev.recurrence]}${until}`);
     }
-    lines.push(`SUMMARY:${icsEscape(ev.title)}`);
+    const tag = ev.members.map((c) => calendarMemberMeta(c)?.badge ?? c).join('+');
+    lines.push(`SUMMARY:${icsEscape(tag ? `[${tag}] ${ev.title}` : ev.title)}`);
     const where = [ev.venue, ev.area].filter(Boolean).join(', ');
     if (where) lines.push(`LOCATION:${icsEscape(where)}`);
     const desc = [
+      memberNames(ev.members),
       calendarTypeMeta(ev.type).label,
       ev.organizer && `Organiser: ${ev.organizer}`,
       (ev.contactName || ev.contactPhone) && `Contact: ${[ev.contactName, ev.contactPhone].filter(Boolean).join(' ')}`,

@@ -35,10 +35,10 @@ export function App() {
           </Box>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography sx={{ fontWeight: 800, color: '#fff', lineHeight: 1.15, fontSize: { xs: '0.95rem', sm: '1.05rem' } }} noWrap>
-              Davanagere South Constituency
+              Davanagere · Office Calendar
             </Typography>
             <Typography variant="caption" sx={{ color: alpha('#fff', 0.7), display: 'block', lineHeight: 1.2 }} noWrap>
-              Office of the MLA · Calendar
+              MLA South · MLA North · MP
             </Typography>
           </Box>
           <StatusChip />
