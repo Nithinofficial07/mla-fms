@@ -1,0 +1,19 @@
+{
+  "name": "mla-calendar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MLA Office Calendar - standalone schedule app for the Davanagere South MLA office, published as a Claude artifact",
+  "workspaces": [
+    "shared",
+    "client"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "test": "npm run test --workspace client",
+    "typecheck": "npm run typecheck --workspace client"
+  }
+}
