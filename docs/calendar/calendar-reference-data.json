@@ -1,0 +1,1566 @@
+{
+ "calendars": [
+  {
+   "code": "MLA_S",
+   "label": "MLA - Davanagere South",
+   "title": "MLA South",
+   "short": "South",
+   "badge": "S",
+   "color": "#1E88E5"
+  },
+  {
+   "code": "MLA_N",
+   "label": "MLA - Davanagere North",
+   "title": "MLA North",
+   "short": "North",
+   "badge": "N",
+   "color": "#00897B"
+  },
+  {
+   "code": "MP",
+   "label": "MP - Davanagere",
+   "title": "MP",
+   "short": "MP",
+   "badge": "MP",
+   "color": "#8E24AA"
+  },
+  {
+   "code": "SS_FAMILY",
+   "label": "SS Family (everyone)",
+   "title": "SS Family",
+   "short": "SS Family",
+   "badge": "SS",
+   "color": "#D81B60"
+  }
+ ],
+ "eventCategories": [
+  {
+   "code": "MEETING",
+   "label": "Meetings"
+  },
+  {
+   "code": "EVENT",
+   "label": "Events"
+  },
+  {
+   "code": "FIELD",
+   "label": "Field work"
+  },
+  {
+   "code": "PERSONAL",
+   "label": "Personal"
+  },
+  {
+   "code": "PARTY",
+   "label": "Party"
+  },
+  {
+   "code": "AWAY",
+   "label": "Away"
+  }
+ ],
+ "eventTypes": [
+  {
+   "code": "MEETING_OFFICIAL",
+   "group": "MEETING",
+   "label": "Official Meeting",
+   "colorName": "Blueberry",
+   "color": "#3F51B5",
+   "hint": "Official meetings"
+  },
+  {
+   "code": "MEETING_GOVERNANCE",
+   "group": "MEETING",
+   "label": "Governance Meeting",
+   "colorName": "Lavender",
+   "color": "#7986CB",
+   "hint": "Governance / review meetings"
+  },
+  {
+   "code": "EVENT_T1",
+   "group": "EVENT",
+   "label": "Event T1 - Chief Guest",
+   "colorName": "Flamingo",
+   "color": "#E67C73",
+   "hint": "Chief guest, felicitation, etc."
+  },
+  {
+   "code": "EVENT_T2",
+   "group": "EVENT",
+   "label": "Event T2 - Family Function",
+   "colorName": "Mango",
+   "color": "#F09300",
+   "hint": "Wedding, Namakarana, Shreemathi Karya, Gruhapravesha, Birthday, etc."
+  },
+  {
+   "code": "EVENT_T2B",
+   "group": "EVENT",
+   "label": "Event T2B - Store Opening",
+   "colorName": "Banana",
+   "color": "#F6BF26",
+   "hint": "Store / shop openings"
+  },
+  {
+   "code": "EVENT_T3",
+   "group": "EVENT",
+   "label": "Event T3 - Devasthana / Matha",
+   "colorName": "Tangerine",
+   "color": "#F4511E",
+   "hint": "Temple (Devasthana) and Matha events"
+  },
+  {
+   "code": "EVENT_FUNERAL",
+   "group": "EVENT",
+   "label": "Funeral",
+   "colorName": "Graphite",
+   "color": "#616161",
+   "hint": "Funerals and condolence visits"
+  },
+  {
+   "code": "SITE_VISIT",
+   "group": "FIELD",
+   "label": "Site Visit",
+   "colorName": "Basil",
+   "color": "#0B8043",
+   "hint": "Work sites, inspections"
+  },
+  {
+   "code": "JANA_SAMPARKA",
+   "group": "FIELD",
+   "label": "Jana Samparka",
+   "colorName": "Sage",
+   "color": "#33B679",
+   "hint": "Meeting the public"
+  },
+  {
+   "code": "BOOTH_NADIGE",
+   "group": "FIELD",
+   "label": "Booth / Gramina Nadige",
+   "colorName": "Pistachio",
+   "color": "#7CB342",
+   "hint": "Booth-level and village visits"
+  },
+  {
+   "code": "PERSONAL",
+   "group": "PERSONAL",
+   "label": "Personal",
+   "colorName": "Tomato",
+   "color": "#D50000",
+   "hint": "Personal / family time"
+  },
+  {
+   "code": "PARTY",
+   "group": "PARTY",
+   "label": "Party Event",
+   "colorName": "Citron",
+   "color": "#E4C441",
+   "hint": "Party programmes and meetings"
+  },
+  {
+   "code": "PARTY_PROTEST",
+   "group": "PARTY",
+   "label": "Protest",
+   "colorName": "Cocoa",
+   "color": "#795548",
+   "hint": "Protests and dharnas"
+  },
+  {
+   "code": "UNAVAILABLE",
+   "group": "AWAY",
+   "label": "Out of station / Unavailable",
+   "colorName": "Grey",
+   "color": "#90A4AE",
+   "hint": "Parliament or Assembly session, travel, leave - blocks the day"
+  }
+ ],
+ "rsvpStatuses": [
+  {
+   "code": "GOING",
+   "label": "Going",
+   "short": "Going",
+   "color": "#2E7D32"
+  },
+  {
+   "code": "UNDECIDED",
+   "label": "Not decided",
+   "short": "Not decided",
+   "color": "#F59E0B"
+  },
+  {
+   "code": "NOT_GOING",
+   "label": "Not going",
+   "short": "Not going",
+   "color": "#9E9E9E"
+  }
+ ],
+ "organiserKinds": [
+  {
+   "code": "IND",
+   "label": "Ind",
+   "full": "Individual"
+  },
+  {
+   "code": "SANGA",
+   "label": "Sanga",
+   "full": "Sanga"
+  }
+ ],
+ "awayPresets": [
+  "Parliament session - Delhi",
+  "Assembly session - Bengaluru",
+  "Out of station",
+  "On leave"
+ ],
+ "roleAtEvent": [
+  {
+   "code": "CHIEF_GUEST",
+   "label": "Chief Guest"
+  },
+  {
+   "code": "INAUGURATOR",
+   "label": "Inaugurator"
+  },
+  {
+   "code": "GUEST_OF_HONOUR",
+   "label": "Guest of Honour"
+  },
+  {
+   "code": "PRESIDING",
+   "label": "Presiding"
+  },
+  {
+   "code": "SPEAKER",
+   "label": "Speaker"
+  },
+  {
+   "code": "GUEST",
+   "label": "Guest"
+  }
+ ],
+ "preparationItems": [
+  {
+   "code": "SHAWL",
+   "label": "Shawl & garland",
+   "icon": "Redeem"
+  },
+  {
+   "code": "MEMENTO",
+   "label": "Memento / gift",
+   "icon": "CardGiftcard"
+  },
+  {
+   "code": "DONATION",
+   "label": "Donation (Kanike)",
+   "icon": "Payments"
+  },
+  {
+   "code": "SPEECH",
+   "label": "Speech points",
+   "icon": "RecordVoiceOver"
+  },
+  {
+   "code": "PRESS",
+   "label": "Press informed",
+   "icon": "Newspaper"
+  },
+  {
+   "code": "PHOTO",
+   "label": "Photographer / video",
+   "icon": "PhotoCamera"
+  },
+  {
+   "code": "POLICE",
+   "label": "Police / security informed",
+   "icon": "LocalPolice"
+  },
+  {
+   "code": "VEHICLE",
+   "label": "Vehicle arranged",
+   "icon": "DirectionsCar"
+  }
+ ],
+ "organiserReplyStatuses": [
+  {
+   "code": "PENDING",
+   "label": "Not replied",
+   "color": "#F59E0B"
+  },
+  {
+   "code": "CONFIRMED",
+   "label": "Confirmed",
+   "color": "#2E7D32"
+  },
+  {
+   "code": "REGRET",
+   "label": "Regret sent",
+   "color": "#757575"
+  }
+ ],
+ "socialPlatforms": [
+  "Facebook",
+  "Instagram",
+  "X (Twitter)",
+  "WhatsApp Channel",
+  "YouTube"
+ ],
+ "eventStatuses": [
+  "SCHEDULED",
+  "TENTATIVE",
+  "COMPLETED",
+  "CANCELLED"
+ ],
+ "repeatOptions": [
+  {
+   "code": "NONE",
+   "label": "Does not repeat"
+  },
+  {
+   "code": "DAILY",
+   "label": "Every day"
+  },
+  {
+   "code": "WEEKDAYS",
+   "label": "Every weekday (Mon–Sat)"
+  },
+  {
+   "code": "WEEKLY",
+   "label": "Every week"
+  },
+  {
+   "code": "MONTHLY",
+   "label": "Every month"
+  },
+  {
+   "code": "YEARLY",
+   "label": "Every year"
+  }
+ ],
+ "attendanceStatuses": [
+  "ATTENDED",
+  "REPRESENTATIVE",
+  "NOT_ATTENDED"
+ ],
+ "holidaySources": [
+  {
+   "code": "CENTRAL",
+   "label": "Central Govt holidays",
+   "short": "Central",
+   "color": "#E65100",
+   "note": "Gazetted holiday - Central Government offices closed"
+  },
+  {
+   "code": "KARNATAKA",
+   "label": "Karnataka holidays",
+   "short": "Karnataka",
+   "color": "#C62828",
+   "note": "General holiday - Karnataka Government offices closed"
+  },
+  {
+   "code": "KARNATAKA_RH",
+   "label": "Karnataka restricted",
+   "short": "Karnataka RH",
+   "color": "#AD7B00",
+   "note": "Restricted holiday - employees may take any two"
+  },
+  {
+   "code": "WORLD",
+   "label": "World & national days",
+   "short": "Day",
+   "color": "#00838F",
+   "note": "Observance - offices open"
+  }
+ ],
+ "holidays": {
+  "CENTRAL": [
+   {
+    "date": "2026-01-26",
+    "name": "Republic Day",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-03-04",
+    "name": "Holi",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-03-21",
+    "name": "Id-ul-Fitr",
+    "source": "CENTRAL",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2026-03-26",
+    "name": "Ram Navami",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-03-31",
+    "name": "Mahavir Jayanti",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-04-03",
+    "name": "Good Friday",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-04-14",
+    "name": "Dr B.R. Ambedkar Jayanti",
+    "source": "CENTRAL",
+    "note": "Declared by DoPT order of 9 Apr 2026"
+   },
+   {
+    "date": "2026-05-01",
+    "name": "Buddha Purnima",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-05-28",
+    "name": "Id-ul-Zuha (Bakrid)",
+    "source": "CENTRAL",
+    "note": "28 May for central offices in Karnataka (27 May in Delhi)"
+   },
+   {
+    "date": "2026-06-26",
+    "name": "Muharram",
+    "source": "CENTRAL",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2026-08-15",
+    "name": "Independence Day",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-08-26",
+    "name": "Id-e-Milad (Milad-un-Nabi)",
+    "source": "CENTRAL",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2026-09-04",
+    "name": "Janmashtami",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-10-02",
+    "name": "Mahatma Gandhi Jayanti",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-10-20",
+    "name": "Dussehra",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-11-08",
+    "name": "Diwali (Deepavali)",
+    "source": "CENTRAL",
+    "note": "Falls on a Sunday"
+   },
+   {
+    "date": "2026-11-24",
+    "name": "Guru Nanak Jayanti",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2026-12-25",
+    "name": "Christmas Day",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-01-26",
+    "name": "Republic Day",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-03-10",
+    "name": "Id-ul-Fitr",
+    "source": "CENTRAL",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2027-03-23",
+    "name": "Holi",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-03-26",
+    "name": "Good Friday",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-04-15",
+    "name": "Ram Navami",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-04-19",
+    "name": "Mahavir Jayanti",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-05-17",
+    "name": "Id-ul-Zuha (Bakrid)",
+    "source": "CENTRAL",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2027-05-20",
+    "name": "Buddha Purnima",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-06-16",
+    "name": "Muharram",
+    "source": "CENTRAL",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2027-08-15",
+    "name": "Independence Day",
+    "source": "CENTRAL",
+    "note": "Falls on a Sunday"
+   },
+   {
+    "date": "2027-08-15",
+    "name": "Id-e-Milad (Milad-un-Nabi)",
+    "source": "CENTRAL",
+    "note": "Falls on a Sunday"
+   },
+   {
+    "date": "2027-08-25",
+    "name": "Janmashtami",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-10-02",
+    "name": "Mahatma Gandhi Jayanti",
+    "source": "CENTRAL",
+    "note": "Falls on a Saturday"
+   },
+   {
+    "date": "2027-10-09",
+    "name": "Dussehra (Vijaya Dashami)",
+    "source": "CENTRAL",
+    "note": "Falls on a Saturday"
+   },
+   {
+    "date": "2027-10-29",
+    "name": "Diwali (Deepavali)",
+    "source": "CENTRAL"
+   },
+   {
+    "date": "2027-11-14",
+    "name": "Guru Nanak Jayanti",
+    "source": "CENTRAL",
+    "note": "Falls on a Sunday"
+   },
+   {
+    "date": "2027-12-25",
+    "name": "Christmas Day",
+    "source": "CENTRAL",
+    "note": "Falls on a Saturday"
+   }
+  ],
+  "KARNATAKA": [
+   {
+    "date": "2026-01-15",
+    "name": "Uttarayana Punyakala / Makara Sankranti",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-01-26",
+    "name": "Republic Day",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-02-15",
+    "name": "Maha Shivaratri",
+    "source": "KARNATAKA",
+    "note": "Falls on a Sunday / 2nd Saturday - not a separate holiday"
+   },
+   {
+    "date": "2026-03-19",
+    "name": "Chandramana Ugadi",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-03-21",
+    "name": "Khutub-E-Ramzan",
+    "source": "KARNATAKA",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2026-03-31",
+    "name": "Mahaveera Jayanthi",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-04-03",
+    "name": "Good Friday",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-04-14",
+    "name": "Dr B.R. Ambedkar Jayanthi",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-04-20",
+    "name": "Basava Jayanthi / Akshaya Tritiya",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-05-01",
+    "name": "May Day",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-05-28",
+    "name": "Bakrid",
+    "source": "KARNATAKA",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2026-06-26",
+    "name": "Last day of Moharam",
+    "source": "KARNATAKA",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2026-08-15",
+    "name": "Independence Day",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-08-26",
+    "name": "Eid-Milad",
+    "source": "KARNATAKA",
+    "note": "Subject to moon sighting"
+   },
+   {
+    "date": "2026-09-14",
+    "name": "Varasiddhi Vinayaka Vrata",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-10-02",
+    "name": "Gandhi Jayanthi",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-10-10",
+    "name": "Mahalaya Amavasye",
+    "source": "KARNATAKA",
+    "note": "Falls on a Sunday / 2nd Saturday - not a separate holiday"
+   },
+   {
+    "date": "2026-10-20",
+    "name": "Mahanavami / Ayudha Pooja",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-10-21",
+    "name": "Vijayadashami",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-10-25",
+    "name": "Maharshi Valmiki Jayanthi",
+    "source": "KARNATAKA",
+    "note": "Falls on a Sunday / 2nd Saturday - not a separate holiday"
+   },
+   {
+    "date": "2026-11-01",
+    "name": "Kannada Rajyotsava",
+    "source": "KARNATAKA",
+    "note": "Falls on a Sunday / 2nd Saturday - not a separate holiday"
+   },
+   {
+    "date": "2026-11-08",
+    "name": "Naraka Chaturdashi",
+    "source": "KARNATAKA",
+    "note": "Falls on a Sunday / 2nd Saturday - not a separate holiday"
+   },
+   {
+    "date": "2026-11-10",
+    "name": "Balipadyami / Deepavali",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-11-27",
+    "name": "Kanakadasa Jayanthi",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2026-12-25",
+    "name": "Christmas",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2027-01-14",
+    "name": "Uttarayana Punyakala / Makara Sankranti",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-01-26",
+    "name": "Republic Day",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2027-03-06",
+    "name": "Maha Shivaratri",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-03-09",
+    "name": "Khutub-E-Ramzan",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out · Subject to moon sighting"
+   },
+   {
+    "date": "2027-03-26",
+    "name": "Good Friday",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-04-08",
+    "name": "Chandramana Ugadi",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-04-14",
+    "name": "Dr B.R. Ambedkar Jayanthi",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2027-04-19",
+    "name": "Mahaveera Jayanthi",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-05-01",
+    "name": "May Day",
+    "source": "KARNATAKA",
+    "note": "Falls on a Saturday"
+   },
+   {
+    "date": "2027-05-09",
+    "name": "Basava Jayanthi",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out · falls on a Sunday"
+   },
+   {
+    "date": "2027-05-17",
+    "name": "Bakrid",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out · Subject to moon sighting"
+   },
+   {
+    "date": "2027-06-16",
+    "name": "Last day of Moharam",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out · Subject to moon sighting"
+   },
+   {
+    "date": "2027-08-15",
+    "name": "Independence Day",
+    "source": "KARNATAKA",
+    "note": "Falls on a Sunday"
+   },
+   {
+    "date": "2027-08-15",
+    "name": "Eid-Milad",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out · Subject to moon sighting"
+   },
+   {
+    "date": "2027-09-04",
+    "name": "Varasiddhi Vinayaka Vrata",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-09-29",
+    "name": "Mahalaya Amavasye",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-10-02",
+    "name": "Gandhi Jayanthi",
+    "source": "KARNATAKA",
+    "note": "Falls on a Saturday"
+   },
+   {
+    "date": "2027-10-08",
+    "name": "Mahanavami / Ayudha Pooja",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-10-09",
+    "name": "Vijayadashami",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out · 2nd Saturday"
+   },
+   {
+    "date": "2027-10-15",
+    "name": "Maharshi Valmiki Jayanthi",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-10-28",
+    "name": "Naraka Chaturdashi",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-10-29",
+    "name": "Balipadyami / Deepavali",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-11-01",
+    "name": "Kannada Rajyotsava",
+    "source": "KARNATAKA"
+   },
+   {
+    "date": "2027-11-16",
+    "name": "Kanakadasa Jayanthi",
+    "source": "KARNATAKA",
+    "note": "Expected date - official 2027 Karnataka list not yet out"
+   },
+   {
+    "date": "2027-12-25",
+    "name": "Christmas",
+    "source": "KARNATAKA",
+    "note": "Falls on a Saturday"
+   }
+  ],
+  "KARNATAKA_RH": [
+   {
+    "date": "2026-01-01",
+    "name": "New Year",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-01-27",
+    "name": "Sri Madhvanavami",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-02-04",
+    "name": "Shab-e-Barath",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-03-02",
+    "name": "Holi",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-03-17",
+    "name": "Shab-e-Qadar",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-03-20",
+    "name": "Jumat-ul-Wida",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-03-23",
+    "name": "Devara Dasimayya Jayanthi",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-03-27",
+    "name": "Sri Ramanavami",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-04-04",
+    "name": "Holy Saturday",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-04-21",
+    "name": "Sri Shankaracharya Jayanthi",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-04-22",
+    "name": "Sri Ramanujacharya Jayanthi",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-08-21",
+    "name": "Varamahalakshmi Vrata",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-08-27",
+    "name": "Yajur Upakarma",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-08-28",
+    "name": "Brahma Sri Narayana Guru Jayanthi / Raksha Bandhan",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-09-04",
+    "name": "Sri Krishna Janmashtami",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-09-08",
+    "name": "Kanya Mariyamma Jayanthi",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-09-17",
+    "name": "Vishwakarma Jayanthi",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-09-25",
+    "name": "Ananta Padmanabha Vrata",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-11-24",
+    "name": "Guru Nanak Jayanthi",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-11-26",
+    "name": "Huttari Festival",
+    "source": "KARNATAKA_RH"
+   },
+   {
+    "date": "2026-12-24",
+    "name": "Christmas Eve",
+    "source": "KARNATAKA_RH"
+   }
+  ]
+ },
+ "worldDaysEveryYear": [
+  {
+   "monthDay": "01-01",
+   "name": "New Year's Day"
+  },
+  {
+   "monthDay": "01-12",
+   "name": "National Youth Day (Swami Vivekananda Jayanti)"
+  },
+  {
+   "monthDay": "01-23",
+   "name": "Parakram Diwas (Netaji Subhas Chandra Bose Jayanti)"
+  },
+  {
+   "monthDay": "01-25",
+   "name": "National Voters' Day"
+  },
+  {
+   "monthDay": "01-30",
+   "name": "Martyrs' Day (Shaheed Diwas)"
+  },
+  {
+   "monthDay": "02-04",
+   "name": "World Cancer Day"
+  },
+  {
+   "monthDay": "02-21",
+   "name": "International Mother Language Day"
+  },
+  {
+   "monthDay": "02-28",
+   "name": "National Science Day"
+  },
+  {
+   "monthDay": "03-08",
+   "name": "International Women's Day"
+  },
+  {
+   "monthDay": "03-22",
+   "name": "World Water Day"
+  },
+  {
+   "monthDay": "03-24",
+   "name": "World TB Day"
+  },
+  {
+   "monthDay": "04-07",
+   "name": "World Health Day"
+  },
+  {
+   "monthDay": "04-22",
+   "name": "Earth Day"
+  },
+  {
+   "monthDay": "04-24",
+   "name": "National Panchayati Raj Day"
+  },
+  {
+   "monthDay": "05-01",
+   "name": "International Workers' Day"
+  },
+  {
+   "monthDay": "05-31",
+   "name": "World No Tobacco Day"
+  },
+  {
+   "monthDay": "06-05",
+   "name": "World Environment Day"
+  },
+  {
+   "monthDay": "06-21",
+   "name": "International Day of Yoga"
+  },
+  {
+   "monthDay": "07-01",
+   "name": "National Doctors' Day"
+  },
+  {
+   "monthDay": "07-11",
+   "name": "World Population Day"
+  },
+  {
+   "monthDay": "08-09",
+   "name": "Quit India Day"
+  },
+  {
+   "monthDay": "08-12",
+   "name": "International Youth Day"
+  },
+  {
+   "monthDay": "08-29",
+   "name": "National Sports Day"
+  },
+  {
+   "monthDay": "09-05",
+   "name": "Teachers' Day"
+  },
+  {
+   "monthDay": "09-08",
+   "name": "International Literacy Day"
+  },
+  {
+   "monthDay": "09-15",
+   "name": "Engineers' Day / International Day of Democracy"
+  },
+  {
+   "monthDay": "09-21",
+   "name": "International Day of Peace"
+  },
+  {
+   "monthDay": "09-27",
+   "name": "World Tourism Day"
+  },
+  {
+   "monthDay": "10-01",
+   "name": "International Day of Older Persons"
+  },
+  {
+   "monthDay": "10-02",
+   "name": "International Day of Non-Violence"
+  },
+  {
+   "monthDay": "10-16",
+   "name": "World Food Day"
+  },
+  {
+   "monthDay": "10-24",
+   "name": "United Nations Day"
+  },
+  {
+   "monthDay": "10-31",
+   "name": "Rashtriya Ekta Diwas (Sardar Patel Jayanti)"
+  },
+  {
+   "monthDay": "11-14",
+   "name": "Children's Day / World Diabetes Day"
+  },
+  {
+   "monthDay": "11-26",
+   "name": "Constitution Day (Samvidhan Diwas)"
+  },
+  {
+   "monthDay": "12-01",
+   "name": "World AIDS Day"
+  },
+  {
+   "monthDay": "12-03",
+   "name": "International Day of Persons with Disabilities"
+  },
+  {
+   "monthDay": "12-10",
+   "name": "Human Rights Day"
+  },
+  {
+   "monthDay": "12-23",
+   "name": "Kisan Diwas (National Farmers' Day)"
+  },
+  {
+   "rule": "2nd Sunday of May",
+   "name": "Mother's Day"
+  },
+  {
+   "rule": "3rd Sunday of June",
+   "name": "Father's Day"
+  }
+ ],
+ "kannadaLabels": {
+  "Confidential": "ಗೌಪ್ಯ",
+  "Davanagere · Office Calendar": "ದಾವಣಗೆರೆ · ಕಚೇರಿ ಕ್ಯಾಲೆಂಡರ್",
+  "MLA South · MLA North · MP · SS Family": "ದಕ್ಷಿಣ ಶಾಸಕರು · ಉತ್ತರ ಶಾಸಕರು · ಸಂಸದರು · ಎಸ್.ಎಸ್. ಕುಟುಂಬ",
+  "Calendar": "ಕ್ಯಾಲೆಂಡರ್",
+  "Social media": "ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮ",
+  "Reports": "ವರದಿಗಳು",
+  "Live": "ಸಂಪರ್ಕದಲ್ಲಿದೆ",
+  "Connecting": "ಸಂಪರ್ಕಿಸುತ್ತಿದೆ",
+  "Offline": "ಆಫ್‌ಲೈನ್",
+  "Disconnected": "ಸಂಪರ್ಕ ಕಡಿತ",
+  "MLA South": "ದಕ್ಷಿಣ ಶಾಸಕರು",
+  "MLA North": "ಉತ್ತರ ಶಾಸಕರು",
+  "MP": "ಸಂಸದರು",
+  "MLA - Davanagere South": "ಶಾಸಕರು - ದಾವಣಗೆರೆ ದಕ್ಷಿಣ",
+  "MLA - Davanagere North": "ಶಾಸಕರು - ದಾವಣಗೆರೆ ಉತ್ತರ",
+  "MP - Davanagere": "ಸಂಸದರು - ದಾವಣಗೆರೆ",
+  "South": "ದಕ್ಷಿಣ",
+  "North": "ಉತ್ತರ",
+  "SS Family": "ಎಸ್.ಎಸ್. ಕುಟುಂಬ",
+  "SS Family (everyone)": "ಎಸ್.ಎಸ್. ಕುಟುಂಬ (ಎಲ್ಲರೂ)",
+  "SS Family · everyone": "ಎಸ್.ಎಸ್. ಕುಟುಂಬ · ಎಲ್ಲರೂ",
+  "Everyone - MLA South, MLA North and MP": "ಎಲ್ಲರೂ - ದಕ್ಷಿಣ ಶಾಸಕರು, ಉತ್ತರ ಶಾಸಕರು ಮತ್ತು ಸಂಸದರು",
+  "Photo updated": "ಫೋಟೋ ಬದಲಾಯಿಸಲಾಗಿದೆ",
+  "Calendar photos": "ಕ್ಯಾಲೆಂಡರ್ ಫೋಟೋಗಳು",
+  "Change": "ಬದಲಿಸಿ",
+  "Add": "ಸೇರಿಸಿ",
+  "Remove": "ತೆಗೆದುಹಾಕಿ",
+  "The SS Family photo shows when everyone is selected. Photos are cropped square and shrunk, and everyone who opens the calendar sees them.": "ಎಲ್ಲರನ್ನೂ ಆಯ್ಕೆ ಮಾಡಿದಾಗ ಎಸ್.ಎಸ್. ಕುಟುಂಬದ ಫೋಟೋ ಕಾಣುತ್ತದೆ. ಫೋಟೋಗಳನ್ನು ಚೌಕಾಕಾರಕ್ಕೆ ಕತ್ತರಿಸಿ ಚಿಕ್ಕದಾಗಿಸಲಾಗುತ್ತದೆ; ಕ್ಯಾಲೆಂಡರ್ ತೆರೆಯುವ ಎಲ್ಲರಿಗೂ ಕಾಣುತ್ತವೆ.",
+  "Done": "ಮುಗಿಯಿತು",
+  "Show calendars": "ಕ್ಯಾಲೆಂಡರ್‌ಗಳನ್ನು ತೋರಿಸಿ",
+  "{n} today": "ಇಂದು {n}",
+  "Only": "ಮಾತ್ರ",
+  "Add or change photos": "ಫೋಟೋ ಸೇರಿಸಿ / ಬದಲಿಸಿ",
+  "Cancel": "ರದ್ದುಮಾಡಿ",
+  "Confirm": "ಖಚಿತಪಡಿಸಿ",
+  "PDF files open in a new tab.": "PDF ಫೈಲ್‌ಗಳು ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ತೆರೆಯುತ್ತವೆ.",
+  "Open PDF": "PDF ತೆರೆಯಿರಿ",
+  "You can view attachments but not add them.": "ನೀವು ಲಗತ್ತುಗಳನ್ನು ನೋಡಬಹುದು, ಸೇರಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+  "Invitation": "ಆಹ್ವಾನ ಪತ್ರಿಕೆ",
+  "Agenda": "ಕಾರ್ಯಸೂಚಿ",
+  "Notes": "ಟಿಪ್ಪಣಿ",
+  "Letter": "ಪತ್ರ",
+  "Photo": "ಫೋಟೋ",
+  "Event photo": "ಕಾರ್ಯಕ್ರಮದ ಫೋಟೋ",
+  "Other": "ಇತರೆ",
+  "page {n}": "ಪುಟ {n}",
+  "Type": "ವಿಧ",
+  "Saving photo…": "ಫೋಟೋ ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
+  "Take another photo": "ಇನ್ನೊಂದು ಫೋಟೋ ತೆಗೆಯಿರಿ",
+  "Take photo of invitation": "ಆಹ್ವಾನ ಪತ್ರಿಕೆಯ ಫೋಟೋ ತೆಗೆಯಿರಿ",
+  "Choose from gallery": "ಗ್ಯಾಲರಿಯಿಂದ ಆಯ್ಕೆಮಾಡಿ",
+  "Uploading…": "ಅಪ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
+  "Add another file": "ಇನ್ನೊಂದು ಫೈಲ್ ಸೇರಿಸಿ",
+  "Add invitation / file": "ಆಹ್ವಾನ / ಫೈಲ್ ಸೇರಿಸಿ",
+  "{n} event photo(s) added - they are ready in Social media": "{n} ಕಾರ್ಯಕ್ರಮದ ಫೋಟೋ ಸೇರಿಸಲಾಗಿದೆ - ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮ ವಿಭಾಗದಲ್ಲಿ ಸಿದ್ಧವಿದೆ",
+  "Marked": "ಗುರುತಿಸಲಾಗಿದೆ",
+  "Attendance cleared": "ಹಾಜರಾತಿ ತೆಗೆಯಲಾಗಿದೆ",
+  "Did we attend?": "ಕಾರ್ಯಕ್ರಮಕ್ಕೆ ಹೋಗಿದ್ದೇವೆಯೇ?",
+  "Someone": "ಯಾರೋ",
+  "Who went?": "ಯಾರು ಹೋದರು?",
+  "Who went on our behalf?": "ನಮ್ಮ ಪರವಾಗಿ ಯಾರು ಹೋದರು?",
+  "Reason (optional)": "ಕಾರಣ (ಐಚ್ಛಿಕ)",
+  "Note (optional)": "ಟಿಪ್ಪಣಿ (ಐಚ್ಛಿಕ)",
+  "Clear": "ತೆರವುಗೊಳಿಸಿ",
+  "Save": "ಉಳಿಸಿ",
+  "Uploading {n}…": "{n} ಅಪ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
+  "Add event photos": "ಕಾರ್ಯಕ್ರಮದ ಫೋಟೋ ಸೇರಿಸಿ",
+  "{n} photo(s) from the event": "ಕಾರ್ಯಕ್ರಮದ {n} ಫೋಟೋ",
+  "For the social media post": "ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮ ಪೋಸ್ಟ್‌ಗಾಗಿ",
+  "Attended": "ಹಾಜರಾದರು",
+  "Sent a representative": "ಪ್ರತಿನಿಧಿಯನ್ನು ಕಳುಹಿಸಲಾಗಿದೆ",
+  "Representative": "ಪ್ರತಿನಿಧಿ",
+  "Did not attend": "ಹಾಜರಾಗಲಿಲ್ಲ",
+  "Not attended": "ಹಾಜರಾಗಿಲ್ಲ",
+  "Office Calendar": "ಕಚೇರಿ ಕ್ಯಾಲೆಂಡರ್",
+  "MLA South, MLA North and MP - pick calendars at the top right": "ದಕ್ಷಿಣ ಶಾಸಕರು, ಉತ್ತರ ಶಾಸಕರು ಮತ್ತು ಸಂಸದರು - ಮೇಲಿನ ಬಲಭಾಗದಲ್ಲಿ ಕ್ಯಾಲೆಂಡರ್ ಆಯ್ಕೆಮಾಡಿ",
+  "Search events (/)": "ಕಾರ್ಯಕ್ರಮ ಹುಡುಕಿ (/)",
+  "Search": "ಹುಡುಕಿ",
+  "Upcoming events where someone has not decided, or the organiser has not been replied to": "ಮುಂಬರುವ ಕಾರ್ಯಕ್ರಮಗಳು - ಯಾರಾದರೂ ನಿರ್ಧರಿಸಿಲ್ಲ ಅಥವಾ ಆಯೋಜಕರಿಗೆ ಉತ್ತರಿಸಿಲ್ಲ",
+  "To decide": "ನಿರ್ಧರಿಸಬೇಕು",
+  "Past events where attendance is not recorded yet": "ಹಾಜರಾತಿ ದಾಖಲಿಸದ ಹಿಂದಿನ ಕಾರ್ಯಕ್ರಮಗಳು",
+  "To check": "ಪರಿಶೀಲಿಸಬೇಕು",
+  "Export": "ಡೌನ್‌ಲೋಡ್",
+  "This day": "ಈ ದಿನ",
+  "This week": "ಈ ವಾರ",
+  "Excel (CSV)": "ಎಕ್ಸೆಲ್ (CSV)",
+  "Phone / Google Calendar (.ics)": "ಫೋನ್ / ಗೂಗಲ್ ಕ್ಯಾಲೆಂಡರ್ (.ics)",
+  "Quick events whose details still need filling in": "ವಿವರ ತುಂಬಬೇಕಾದ ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮಗಳು",
+  "To fill": "ತುಂಬಬೇಕು",
+  "Mark someone away / unavailable (session, travel, leave)": "ಯಾರಾದರೂ ಲಭ್ಯವಿಲ್ಲ ಎಂದು ಗುರುತಿಸಿ (ಅಧಿವೇಶನ, ಪ್ರವಾಸ, ರಜೆ)",
+  "Away": "ಲಭ್ಯವಿಲ್ಲ",
+  "Quick": "ತ್ವರಿತ",
+  "Quick Event": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮ",
+  "New": "ಹೊಸದು",
+  "New Event": "ಹೊಸ ಕಾರ್ಯಕ್ರಮ",
+  "The calendar's saved events can't be reached here. Open it on claude.ai while signed in to see and add events.": "ಉಳಿಸಿದ ಕಾರ್ಯಕ್ರಮಗಳು ಇಲ್ಲಿ ಸಿಗುತ್ತಿಲ್ಲ. ಸೈನ್ ಇನ್ ಆಗಿ claude.ai ನಲ್ಲಿ ತೆರೆಯಿರಿ.",
+  "Still connecting to the calendar - events will appear as soon as it answers.": "ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಸಂಪರ್ಕಿಸುತ್ತಿದೆ - ಸಂಪರ್ಕವಾದ ತಕ್ಷಣ ಕಾರ್ಯಕ್ರಮಗಳು ಕಾಣುತ್ತವೆ.",
+  "Lost connection to the calendar. Reopen the page to reconnect.": "ಕ್ಯಾಲೆಂಡರ್ ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿದೆ. ಪುಟವನ್ನು ಮತ್ತೆ ತೆರೆಯಿರಿ.",
+  "You can view this calendar. To add or change events, ask the owner to give you Contributor access.": "ನೀವು ಈ ಕ್ಯಾಲೆಂಡರ್ ನೋಡಬಹುದು. ಕಾರ್ಯಕ್ರಮ ಸೇರಿಸಲು/ಬದಲಿಸಲು ಮಾಲೀಕರಿಂದ Contributor ಅನುಮತಿ ಪಡೆಯಿರಿ.",
+  "Show": "ತೋರಿಸಿ",
+  "All": "ಎಲ್ಲಾ",
+  "None": "ಯಾವುದೂ ಇಲ್ಲ",
+  "Hide events we're not going to": "ನಾವು ಹೋಗದ ಕಾರ್ಯಕ್ರಮಗಳನ್ನು ಮರೆಮಾಡಿ",
+  "Holidays": "ರಜಾದಿನಗಳು",
+  "Coming up": "ಮುಂಬರುವವು",
+  "Nothing in the next 7 days.": "ಮುಂದಿನ 7 ದಿನಗಳಲ್ಲಿ ಏನೂ ಇಲ್ಲ.",
+  "Today": "ಇಂದು",
+  "Tomorrow": "ನಾಳೆ",
+  "Previous (←)": "ಹಿಂದಿನದು (←)",
+  "Next (→)": "ಮುಂದಿನದು (→)",
+  "Side by side": "ಅಕ್ಕಪಕ್ಕ",
+  "Not-going hidden": "ಹೋಗದವು ಮರೆಮಾಡಲಾಗಿದೆ",
+  "Hide not going": "ಹೋಗದವನ್ನು ಮರೆಮಾಡಿ",
+  "Month": "ತಿಂಗಳು",
+  "Week": "ವಾರ",
+  "Day": "ದಿನ",
+  "Quick events to fill in": "ವಿವರ ತುಂಬಬೇಕಾದ ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮಗಳು",
+  "Saved in a hurry with just a photo and a contact. Open one, read the invitation and fill in the details.": "ಫೋಟೋ ಮತ್ತು ಸಂಪರ್ಕ ಮಾತ್ರದೊಂದಿಗೆ ತುರ್ತಾಗಿ ಉಳಿಸಲಾಗಿದೆ. ತೆರೆಯಿರಿ, ಆಹ್ವಾನ ಓದಿ, ವಿವರ ತುಂಬಿರಿ.",
+  "All quick events are filled in.": "ಎಲ್ಲಾ ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮಗಳ ವಿವರ ತುಂಬಲಾಗಿದೆ.",
+  "No contact name": "ಸಂಪರ್ಕ ಹೆಸರು ಇಲ್ಲ",
+  "For {date}": "{date} ಕ್ಕೆ",
+  "{n} photo(s)": "{n} ಫೋಟೋ",
+  "added by {name}": "{name} ಸೇರಿಸಿದ್ದಾರೆ",
+  "Fill in": "ವಿವರ ತುಂಬಿ",
+  "Close": "ಮುಚ್ಚಿ",
+  "Upcoming events (next 30 days) where someone has not decided yet, or the organiser has not been replied to.": "ಮುಂದಿನ 30 ದಿನಗಳ ಕಾರ್ಯಕ್ರಮಗಳು - ಯಾರಾದರೂ ಇನ್ನೂ ನಿರ್ಧರಿಸಿಲ್ಲ ಅಥವಾ ಆಯೋಜಕರಿಗೆ ಉತ್ತರಿಸಿಲ್ಲ.",
+  "Every invitation has a decision and a reply.": "ಎಲ್ಲಾ ಆಹ್ವಾನಗಳಿಗೂ ನಿರ್ಧಾರ ಮತ್ತು ಉತ್ತರ ಆಗಿದೆ.",
+  "Next": "ಮುಂದಿನದು",
+  "repeating - applies to every date": "ಪುನರಾವರ್ತಿತ - ಎಲ್ಲಾ ದಿನಾಂಕಗಳಿಗೂ ಅನ್ವಯ",
+  "Open": "ತೆರೆಯಿರಿ",
+  "Reply to organiser": "ಆಯೋಜಕರಿಗೆ ಉತ್ತರ",
+  "Past events from the last 60 days that are not marked yet. Tap one answer per event.": "ಕಳೆದ 60 ದಿನಗಳ ಗುರುತಿಸದ ಕಾರ್ಯಕ್ರಮಗಳು. ಪ್ರತಿಯೊಂದಕ್ಕೂ ಒಂದು ಉತ್ತರ ಒತ್ತಿ.",
+  "All caught up.": "ಎಲ್ಲವೂ ಪೂರ್ಣಗೊಂಡಿದೆ.",
+  "Attendance not recorded yet": "ಹಾಜರಾತಿ ಇನ್ನೂ ದಾಖಲಿಸಿಲ್ಲ",
+  "Quick event - details to be filled in": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮ - ವಿವರ ತುಂಬಬೇಕು",
+  "Not decided yet": "ಇನ್ನೂ ನಿರ್ಧರಿಸಿಲ್ಲ",
+  "Nothing scheduled in the next 30 days": "ಮುಂದಿನ 30 ದಿನಗಳಲ್ಲಿ ಯಾವುದೇ ಕಾರ್ಯಕ್ರಮವಿಲ್ಲ",
+  "Due": "ಗಡುವು",
+  "All day": "ಇಡೀ ದಿನ",
+  "Repeating event": "ಪುನರಾವರ್ತಿತ ಕಾರ್ಯಕ್ರಮ",
+  "Event deleted": "ಕಾರ್ಯಕ್ರಮ ಅಳಿಸಲಾಗಿದೆ",
+  "Moved to {name}": "{name} ಅವರಿಗೆ ವರ್ಗಾಯಿಸಲಾಗಿದೆ",
+  "Holiday": "ರಜೆ",
+  "Delete event?": "ಕಾರ್ಯಕ್ರಮ ಅಳಿಸಬೇಕೇ?",
+  "This deletes every occurrence of this repeating event.": "ಇದು ಈ ಪುನರಾವರ್ತಿತ ಕಾರ್ಯಕ್ರಮದ ಎಲ್ಲಾ ದಿನಾಂಕಗಳನ್ನೂ ಅಳಿಸುತ್ತದೆ.",
+  "\"{title}\" will be removed from the calendar.": "\"{title}\" ಕ್ಯಾಲೆಂಡರ್‌ನಿಂದ ತೆಗೆಯಲಾಗುತ್ತದೆ.",
+  "Delete": "ಅಳಿಸಿ",
+  "Request deadline": "ಅರ್ಜಿ ಗಡುವು",
+  "Not for social media": "ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮಕ್ಕೆ ಅಲ್ಲ",
+  "Quick event - details still to be filled in.": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮ - ವಿವರ ಇನ್ನೂ ತುಂಬಬೇಕು.",
+  "Clash": "ಸಮಯ ಘರ್ಷಣೆ",
+  "Invited · who is going?": "ಆಹ್ವಾನಿತರು · ಯಾರು ಹೋಗುತ್ತಾರೆ?",
+  "Due date": "ಕೊನೆಯ ದಿನಾಂಕ",
+  "until {date}": "{date} ರವರೆಗೆ",
+  "Open in Google Maps": "ಗೂಗಲ್ ಮ್ಯಾಪ್‌ನಲ್ಲಿ ತೆರೆಯಿರಿ",
+  "Organiser": "ಆಯೋಜಕರು",
+  "Saved": "ಉಳಿಸಲಾಗಿದೆ",
+  "Preparation": "ಸಿದ್ಧತೆ",
+  "Added by {name}": "{name} ಸೇರಿಸಿದ್ದಾರೆ",
+  "last edited by {name}": "ಕೊನೆಯದಾಗಿ {name} ಬದಲಿಸಿದ್ದಾರೆ",
+  "Hide history": "ಇತಿಹಾಸ ಮರೆಮಾಡಿ",
+  "History ({n})": "ಇತಿಹಾಸ ({n})",
+  "Move to": "ವರ್ಗಾಯಿಸಿ",
+  "Move this event to": "ಈ ಕಾರ್ಯಕ್ರಮವನ್ನು ಯಾರಿಗೆ ವರ್ಗಾಯಿಸಬೇಕು",
+  "Already here": "ಈಗಾಗಲೇ ಇಲ್ಲಿದೆ",
+  "Moves every occurrence of this repeating event.": "ಈ ಪುನರಾವರ್ತಿತ ಕಾರ್ಯಕ್ರಮದ ಎಲ್ಲಾ ದಿನಾಂಕಗಳನ್ನೂ ವರ್ಗಾಯಿಸುತ್ತದೆ.",
+  "Edit": "ಬದಲಿಸಿ",
+  "Contact person 1": "ಸಂಪರ್ಕ ವ್ಯಕ್ತಿ 1",
+  "Contact person 2": "ಸಂಪರ್ಕ ವ್ಯಕ್ತಿ 2",
+  "Quick event completed - now on the calendar": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮ ಪೂರ್ಣಗೊಂಡಿದೆ - ಈಗ ಕ್ಯಾಲೆಂಡರ್‌ನಲ್ಲಿದೆ",
+  "Event updated": "ಕಾರ್ಯಕ್ರಮ ನವೀಕರಿಸಲಾಗಿದೆ",
+  "Event added to calendar": "ಕಾರ್ಯಕ್ರಮ ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ",
+  "Fill in quick event": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮದ ವಿವರ ತುಂಬಿ",
+  "Edit event": "ಕಾರ್ಯಕ್ರಮ ಬದಲಿಸಿ",
+  "Mark away / unavailable": "ಲಭ್ಯವಿಲ್ಲ ಎಂದು ಗುರುತಿಸಿ",
+  "New event": "ಹೊಸ ಕಾರ್ಯಕ್ರಮ",
+  "This is a repeating event - changes apply to every occurrence.": "ಇದು ಪುನರಾವರ್ತಿತ ಕಾರ್ಯಕ್ರಮ - ಬದಲಾವಣೆಗಳು ಎಲ್ಲಾ ದಿನಾಂಕಗಳಿಗೂ ಅನ್ವಯಿಸುತ್ತವೆ.",
+  "Category": "ವರ್ಗ",
+  "Who is away? *": "ಯಾರು ಲಭ್ಯವಿಲ್ಲ? *",
+  "Invited *": "ಆಹ್ವಾನಿತರು *",
+  "choose who is away": "ಯಾರು ಲಭ್ಯವಿಲ್ಲ ಎಂದು ಆಯ್ಕೆಮಾಡಿ",
+  "choose who is invited": "ಆಹ್ವಾನಿತರನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+  "Pick everyone who is invited, then decide below who will go.": "ಆಹ್ವಾನಿತರೆಲ್ಲರನ್ನೂ ಆಯ್ಕೆಮಾಡಿ, ನಂತರ ಯಾರು ಹೋಗುತ್ತಾರೆ ಎಂದು ಕೆಳಗೆ ನಿರ್ಧರಿಸಿ.",
+  "Who is going?": "ಯಾರು ಹೋಗುತ್ತಾರೆ?",
+  "Reason": "ಕಾರಣ",
+  "e.g. Parliament session - Delhi": "ಉದಾ: ಸಂಸತ್ ಅಧಿವೇಶನ - ದೆಹಲಿ",
+  "Title": "ಶೀರ್ಷಿಕೆ",
+  "e.g. Review meeting with PWD engineers": "ಉದಾ: ಲೋಕೋಪಯೋಗಿ ಇಂಜಿನಿಯರ್‌ಗಳೊಂದಿಗೆ ಪರಿಶೀಲನಾ ಸಭೆ",
+  "When": "ಯಾವಾಗ",
+  "Start date": "ಆರಂಭ ದಿನಾಂಕ",
+  "Start": "ಆರಂಭ",
+  "End date": "ಅಂತ್ಯ ದಿನಾಂಕ",
+  "End": "ಅಂತ್ಯ",
+  "End must be after the start.": "ಅಂತ್ಯ ಸಮಯ ಆರಂಭದ ನಂತರ ಇರಬೇಕು.",
+  "Repeat": "ಪುನರಾವರ್ತನೆ",
+  "Repeat until (optional)": "ಪುನರಾವರ್ತನೆ ಕೊನೆ (ಐಚ್ಛಿಕ)",
+  "Leave empty to repeat with no end": "ಕೊನೆಯಿಲ್ಲದೆ ಪುನರಾವರ್ತಿಸಲು ಖಾಲಿ ಬಿಡಿ",
+  "Clash - already booked at this time": "ಸಮಯ ಘರ್ಷಣೆ - ಈ ಸಮಯದಲ್ಲಿ ಈಗಾಗಲೇ ಕಾರ್ಯಕ್ರಮವಿದೆ",
+  "You can still save. Decide who goes, or move one of them.": "ಆದರೂ ಉಳಿಸಬಹುದು. ಯಾರು ಹೋಗುತ್ತಾರೆ ಎಂದು ನಿರ್ಧರಿಸಿ ಅಥವಾ ಒಂದನ್ನು ಬದಲಿಸಿ.",
+  "Venue": "ಸ್ಥಳ",
+  "e.g. MLA Office, Davanagere": "ಉದಾ: ಶಾಸಕರ ಕಚೇರಿ, ದಾವಣಗೆರೆ",
+  "Ward / Village": "ವಾರ್ಡ್ / ಗ್ರಾಮ",
+  "e.g. Ward 09, Battlakatte": "ಉದಾ: ವಾರ್ಡ್ 09, ಬಟ್ಲಕಟ್ಟೆ",
+  "Phone 1": "ಫೋನ್ 1",
+  "Phone 2": "ಫೋನ್ 2",
+  "Role & preparation": "ಪಾತ್ರ ಮತ್ತು ಸಿದ್ಧತೆ",
+  "Role at the event": "ಕಾರ್ಯಕ್ರಮದಲ್ಲಿ ಪಾತ್ರ",
+  "Not set": "ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ",
+  "Share on social media": "ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮದಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ",
+  "Shows in the public schedule and the posts list": "ಸಾರ್ವಜನಿಕ ವೇಳಾಪಟ್ಟಿ ಮತ್ತು ಪೋಸ್ಟ್ ಪಟ್ಟಿಯಲ್ಲಿ ಕಾಣುತ್ತದೆ",
+  "Needed for this event (tick when done in the event details)": "ಈ ಕಾರ್ಯಕ್ರಮಕ್ಕೆ ಬೇಕಾದವು (ಆದ ನಂತರ ಕಾರ್ಯಕ್ರಮದ ವಿವರದಲ್ಲಿ ಟಿಕ್ ಮಾಡಿ)",
+  "Attendees": "ಭಾಗವಹಿಸುವವರು",
+  "Type a name and press Enter": "ಹೆಸರು ಬರೆದು Enter ಒತ್ತಿ",
+  "Attachments": "ಲಗತ್ತುಗಳು",
+  "Notes / agenda": "ಟಿಪ್ಪಣಿ / ಕಾರ್ಯಸೂಚಿ",
+  "Status": "ಸ್ಥಿತಿ",
+  "Saving…": "ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
+  "Add to calendar": "ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಸೇರಿಸಿ",
+  "Save changes": "ಬದಲಾವಣೆ ಉಳಿಸಿ",
+  "Mark away": "ಲಭ್ಯವಿಲ್ಲ ಎಂದು ಉಳಿಸಿ",
+  "Add event": "ಕಾರ್ಯಕ್ರಮ ಸೇರಿಸಿ",
+  "Scheduled": "ನಿಗದಿಯಾಗಿದೆ",
+  "Tentative": "ತಾತ್ಕಾಲಿಕ",
+  "Completed": "ಪೂರ್ಣಗೊಂಡಿದೆ",
+  "Cancelled": "ರದ್ದಾಗಿದೆ",
+  "Quick event saved - staff will fill in the details": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮ ಉಳಿಸಲಾಗಿದೆ - ಸಿಬ್ಬಂದಿ ವಿವರ ತುಂಬುತ್ತಾರೆ",
+  "Take a photo of the invitation (add more pages if needed) and the contact. The office will fill in the rest.": "ಆಹ್ವಾನ ಪತ್ರಿಕೆಯ ಫೋಟೋ (ಬೇಕಾದರೆ ಹೆಚ್ಚು ಪುಟಗಳು) ಮತ್ತು ಸಂಪರ್ಕ ವಿವರ ನೀಡಿ. ಉಳಿದದ್ದನ್ನು ಕಚೇರಿ ತುಂಬುತ್ತದೆ.",
+  "Invitation photo *": "ಆಹ್ವಾನ ಪತ್ರಿಕೆಯ ಫೋಟೋ *",
+  "{n} pages": "{n} ಪುಟಗಳು",
+  "Event title": "ಕಾರ್ಯಕ್ರಮದ ಹೆಸರು",
+  "e.g. Gruhapravesha - Basavaraj": "ಉದಾ: ಗೃಹಪ್ರವೇಶ - ಬಸವರಾಜ್",
+  "Contact person": "ಸಂಪರ್ಕ ವ್ಯಕ್ತಿ",
+  "Phone": "ಫೋನ್",
+  "Check the number (10 digits)": "ಸಂಖ್ಯೆ ಪರಿಶೀಲಿಸಿ (10 ಅಂಕಿಗಳು)",
+  "Date of the event (if known)": "ಕಾರ್ಯಕ್ರಮದ ದಿನಾಂಕ (ಗೊತ್ತಿದ್ದರೆ)",
+  "Leave as today if you don't know yet": "ಗೊತ್ತಿಲ್ಲದಿದ್ದರೆ ಇಂದಿನ ದಿನಾಂಕವನ್ನೇ ಬಿಡಿ",
+  "Save quick event": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮ ಉಳಿಸಿ",
+  "Search events: title, venue, ward, organiser, contact, phone…": "ಹುಡುಕಿ: ಹೆಸರು, ಸ್ಥಳ, ವಾರ್ಡ್, ಆಯೋಜಕರು, ಸಂಪರ್ಕ, ಫೋನ್…",
+  "Type at least 2 letters or 3 digits of a phone number.": "ಕನಿಷ್ಠ 2 ಅಕ್ಷರ ಅಥವಾ ಫೋನ್ ಸಂಖ್ಯೆಯ 3 ಅಂಕಿ ಬರೆಯಿರಿ.",
+  "No events match \"{q}\".": "\"{q}\" ಗೆ ಹೊಂದುವ ಕಾರ್ಯಕ್ರಮವಿಲ್ಲ.",
+  "Past": "ಹಿಂದಿನದು",
+  "Cleared": "ತೆರವುಗೊಳಿಸಲಾಗಿದೆ",
+  "None done": "ಯಾವುದೂ ಆಗಿಲ್ಲ",
+  "Posted": "ಪೋಸ್ಟ್ ಮಾಡಲಾಗಿದೆ",
+  "Skipped": "ಬಿಡಲಾಗಿದೆ",
+  "was on {date}": "{date} ರಂದು ಇತ್ತು",
+  "No changes recorded yet.": "ಇನ್ನೂ ಯಾವುದೇ ಬದಲಾವಣೆ ದಾಖಲಾಗಿಲ್ಲ.",
+  "Created": "ರಚಿಸಲಾಗಿದೆ",
+  "Quick event saved": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮ ಉಳಿಸಲಾಗಿದೆ",
+  "Quick event filled in": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮದ ವಿವರ ತುಂಬಲಾಗಿದೆ",
+  "Edited": "ಬದಲಿಸಲಾಗಿದೆ",
+  "Moved": "ವರ್ಗಾಯಿಸಲಾಗಿದೆ",
+  "Deleted": "ಅಳಿಸಲಾಗಿದೆ",
+  "Decision": "ನಿರ್ಧಾರ",
+  "Attendance": "ಹಾಜರಾತಿ",
+  "Photos added": "ಫೋಟೋ ಸೇರಿಸಲಾಗಿದೆ",
+  "Invited": "ಆಹ್ವಾನಿತರು",
+  "Who is going": "ಯಾರು ಹೋಗುತ್ತಾರೆ",
+  "Time": "ಸಮಯ",
+  "Contact": "ಸಂಪರ್ಕ",
+  "Role": "ಪಾತ್ರ",
+  "History": "ಇತಿಹಾಸ",
+  "Events in the month": "ತಿಂಗಳ ಕಾರ್ಯಕ್ರಮಗಳು",
+  "Posted on social media": "ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮದಲ್ಲಿ ಪೋಸ್ಟ್",
+  "Organisers not replied": "ಉತ್ತರಿಸದ ಆಯೋಜಕರು",
+  "Per person": "ವ್ಯಕ್ತಿವಾರು",
+  "Person": "ವ್ಯಕ್ತಿ",
+  "Going": "ಹೋಗುತ್ತಾರೆ",
+  "Not going": "ಹೋಗುವುದಿಲ್ಲ",
+  "Not decided": "ನಿರ್ಧರಿಸಿಲ್ಲ",
+  "Not marked": "ಗುರುತಿಸಿಲ್ಲ",
+  "Days away": "ಲಭ್ಯವಿಲ್ಲದ ದಿನಗಳು",
+  "By type": "ವಿಧವಾರು",
+  "No events this month.": "ಈ ತಿಂಗಳು ಯಾವುದೇ ಕಾರ್ಯಕ್ರಮವಿಲ್ಲ.",
+  "Top wards / villages": "ಹೆಚ್ಚು ಕಾರ್ಯಕ್ರಮಗಳ ವಾರ್ಡ್ / ಗ್ರಾಮಗಳು",
+  "No ward or village entered on this month's events.": "ಈ ತಿಂಗಳ ಕಾರ್ಯಕ್ರಮಗಳಲ್ಲಿ ವಾರ್ಡ್ / ಗ್ರಾಮ ನಮೂದಿಸಿಲ್ಲ.",
+  "To post": "ಪೋಸ್ಟ್ ಮಾಡಬೇಕು",
+  "Search history: event, person, change…": "ಇತಿಹಾಸ ಹುಡುಕಿ: ಕಾರ್ಯಕ್ರಮ, ವ್ಯಕ್ತಿ, ಬದಲಾವಣೆ…",
+  "Show more": "ಇನ್ನಷ್ಟು ತೋರಿಸಿ",
+  "Backup failed": "ಬ್ಯಾಕಪ್ ವಿಫಲವಾಗಿದೆ",
+  "Full backup": "ಸಂಪೂರ್ಣ ಬ್ಯಾಕಪ್",
+  "Downloads every event, its decisions, attendance, posts and the change history as one file. Keep it somewhere safe - it is the only full copy outside the app.": "ಎಲ್ಲಾ ಕಾರ್ಯಕ್ರಮಗಳು, ನಿರ್ಧಾರಗಳು, ಹಾಜರಾತಿ, ಪೋಸ್ಟ್‌ಗಳು ಮತ್ತು ಬದಲಾವಣೆ ಇತಿಹಾಸವನ್ನು ಒಂದೇ ಫೈಲ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡುತ್ತದೆ. ಸುರಕ್ಷಿತವಾಗಿ ಇಡಿ - ಆ್ಯಪ್‌ನ ಹೊರಗಿನ ಏಕೈಕ ಪೂರ್ಣ ಪ್ರತಿ ಇದು.",
+  "Only the calendar owner and editors see this. The file contains the full schedule - do not share it.": "ಇದು ಕ್ಯಾಲೆಂಡರ್ ಮಾಲೀಕರು ಮತ್ತು ಸಂಪಾದಕರಿಗೆ ಮಾತ್ರ ಕಾಣುತ್ತದೆ. ಫೈಲ್‌ನಲ್ಲಿ ಸಂಪೂರ್ಣ ವೇಳಾಪಟ್ಟಿ ಇದೆ - ಹಂಚಿಕೊಳ್ಳಬೇಡಿ.",
+  "Preparing…": "ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ…",
+  "Download full backup": "ಸಂಪೂರ್ಣ ಬ್ಯಾಕಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
+  "{n} events · {m} history entries": "{n} ಕಾರ್ಯಕ್ರಮಗಳು · {m} ಇತಿಹಾಸ ದಾಖಲೆಗಳು",
+  "Monthly summary, change history and backup": "ಮಾಸಿಕ ಸಾರಾಂಶ, ಬದಲಾವಣೆ ಇತಿಹಾಸ ಮತ್ತು ಬ್ಯಾಕಪ್",
+  "Monthly summary": "ಮಾಸಿಕ ಸಾರಾಂಶ",
+  "Change history": "ಬದಲಾವಣೆ ಇತಿಹಾಸ",
+  "Backup": "ಬ್ಯಾಕಪ್",
+  "This month": "ಈ ತಿಂಗಳು",
+  "Marked as posted": "ಪೋಸ್ಟ್ ಮಾಡಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ",
+  "No event photos yet.": "ಇನ್ನೂ ಕಾರ್ಯಕ್ರಮದ ಫೋಟೋಗಳಿಲ್ಲ.",
+  "Post text": "ಪೋಸ್ಟ್ ಬರಹ",
+  "Copy text": "ಬರಹ ಕಾಪಿ ಮಾಡಿ",
+  "Text copied": "ಬರಹ ಕಾಪಿ ಆಗಿದೆ",
+  "Copy was blocked by the browser.": "ಬ್ರೌಸರ್ ಕಾಪಿ ಮಾಡಲು ಬಿಡಲಿಲ್ಲ.",
+  "Suggest again": "ಮತ್ತೆ ಸಲಹೆ ನೀಡಿ",
+  "Posted on": "ಪೋಸ್ಟ್ ಮಾಡಿದ ಸ್ಥಳ",
+  "Skip": "ಬಿಡಿ",
+  "Mark posted": "ಪೋಸ್ಟ್ ಆಗಿದೆ",
+  "Public schedule before the day, and posts after each event": "ದಿನದ ಮೊದಲು ಸಾರ್ವಜನಿಕ ವೇಳಾಪಟ್ಟಿ, ಪ್ರತಿ ಕಾರ್ಯಕ್ರಮದ ನಂತರ ಪೋಸ್ಟ್",
+  "Day's public schedule": "ದಿನದ ಸಾರ್ವಜನಿಕ ವೇಳಾಪಟ್ಟಿ",
+  "Only events marked \"Share on social media\" where someone is going. Private meetings, personal and away entries never appear here.": "\"ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮದಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ\" ಎಂದು ಗುರುತಿಸಿದ, ಯಾರಾದರೂ ಹೋಗುವ ಕಾರ್ಯಕ್ರಮಗಳು ಮಾತ್ರ. ಖಾಸಗಿ ಸಭೆ, ವೈಯಕ್ತಿಕ ಮತ್ತು ಲಭ್ಯವಿಲ್ಲದ ದಾಖಲೆಗಳು ಇಲ್ಲಿ ಎಂದಿಗೂ ಕಾಣುವುದಿಲ್ಲ.",
+  "No public programmes on this day.": "ಈ ದಿನ ಸಾರ್ವಜನಿಕ ಕಾರ್ಯಕ್ರಮಗಳಿಲ್ಲ.",
+  "Reset text": "ಬರಹ ಮರುಹೊಂದಿಸಿ",
+  "Copy for posting": "ಪೋಸ್ಟ್‌ಗಾಗಿ ಕಾಪಿ ಮಾಡಿ",
+  "Poster designs for the day schedule will be added once the layouts are shared.": "ವಿನ್ಯಾಸಗಳನ್ನು ಹಂಚಿಕೊಂಡ ನಂತರ ದಿನದ ವೇಳಾಪಟ್ಟಿಯ ಪೋಸ್ಟರ್‌ಗಳನ್ನು ಸೇರಿಸಲಾಗುವುದು.",
+  "Events from the last 45 days that were attended (or a representative went) and are not posted yet. Add photos, check the text, post, then mark it here.": "ಕಳೆದ 45 ದಿನಗಳಲ್ಲಿ ಹಾಜರಾದ (ಅಥವಾ ಪ್ರತಿನಿಧಿ ಹೋದ) ಹಾಗೂ ಇನ್ನೂ ಪೋಸ್ಟ್ ಮಾಡದ ಕಾರ್ಯಕ್ರಮಗಳು. ಫೋಟೋ ಸೇರಿಸಿ, ಬರಹ ಪರಿಶೀಲಿಸಿ, ಪೋಸ್ಟ್ ಮಾಡಿ, ನಂತರ ಇಲ್ಲಿ ಗುರುತಿಸಿ.",
+  "Nothing waiting to be posted.": "ಪೋಸ್ಟ್ ಮಾಡಲು ಯಾವುದೂ ಬಾಕಿ ಇಲ್ಲ.",
+  "Nothing posted in the last 45 days.": "ಕಳೆದ 45 ದಿನಗಳಲ್ಲಿ ಏನೂ ಪೋಸ್ಟ್ ಆಗಿಲ್ಲ.",
+  "Undo": "ರದ್ದುಗೊಳಿಸಿ",
+  "Today's programmes": "ಇಂದಿನ ಕಾರ್ಯಕ್ರಮಗಳು",
+  "Programmes on {date}": "{date} ರ ಕಾರ್ಯಕ್ರಮಗಳು",
+  "No public programmes.": "ಸಾರ್ವಜನಿಕ ಕಾರ್ಯಕ್ರಮಗಳಿಲ್ಲ.",
+  "Meetings": "ಸಭೆಗಳು",
+  "Events": "ಕಾರ್ಯಕ್ರಮಗಳು",
+  "Field work": "ಕ್ಷೇತ್ರ ಕಾರ್ಯ",
+  "Personal": "ವೈಯಕ್ತಿಕ",
+  "Party": "ಪಕ್ಷ",
+  "Official Meeting": "ಅಧಿಕೃತ ಸಭೆ",
+  "Governance Meeting": "ಆಡಳಿತ ಸಭೆ",
+  "Event T1 - Chief Guest": "ಕಾರ್ಯಕ್ರಮ T1 - ಮುಖ್ಯ ಅತಿಥಿ",
+  "Event T2 - Family Function": "ಕಾರ್ಯಕ್ರಮ T2 - ಕುಟುಂಬ ಸಮಾರಂಭ",
+  "Event T2B - Store Opening": "ಕಾರ್ಯಕ್ರಮ T2B - ಅಂಗಡಿ ಉದ್ಘಾಟನೆ",
+  "Event T3 - Devasthana / Matha": "ಕಾರ್ಯಕ್ರಮ T3 - ದೇವಸ್ಥಾನ / ಮಠ",
+  "Funeral": "ಅಂತ್ಯಕ್ರಿಯೆ",
+  "Site Visit": "ಸ್ಥಳ ಭೇಟಿ",
+  "Jana Samparka": "ಜನ ಸಂಪರ್ಕ",
+  "Booth / Gramina Nadige": "ಬೂತ್ / ಗ್ರಾಮೀಣ ನಡಿಗೆ",
+  "Party Event": "ಪಕ್ಷದ ಕಾರ್ಯಕ್ರಮ",
+  "Protest": "ಪ್ರತಿಭಟನೆ",
+  "Out of station / Unavailable": "ಊರಿನಲ್ಲಿಲ್ಲ / ಲಭ್ಯವಿಲ್ಲ",
+  "Event": "ಕಾರ್ಯಕ್ರಮ",
+  "Official meetings": "ಅಧಿಕೃತ ಸಭೆಗಳು",
+  "Governance / review meetings": "ಆಡಳಿತ / ಪರಿಶೀಲನಾ ಸಭೆಗಳು",
+  "Chief guest, felicitation, etc.": "ಮುಖ್ಯ ಅತಿಥಿ, ಸನ್ಮಾನ ಇತ್ಯಾದಿ",
+  "Wedding, Namakarana, Shreemathi Karya, Gruhapravesha, Birthday, etc.": "ಮದುವೆ, ನಾಮಕರಣ, ಶ್ರೀಮತಿ ಕಾರ್ಯ, ಗೃಹಪ್ರವೇಶ, ಹುಟ್ಟುಹಬ್ಬ ಇತ್ಯಾದಿ",
+  "Store / shop openings": "ಅಂಗಡಿ / ಮಳಿಗೆ ಉದ್ಘಾಟನೆ",
+  "Temple (Devasthana) and Matha events": "ದೇವಸ್ಥಾನ ಮತ್ತು ಮಠದ ಕಾರ್ಯಕ್ರಮಗಳು",
+  "Funerals and condolence visits": "ಅಂತ್ಯಕ್ರಿಯೆ ಮತ್ತು ಸಾಂತ್ವನ ಭೇಟಿ",
+  "Work sites, inspections": "ಕಾಮಗಾರಿ ಸ್ಥಳ, ತಪಾಸಣೆ",
+  "Meeting the public": "ಸಾರ್ವಜನಿಕರ ಭೇಟಿ",
+  "Booth-level and village visits": "ಬೂತ್ ಮಟ್ಟ ಮತ್ತು ಗ್ರಾಮ ಭೇಟಿ",
+  "Personal / family time": "ವೈಯಕ್ತಿಕ / ಕುಟುಂಬದ ಸಮಯ",
+  "Party programmes and meetings": "ಪಕ್ಷದ ಕಾರ್ಯಕ್ರಮ ಮತ್ತು ಸಭೆಗಳು",
+  "Protests and dharnas": "ಪ್ರತಿಭಟನೆ ಮತ್ತು ಧರಣಿ",
+  "Parliament or Assembly session, travel, leave - blocks the day": "ಸಂಸತ್ / ವಿಧಾನಸಭೆ ಅಧಿವೇಶನ, ಪ್ರವಾಸ, ರಜೆ - ಆ ದಿನವನ್ನು ತಡೆಹಿಡಿಯುತ್ತದೆ",
+  "Parliament session - Delhi": "ಸಂಸತ್ ಅಧಿವೇಶನ - ದೆಹಲಿ",
+  "Assembly session - Bengaluru": "ವಿಧಾನಸಭೆ ಅಧಿವೇಶನ - ಬೆಂಗಳೂರು",
+  "Out of station": "ಊರಿನಲ್ಲಿಲ್ಲ",
+  "On leave": "ರಜೆಯಲ್ಲಿದ್ದಾರೆ",
+  "Chief Guest": "ಮುಖ್ಯ ಅತಿಥಿ",
+  "Inaugurator": "ಉದ್ಘಾಟಕರು",
+  "Guest of Honour": "ಗೌರವ ಅತಿಥಿ",
+  "Presiding": "ಅಧ್ಯಕ್ಷತೆ",
+  "Speaker": "ಭಾಷಣಕಾರರು",
+  "Guest": "ಅತಿಥಿ",
+  "Shawl & garland": "ಶಾಲು ಮತ್ತು ಹಾರ",
+  "Memento / gift": "ಸ್ಮರಣಿಕೆ / ಉಡುಗೊರೆ",
+  "Donation (Kanike)": "ಕಾಣಿಕೆ",
+  "Speech points": "ಭಾಷಣದ ಅಂಶಗಳು",
+  "Press informed": "ಪತ್ರಕರ್ತರಿಗೆ ತಿಳಿಸಲಾಗಿದೆ",
+  "Photographer / video": "ಛಾಯಾಗ್ರಾಹಕ / ವಿಡಿಯೋ",
+  "Police / security informed": "ಪೊಲೀಸ್ / ಭದ್ರತೆಗೆ ತಿಳಿಸಲಾಗಿದೆ",
+  "Vehicle arranged": "ವಾಹನ ವ್ಯವಸ್ಥೆ",
+  "Not replied": "ಉತ್ತರಿಸಿಲ್ಲ",
+  "Confirmed": "ಖಚಿತಪಡಿಸಲಾಗಿದೆ",
+  "Regret sent": "ವಿಷಾದ ತಿಳಿಸಲಾಗಿದೆ",
+  "Does not repeat": "ಪುನರಾವರ್ತನೆ ಇಲ್ಲ",
+  "Every day": "ಪ್ರತಿದಿನ",
+  "Every weekday (Mon–Sat)": "ಪ್ರತಿ ಕೆಲಸದ ದಿನ (ಸೋಮ–ಶನಿ)",
+  "Every week": "ಪ್ರತಿ ವಾರ",
+  "Every month": "ಪ್ರತಿ ತಿಂಗಳು",
+  "Every year": "ಪ್ರತಿ ವರ್ಷ",
+  "Ind": "ವ್ಯಕ್ತಿ",
+  "Individual": "ವ್ಯಕ್ತಿ",
+  "Sanga": "ಸಂಘ",
+  "Central Govt holidays": "ಕೇಂದ್ರ ಸರ್ಕಾರಿ ರಜೆಗಳು",
+  "Karnataka holidays": "ಕರ್ನಾಟಕ ರಜೆಗಳು",
+  "Karnataka restricted": "ಕರ್ನಾಟಕ ಪರಿಮಿತ ರಜೆಗಳು",
+  "World & national days": "ವಿಶ್ವ ಮತ್ತು ರಾಷ್ಟ್ರೀಯ ದಿನಗಳು",
+  "Central": "ಕೇಂದ್ರ",
+  "Karnataka": "ಕರ್ನಾಟಕ",
+  "Karnataka RH": "ಕರ್ನಾಟಕ ಪರಿಮಿತ",
+  "Gazetted holiday - Central Government offices closed": "ಸಾರ್ವತ್ರಿಕ ರಜೆ - ಕೇಂದ್ರ ಸರ್ಕಾರಿ ಕಚೇರಿಗಳು ಮುಚ್ಚಿರುತ್ತವೆ",
+  "General holiday - Karnataka Government offices closed": "ಸಾರ್ವತ್ರಿಕ ರಜೆ - ಕರ್ನಾಟಕ ಸರ್ಕಾರಿ ಕಚೇರಿಗಳು ಮುಚ್ಚಿರುತ್ತವೆ",
+  "Restricted holiday - employees may take any two": "ಪರಿಮಿತ ರಜೆ - ನೌಕರರು ಯಾವುದಾದರೂ ಎರಡು ಪಡೆಯಬಹುದು",
+  "Observance - offices open": "ಆಚರಣೆ - ಕಚೇರಿಗಳು ತೆರೆದಿರುತ್ತವೆ",
+  "Who is away?": "ಯಾರು ಲಭ್ಯವಿಲ್ಲ?",
+  "Pick everyone who is invited from the list, then decide below who will go.": "ಪಟ್ಟಿಯಿಂದ ಆಹ್ವಾನಿತರೆಲ್ಲರನ್ನೂ ಆಯ್ಕೆಮಾಡಿ, ನಂತರ ಯಾರು ಹೋಗುತ್ತಾರೆ ಎಂದು ಕೆಳಗೆ ನಿರ್ಧರಿಸಿ.",
+  "Needed for this event": "ಈ ಕಾರ್ಯಕ್ರಮಕ್ಕೆ ಬೇಕಾದವು",
+  "Tap what is needed - tick them off in the event details when done": "ಬೇಕಾದವನ್ನು ಒತ್ತಿ - ಆದ ನಂತರ ಕಾರ್ಯಕ್ರಮದ ವಿವರದಲ್ಲಿ ಟಿಕ್ ಮಾಡಿ",
+  "Other needs": "ಇತರ ಅಗತ್ಯಗಳು",
+  "e.g. 2 shawls, fruit basket, banner with photo": "ಉದಾ: 2 ಶಾಲು, ಹಣ್ಣಿನ ಬುಟ್ಟಿ, ಫೋಟೋ ಇರುವ ಬ್ಯಾನರ್",
+  "Write-up for the post": "ಪೋಸ್ಟ್‌ಗಾಗಿ ಬರಹ",
+  "What to say about this event on social media (optional). Used as the post text after the event.": "ಸಾಮಾಜಿಕ ಮಾಧ್ಯಮದಲ್ಲಿ ಈ ಕಾರ್ಯಕ್ರಮದ ಬಗ್ಗೆ ಏನು ಹೇಳಬೇಕು (ಐಚ್ಛಿಕ). ಕಾರ್ಯಕ್ರಮದ ನಂತರ ಪೋಸ್ಟ್ ಬರಹವಾಗಿ ಬಳಸಲಾಗುತ್ತದೆ.",
+  "The quick event was saved without a date - set the event date above.": "ತ್ವರಿತ ಕಾರ್ಯಕ್ರಮವನ್ನು ದಿನಾಂಕವಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ - ಮೇಲೆ ಕಾರ್ಯಕ್ರಮದ ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ.",
+  "Date not set yet.": "ದಿನಾಂಕ ಇನ್ನೂ ನಿಗದಿಯಾಗಿಲ್ಲ.",
+  "Date not set": "ದಿನಾಂಕ ನಿಗದಿಯಾಗಿಲ್ಲ",
+  "Light": "ಬೆಳಕು",
+  "Dark": "ಕತ್ತಲು",
+  "Invitation photo": "ಆಹ್ವಾನ ಪತ್ರಿಕೆಯ ಫೋಟೋ",
+  "Leave blank if you don't know yet - the office will set it": "ಗೊತ್ತಿಲ್ಲದಿದ್ದರೆ ಖಾಲಿ ಬಿಡಿ - ಕಚೇರಿ ನಿಗದಿಪಡಿಸುತ್ತದೆ",
+  "Year": "ವರ್ಷ",
+  "Office Teams - tasks (opens in a new tab)": "ಕಚೇರಿ ತಂಡಗಳು - ಕೆಲಸಗಳು (ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ತೆರೆಯುತ್ತದೆ)",
+  "Day {n}": "ದಿನ {n}",
+  "Day {n} of {m}": "{m} ರಲ್ಲಿ ದಿನ {n}",
+  "Date": "ದಿನಾಂಕ",
+  "Arrive by": "ತಲುಪುವ ಸಮಯ",
+  "Arrive by {time}": "{time} ಕ್ಕೆ ತಲುಪಬೇಕು",
+  "arrive {time}": "{time} ಕ್ಕೆ ತಲುಪಬೇಕು",
+  "ends next day": "ಮರುದಿನ ಮುಗಿಯುತ್ತದೆ",
+  "Remove this day": "ಈ ದಿನ ತೆಗೆದುಹಾಕಿ",
+  "Add another day": "ಇನ್ನೊಂದು ದಿನ ಸೇರಿಸಿ",
+  "For events over 2-3 days at different times": "2-3 ದಿನ ಬೇರೆ ಬೇರೆ ಸಮಯದಲ್ಲಿ ನಡೆಯುವ ಕಾರ್ಯಕ್ರಮಗಳಿಗೆ",
+  "Speech": "ಭಾಷಣ",
+  "Speech needed": "ಭಾಷಣ ಬೇಕು",
+  "Tick to write the speech for this event": "ಈ ಕಾರ್ಯಕ್ರಮದ ಭಾಷಣ ಬರೆಯಲು ಟಿಕ್ ಮಾಡಿ",
+  "{w} words · about {m} min to speak": "{w} ಪದಗಳು · ಮಾತನಾಡಲು ಸುಮಾರು {m} ನಿಮಿಷ",
+  "Write the Kannada speech here…": "ಕನ್ನಡ ಭಾಷಣವನ್ನು ಇಲ್ಲಿ ಬರೆಯಿರಿ…",
+  "Write the English speech here…": "ಇಂಗ್ಲಿಷ್ ಭಾಷಣವನ್ನು ಇಲ್ಲಿ ಬರೆಯಿರಿ…",
+  "Read": "ಓದಿ",
+  "No Kannada speech written yet.": "ಇನ್ನೂ ಕನ್ನಡ ಭಾಷಣ ಬರೆದಿಲ್ಲ.",
+  "No English speech written yet.": "ಇನ್ನೂ ಇಂಗ್ಲಿಷ್ ಭಾಷಣ ಬರೆದಿಲ್ಲ.",
+  "Redo": "ಮತ್ತೆ ಮಾಡಿ",
+  "Text size": "ಅಕ್ಷರ ಗಾತ್ರ",
+  "Bold": "ದಪ್ಪ",
+  "Italic": "ಓರೆ",
+  "Underline": "ಅಡಿಗೆರೆ",
+  "Strikethrough": "ಹೊಡೆದು ಹಾಕು",
+  "Text colour": "ಅಕ್ಷರದ ಬಣ್ಣ",
+  "Highlight": "ಹೈಲೈಟ್",
+  "Bullet list": "ಬುಲೆಟ್ ಪಟ್ಟಿ",
+  "Numbered list": "ಸಂಖ್ಯೆಯ ಪಟ್ಟಿ",
+  "Align left": "ಎಡಕ್ಕೆ",
+  "Centre": "ಮಧ್ಯಕ್ಕೆ",
+  "Clear formatting": "ಶೈಲಿ ತೆಗೆದುಹಾಕಿ",
+  "Heading": "ಉಪಶೀರ್ಷಿಕೆ",
+  "Sub-heading": "ಸಣ್ಣ ಶೀರ್ಷಿಕೆ",
+  "Normal text": "ಸಾಮಾನ್ಯ ಬರಹ"
+ }
+}
