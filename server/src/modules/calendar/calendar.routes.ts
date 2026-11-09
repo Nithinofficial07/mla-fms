@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Router } from 'express';
 import { z } from 'zod';
 import dayjs from 'dayjs';
@@ -33,6 +36,23 @@ const router = Router();
 router.use(authenticate);
 
 const MAX_RANGE_DAYS = 120;
+
+/**
+ * The office's calendar lookup/label data (types, enums, holidays, world
+ * days, ~440 English->Kannada labels) - one JSON file is the source of
+ * truth, read once and served to the client so neither side hand-maintains
+ * a second copy. See server/src/assets/calendar-reference-data.json.
+ */
+const ASSET_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../assets');
+let referenceDataCache: unknown = null;
+function loadReferenceData(): unknown {
+  if (!referenceDataCache) {
+    referenceDataCache = JSON.parse(readFileSync(path.join(ASSET_DIR, 'calendar-reference-data.json'), 'utf8'));
+  }
+  return referenceDataCache;
+}
+
+router.get('/reference', requirePermission(PERMISSIONS.CALENDAR_VIEW), (_req, res) => ok(res, loadReferenceData()));
 
 /** Narrows a scope filter to only the calendars both the viewer can see AND asked to see (?members=). */
 function resolveViewFilter(auth: Express.AuthContext, codes: string[], membersParam?: string): Record<string, unknown> {
