@@ -2,6 +2,28 @@ import dayjs, { type Dayjs } from 'dayjs';
 
 export type CalendarView = 'month' | 'week' | 'day' | 'agenda';
 
+export interface AttendanceEntry {
+  status: 'ATTENDED' | 'REPRESENTATIVE' | 'NOT_ATTENDED';
+  members: string[];
+  note: string;
+  by?: string | null;
+  at?: string | null;
+}
+
+export interface SocialEntry {
+  status: 'POSTED' | 'SKIPPED';
+  platforms: string[];
+  caption: string;
+  by?: string | null;
+  at?: string | null;
+}
+
+export interface EventSession {
+  start: string;
+  end: string;
+  arrival?: string;
+}
+
 /** One entry as returned by GET /calendar/events (an occurrence, or a request deadline). */
 export interface CalendarItem {
   id: string;
@@ -21,12 +43,30 @@ export interface CalendarItem {
   seriesStart?: string;
   seriesEnd?: string;
   venue?: string;
-  wardId?: { id: string; name: string } | null;
-  gramPanchayatId?: { id: string; name: string } | null;
+  area?: string;
+  members: string[];
   organizer?: string;
+  organizerKind?: 'IND' | 'SANGA';
   contactName?: string;
   contactPhone?: string;
+  contact2Name?: string;
+  contact2Phone?: string;
   attendees?: string[];
+  rsvp?: Record<string, 'GOING' | 'UNDECIDED' | 'NOT_GOING'>;
+  attendance?: Record<string, AttendanceEntry>;
+  social?: Record<string, SocialEntry>;
+  role?: string | null;
+  prep?: string[];
+  prepDone?: string[];
+  prepNote?: string;
+  arrival?: string;
+  sessions?: EventSession[];
+  speech?: { needed?: boolean; kn?: string; en?: string };
+  reply?: 'PENDING' | 'CONFIRMED' | 'REGRET';
+  publicSchedule?: boolean;
+  writeup?: string;
+  draft?: boolean;
+  dateUnknown?: boolean;
 }
 
 /** Visible date range [from, to) for a view anchored on `date`. */

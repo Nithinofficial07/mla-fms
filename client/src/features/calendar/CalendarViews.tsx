@@ -359,7 +359,7 @@ export function AgendaView({ date, items, onSelect }: { date: Dayjs; items: Cale
                         {it.title}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" noWrap component="div">
-                        {[it.kind === 'deadline' ? 'Request deadline' : calendarTypeMeta(it.type).label, it.venue, it.wardId?.name ?? it.gramPanchayatId?.name].filter(Boolean).join(' · ')}
+                        {[it.kind === 'deadline' ? 'Request deadline' : calendarTypeMeta(it.type).label, it.venue, it.area].filter(Boolean).join(' · ')}
                       </Typography>
                     </Box>
                     {it.isRecurring && <Tooltip title="Repeating event"><Icon name="Autorenew" fontSize="small" sx={{ color: 'text.secondary' }} /></Tooltip>}

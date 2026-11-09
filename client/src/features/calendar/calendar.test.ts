@@ -46,7 +46,7 @@ describe('expandOccurrences', () => {
 });
 
 describe('layoutDay', () => {
-  const mk = (id: string, s: string, e: string): CalendarItem => ({ id, kind: 'event', title: id, type: 'MEETING_OFFICIAL', start: s, end: e });
+  const mk = (id: string, s: string, e: string): CalendarItem => ({ id, kind: 'event', title: id, type: 'MEETING_OFFICIAL', start: s, end: e, members: [] });
 
   it('puts overlapping events side by side and lone events full width', () => {
     const day = dayjs('2026-11-06');

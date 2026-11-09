@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Box, Button, ButtonBase, Card, CardContent, Checkbox, FormControlLabel, Grid, IconButton, LinearProgress, MenuItem,
+  Box, Button, ButtonBase, Card, CardContent, Checkbox, FormControlLabel, Grid, IconButton, LinearProgress, Menu, MenuItem,
   Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography, useMediaQuery,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
-import { CALENDAR_DEADLINE_COLOR, CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_TYPES, PERMISSIONS } from '@mla/shared';
+import {
+  CALENDAR_DEADLINE_COLOR, CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_TYPES, CALENDAR_REAL_CODES, PERMISSIONS,
+} from '@mla/shared';
 import { PageHeader } from '@/components/PageHeader';
 import { Icon } from '@/components/Icon';
 import { api } from '@/api/client';
@@ -16,6 +18,9 @@ import { RequestDetailDialog } from '../requests/RequestDetailDialog';
 import { AgendaView, MiniCalendar, MonthView, TimeGridView, itemColor } from './CalendarViews';
 import { EventDialog } from './EventDialog';
 import { EventDetailsDialog } from './EventDetailsDialog';
+import { AdminCalendarDialog, AwayDialog, QuickEventDialog, ReportsDialog, WorkListsDialog } from './CalendarExtras';
+import { CalendarsField } from './CalendarsField';
+import { useCalendarReference } from './useCalendarReference';
 import { onDay, rangeTitle, stepDate, timeLabel, viewRange, type CalendarItem, type CalendarView } from './calendarUtils';
 
 const VIEWS: { value: CalendarView; label: string; icon: string; key: string }[] = [
@@ -27,12 +32,16 @@ const VIEWS: { value: CalendarView; label: string; icon: string; key: string }[]
 const ALL_TYPES = CALENDAR_EVENT_TYPES.map((t) => t.code as string);
 const PREFS_KEY = 'calendar:prefs';
 
-function readPrefs(): { hidden: string[]; deadlines: boolean } {
+function readPrefs(): { hidden: string[]; deadlines: boolean; calendars: string[] } {
   try {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
-    return { hidden: Array.isArray(p.hidden) ? p.hidden.filter((c: string) => ALL_TYPES.includes(c)) : [], deadlines: p.deadlines !== false };
+    return {
+      hidden: Array.isArray(p.hidden) ? p.hidden.filter((c: string) => ALL_TYPES.includes(c)) : [],
+      deadlines: p.deadlines !== false,
+      calendars: Array.isArray(p.calendars) && p.calendars.length ? p.calendars.filter((c: string) => (CALENDAR_REAL_CODES as readonly string[]).includes(c)) : [...CALENDAR_REAL_CODES],
+    };
   } catch {
-    return { hidden: [], deadlines: true };
+    return { hidden: [], deadlines: true, calendars: [...CALENDAR_REAL_CODES] };
   }
 }
 
@@ -43,12 +52,13 @@ function isEditableTarget(el: EventTarget | null) {
 }
 
 /** Fetches every occurrence (and optionally request deadlines) overlapping [from, to). */
-function useCalendarItems(from: Dayjs, to: Dayjs, types: string[], deadlines: boolean, enabled = true) {
+function useCalendarItems(from: Dayjs, to: Dayjs, types: string[], calendars: string[], deadlines: boolean, enabled = true) {
   const allTypes = types.length === ALL_TYPES.length;
   const params = {
     from: from.toISOString(),
     to: to.toISOString(),
     types: allTypes ? undefined : types.join(',') || 'NONE',
+    members: calendars.join(',') || 'NONE',
     includeDeadlines: deadlines ? 'true' : 'false',
   };
   return useQuery({
@@ -80,7 +90,9 @@ export function CalendarPage() {
   const navigate = useNavigate();
   const { can } = useAuth();
   const canManage = can(PERMISSIONS.CALENDAR_MANAGE);
+  const canAdmin = can(PERMISSIONS.CALENDAR_ADMIN);
   const canSeeRequests = can(PERMISSIONS.REQUEST_VIEW);
+  const { tCal } = useCalendarReference();
   const [sp, setSp] = useSearchParams();
 
   const view = (VIEWS.some((v) => v.value === sp.get('view')) ? sp.get('view') : isMobile ? 'agenda' : 'month') as CalendarView;
@@ -104,7 +116,7 @@ export function CalendarPage() {
   const showDeadlines = prefs.deadlines && canSeeRequests;
 
   const { from, to } = viewRange(view, date);
-  const events = useCalendarItems(from, to, visibleTypes, showDeadlines);
+  const events = useCalendarItems(from, to, visibleTypes, prefs.calendars, showDeadlines);
   // All-day first, then by start time - the views render in this order.
   const items = useMemo(
     () => [...(events.data ?? [])].sort((a, b) => Number(!!b.allDay) - Number(!!a.allDay) || dayjs(a.start).diff(dayjs(b.start))),
@@ -113,7 +125,7 @@ export function CalendarPage() {
 
   // The sidebar's "coming up" list and the stat tiles always look at today -> +7 days.
   const todayStart = dayjs().startOf('day');
-  const upcoming = useCalendarItems(todayStart, todayStart.add(7, 'day'), visibleTypes, showDeadlines);
+  const upcoming = useCalendarItems(todayStart, todayStart.add(7, 'day'), visibleTypes, prefs.calendars, showDeadlines);
   const upcomingItems = upcoming.data ?? [];
   const todayCount = upcomingItems.filter((i) => onDay(i, todayStart) && i.kind === 'event').length;
   const weekCount = upcomingItems.filter((i) => i.kind === 'event').length;
@@ -126,7 +138,7 @@ export function CalendarPage() {
   const [miniMonth, setMiniMonth] = useState(date.startOf('month'));
   useEffect(() => { setMiniMonth(date.startOf('month')); }, [date]);
   const miniRange = viewRange('month', miniMonth);
-  const miniItems = useCalendarItems(miniRange.from, miniRange.to, visibleTypes, showDeadlines, !isNarrow);
+  const miniItems = useCalendarItems(miniRange.from, miniRange.to, visibleTypes, prefs.calendars, showDeadlines, !isNarrow);
   const markedDays = useMemo(() => {
     const s = new Set<string>();
     for (const it of miniItems.data ?? []) {
@@ -140,6 +152,16 @@ export function CalendarPage() {
   const [selected, setSelected] = useState<CalendarItem | null>(null);
   const [editor, setEditor] = useState<{ item?: CalendarItem | null; defaults?: { start: Dayjs; end: Dayjs; allDay?: boolean } | null } | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [awayOpen, setAwayOpen] = useState(false);
+  const [worklistsOpen, setWorklistsOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
+  const exportFilters = useMemo(
+    () => ({ types: visibleTypes.length === ALL_TYPES.length ? undefined : visibleTypes.join(','), members: prefs.calendars.join(',') || undefined }),
+    [visibleTypes, prefs.calendars],
+  );
 
   const onSlot = canManage
     ? (start: Dayjs, end: Dayjs, allDay: boolean) => setEditor({ defaults: { start, end, allDay } })
@@ -169,6 +191,7 @@ export function CalendarPage() {
 
   const toggleType = (code: string) =>
     setPrefs((p) => ({ ...p, hidden: p.hidden.includes(code) ? p.hidden.filter((c) => c !== code) : [...p.hidden, code] }));
+  const setCalendars = (codes: string[]) => setPrefs((p) => ({ ...p, calendars: codes }));
 
   const showDay = (d: Dayjs) => setNav({ view: 'day', date: d });
 
@@ -178,8 +201,37 @@ export function CalendarPage() {
         title="Calendar"
         subtitle="MLA schedule - meetings, site visits, public events and request deadlines"
         crumbs={[{ label: 'Home', to: '/' }, { label: 'Calendar' }]}
-        action={canManage && (
-          <Button variant="contained" startIcon={<Icon name="Add" />} onClick={newEvent}>New Event</Button>
+        action={(
+          <Stack direction="row" spacing={1}>
+            {canManage && <Button variant="contained" startIcon={<Icon name="Add" />} onClick={newEvent}>New Event</Button>}
+            {canManage && !isMobile && <Button variant="outlined" startIcon={<Icon name="Bolt" />} onClick={() => setQuickOpen(true)}>Quick</Button>}
+            <Tooltip title="More">
+              <IconButton onClick={(e) => setMoreAnchor(e.currentTarget)} aria-label="More calendar actions"><Icon name="MoreVert" /></IconButton>
+            </Tooltip>
+            <Menu anchorEl={moreAnchor} open={!!moreAnchor} onClose={() => setMoreAnchor(null)}>
+              {canManage && isMobile && (
+                <MenuItem onClick={() => { setMoreAnchor(null); setQuickOpen(true); }}>
+                  <Icon name="Bolt" sx={{ mr: 1.5 }} />Quick event
+                </MenuItem>
+              )}
+              {canManage && (
+                <MenuItem onClick={() => { setMoreAnchor(null); setAwayOpen(true); }}>
+                  <Icon name="FlightTakeoff" sx={{ mr: 1.5 }} />Mark away / unavailable
+                </MenuItem>
+              )}
+              <MenuItem onClick={() => { setMoreAnchor(null); setWorklistsOpen(true); }}>
+                <Icon name="ListAlt" sx={{ mr: 1.5 }} />Work lists
+              </MenuItem>
+              <MenuItem onClick={() => { setMoreAnchor(null); setReportsOpen(true); }}>
+                <Icon name="BarChart" sx={{ mr: 1.5 }} />Reports &amp; export
+              </MenuItem>
+              {canAdmin && (
+                <MenuItem onClick={() => { setMoreAnchor(null); setAdminOpen(true); }}>
+                  <Icon name="AdminPanelSettings" sx={{ mr: 1.5 }} />Calendar admin
+                </MenuItem>
+              )}
+            </Menu>
+          </Stack>
         )}
       />
 
@@ -201,6 +253,12 @@ export function CalendarPage() {
 
               <Card sx={{ '&:hover': { transform: 'none' } }}>
                 <CardContent>
+                  <CalendarsField value={prefs.calendars} onChange={setCalendars} label="Calendars" size="small" />
+                </CardContent>
+              </Card>
+
+              <Card sx={{ '&:hover': { transform: 'none' } }}>
+                <CardContent>
                   <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
                     <Typography variant="subtitle2">Show</Typography>
                     <Button
@@ -214,7 +272,7 @@ export function CalendarPage() {
                     {CALENDAR_EVENT_GROUPS.map((g) => (
                       <Box key={g.code}>
                         <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', fontSize: 10.5 }}>
-                          {g.label}
+                          {tCal(g.label)}
                         </Typography>
                         <Stack>
                           {CALENDAR_EVENT_TYPES.filter((t) => t.group === g.code).map((t) => (
@@ -227,7 +285,7 @@ export function CalendarPage() {
                                     sx={{ py: 0.3, color: t.color, '&.Mui-checked': { color: t.color } }}
                                   />
                                 )}
-                                label={t.label}
+                                label={tCal(t.label)}
                               />
                             </Tooltip>
                           ))}
@@ -340,7 +398,7 @@ export function CalendarPage() {
                     key={t.code} onClick={() => toggleType(t.code)}
                     sx={{ gap: 0.75, px: 1, py: 0.5, borderRadius: 1.5, fontSize: '0.75rem', fontWeight: 600, opacity: on ? 1 : 0.45, border: 1, borderColor: 'divider' }}
                   >
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: t.color }} />{t.label}
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: t.color }} />{tCal(t.label)}
                   </ButtonBase>
                 );
               })}
@@ -371,6 +429,11 @@ export function CalendarPage() {
         onClose={() => setEditor(null)}
       />
       <RequestDetailDialog id={requestId} onClose={() => setRequestId(null)} />
+      <QuickEventDialog open={quickOpen} onClose={() => setQuickOpen(false)} />
+      <AwayDialog open={awayOpen} onClose={() => setAwayOpen(false)} />
+      <WorkListsDialog open={worklistsOpen} onClose={() => setWorklistsOpen(false)} onSelect={setSelected} />
+      <ReportsDialog open={reportsOpen} onClose={() => setReportsOpen(false)} filters={exportFilters} />
+      {canAdmin && <AdminCalendarDialog open={adminOpen} onClose={() => setAdminOpen(false)} />}
     </Box>
   );
 }
