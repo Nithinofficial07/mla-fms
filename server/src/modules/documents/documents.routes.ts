@@ -4,7 +4,7 @@ import { PERMISSIONS, WORK_DOC_TYPES, WORK_PHOTO_LIMIT } from '@mla/shared';
 import { authenticate, optionalAuth } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
-import { upload } from '../../middleware/upload.js';
+import { upload, calendarUpload } from '../../middleware/upload.js';
 import { asyncHandler, created, noContent, ok } from '../../utils/http.js';
 import { withId } from '../../utils/queryFeatures.js';
 import { AppError } from '../../utils/AppError.js';
@@ -15,11 +15,13 @@ import { RequestModel } from '../../models/Request.js';
 import { Letter } from '../../models/Letter.js';
 import { FundingRequest } from '../../models/FundingRequest.js';
 import { Work } from '../../models/Work.js';
+import { CalendarEvent } from '../../models/CalendarEvent.js';
 import { DocumentModel } from '../../models/Document.js';
 import { addTimeline } from '../workflow/timeline.service.js';
 import { notifyUsers } from '../notifications/notify.js';
 import { documentsService, type DocOwner } from './documents.service.js';
 import { worksService } from '../works/works.service.js';
+import { myCalendarCodes, loadScoped, logChange } from '../calendar/calendar.service.js';
 
 const router = Router();
 
@@ -92,6 +94,11 @@ async function ownerLabel(owner: DocOwner): Promise<{ label: string; link: strin
     if (!w) throw AppError.notFound('Work not found');
     return { label: w.workId, link: `/works/${owner.id}`, notify: [String(w.createdBy)] };
   }
+  if (owner.kind === 'calendar') {
+    const ev = await CalendarEvent.findById(owner.id).lean();
+    if (!ev) throw AppError.notFound('Event not found');
+    return { label: ev.title, link: `/calendar?event=${owner.id}`, notify: [] };
+  }
   const f = await FundingRequest.findById(owner.id).lean();
   if (!f) throw AppError.notFound('Funding request not found');
   return { label: f.fundingRequestId, link: `/funding/${owner.id}`, notify: [String(f.createdBy)] };
@@ -140,6 +147,8 @@ async function handleUpload(owner: DocOwner, req: Request, res: Response) {
       label: `${docs.length} document(s) uploaded`, actorId: req.auth!.userId, actorName: req.auth!.name,
       attachments: docs.map((d) => String(d._id)),
     });
+  } else if (owner.kind === 'calendar') {
+    await logChange(owner.id, meta.label, 'photos', [`${docs.length} file(s) attached`], req.auth!.userId, req.auth!.name);
   }
   await notifyUsers(meta.notify, {
     type: 'DOCUMENT_UPLOADED', title: `Document(s) added to ${meta.label}`, link: meta.link,
@@ -278,6 +287,30 @@ router.post(
   upload.single('file'),
   validate({ body: scanBody }),
   asyncHandler((req, res) => handleScan({ kind: 'work', id: req.params.workId }, req, res)),
+);
+
+/* ----------------------------- calendar docs ---------------------------- */
+// Same member-code scoping as the event itself (loadScoped 404s otherwise).
+const calendarInScope = asyncHandler(async (req, _res, next) => {
+  const codes = await myCalendarCodes(req.auth!);
+  await loadScoped(req.params.eventId, codes, req.auth!.viewAllPrincipals);
+  next();
+});
+router.get(
+  '/calendar/:eventId',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  calendarInScope,
+  asyncHandler(async (req, res) =>
+    ok(res, withId(await documentsService.listForOwner({ kind: 'calendar', id: req.params.eventId }))),
+  ),
+);
+router.post(
+  '/calendar/:eventId',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  calendarInScope,
+  calendarUpload.array('files', 10),
+  validate({ body: uploadBody }),
+  asyncHandler((req, res) => handleUpload({ kind: 'calendar', id: req.params.eventId }, req, res)),
 );
 
 /* --------------------------- shared by id ----------------------------- */

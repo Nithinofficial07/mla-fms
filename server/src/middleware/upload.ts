@@ -31,3 +31,18 @@ export const upload = multer({
     cb(null, true);
   },
 });
+
+const CALENDAR_ALLOWED_MIME = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+const CALENDAR_MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+/** Calendar attachments: images + PDF only, 20MB cap (images are compressed client-side before this, so 20MB is mostly headroom for PDFs/multi-page invitations). */
+export const calendarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: CALENDAR_MAX_FILE_SIZE, files: 10 },
+  fileFilter(_req, file, cb) {
+    if (!CALENDAR_ALLOWED_MIME.has(file.mimetype)) {
+      return cb(AppError.badRequest(`Unsupported content type: ${file.mimetype}. Only images and PDFs are allowed.`));
+    }
+    cb(null, true);
+  },
+});

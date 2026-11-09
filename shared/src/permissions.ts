@@ -62,6 +62,8 @@ export const PERMISSIONS = {
   // calendar (MLA schedule / office events)
   CALENDAR_VIEW: 'calendar.view',
   CALENDAR_MANAGE: 'calendar.manage',
+  // calendar admin: photos, backup/export, import - above ordinary staff CRUD
+  CALENDAR_ADMIN: 'calendar.admin',
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

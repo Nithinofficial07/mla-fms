@@ -13,7 +13,7 @@ import { buildDocumentKey, storage } from '../../storage/index.js';
 import { runOcr } from './ocr.service.js';
 
 /** Which record a document hangs off. */
-export type DocOwner = { kind: 'request' | 'letter' | 'funding' | 'work'; id: string };
+export type DocOwner = { kind: 'request' | 'letter' | 'funding' | 'work' | 'calendar'; id: string };
 
 interface AddFileInput {
   owner: DocOwner;
@@ -41,6 +41,8 @@ async function deptCodeForOwner(owner: DocOwner): Promise<string> {
     const work = await Work.findById(owner.id).lean();
     if (!work) throw AppError.notFound('Work not found');
     departmentId = work.departmentId;
+  } else if (owner.kind === 'calendar') {
+    return 'calendar'; // no department concept for calendar events
   } else {
     const funding = await FundingRequest.findById(owner.id).lean();
     if (!funding) throw AppError.notFound('Funding request not found');
@@ -55,13 +57,15 @@ function ownerFields(owner: DocOwner) {
   if (owner.kind === 'request') return { requestId: owner.id };
   if (owner.kind === 'letter') return { letterId: owner.id };
   if (owner.kind === 'work') return { workId: owner.id };
+  if (owner.kind === 'calendar') return { calendarEventId: owner.id };
   return { fundingRequestId: owner.id };
 }
 
-function ownerOf(doc: { requestId?: unknown; letterId?: unknown; fundingRequestId?: unknown; workId?: unknown }): DocOwner {
+function ownerOf(doc: { requestId?: unknown; letterId?: unknown; fundingRequestId?: unknown; workId?: unknown; calendarEventId?: unknown }): DocOwner {
   if (doc.requestId) return { kind: 'request', id: String(doc.requestId) };
   if (doc.letterId) return { kind: 'letter', id: String(doc.letterId) };
   if (doc.workId) return { kind: 'work', id: String(doc.workId) };
+  if (doc.calendarEventId) return { kind: 'calendar', id: String(doc.calendarEventId) };
   return { kind: 'funding', id: String(doc.fundingRequestId) };
 }
 

@@ -141,3 +141,35 @@ export async function remapCalendarTypes() {
   }
   return { updated };
 }
+
+/**
+ * Calendar rebuild: events used to belong to a single principal (principalId);
+ * the module now supports several calendars per event (members[]). Backfills
+ * every pre-rebuild event to members:[that principal's code], defaulting to
+ * MLA_S if the principal can't be resolved, and drops the old field.
+ */
+export async function migrateCalendarMembers() {
+  const principals = await Principal.find({}).select('code').lean();
+  const codeById = new Map(principals.map((p) => [String(p._id), p.code]));
+
+  const legacy = await CalendarEvent.collection.find({ members: { $exists: false } }).toArray();
+  let updated = 0;
+  for (const doc of legacy) {
+    const code = (doc.principalId && codeById.get(String(doc.principalId))) || 'MLA_S';
+    await CalendarEvent.collection.updateOne(
+      { _id: doc._id },
+      { $set: { members: [code] }, $unset: { principalId: '' } },
+    );
+    updated += 1;
+  }
+  return { updated };
+}
+
+/** Grants the new "calendar admin" tier (photos, backup, import) to the roles that get it by default. */
+export async function grantCalendarAdminPermission() {
+  const res = await Role.updateMany(
+    { code: { $in: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MLA] } },
+    { $addToSet: { permissions: PERMISSIONS.CALENDAR_ADMIN } },
+  );
+  return { updated: res.modifiedCount, matched: res.matchedCount };
+}

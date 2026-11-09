@@ -26,6 +26,7 @@ const documentSchema = new Schema(
     letterId: { type: Schema.Types.ObjectId, ref: 'Letter', default: null, index: true },
     fundingRequestId: { type: Schema.Types.ObjectId, ref: 'FundingRequest', default: null, index: true },
     workId: { type: Schema.Types.ObjectId, ref: 'Work', default: null, index: true },
+    calendarEventId: { type: Schema.Types.ObjectId, ref: 'CalendarEvent', default: null, index: true },
 
     documentType: { type: String, required: true }, // from Lookup group DOCUMENT_TYPE
     description: { type: String, default: '' },
@@ -44,9 +45,9 @@ const documentSchema = new Schema(
 );
 
 documentSchema.pre('validate', function (next) {
-  const owners = [this.requestId, this.letterId, this.fundingRequestId, this.workId].filter(Boolean);
+  const owners = [this.requestId, this.letterId, this.fundingRequestId, this.workId, this.calendarEventId].filter(Boolean);
   if (owners.length !== 1) {
-    next(new Error('A document must belong to exactly one of a request, a letter, a funding request, or a work'));
+    next(new Error('A document must belong to exactly one of a request, a letter, a funding request, a work, or a calendar event'));
   } else {
     next();
   }

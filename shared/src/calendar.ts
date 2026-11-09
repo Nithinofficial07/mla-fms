@@ -1,7 +1,40 @@
 /**
- * Calendar - the MLA's schedule and office events.
+ * Calendar - the MLA/MP office's shared schedule.
  * Shared by server (validation, recurrence expansion) and client (colours, labels).
  */
+
+/**
+ * The 4 "calendars" people invite to an event. MLA_S/MLA_N/MP are the same
+ * codes as the Principal collection (one real office each); SS_FAMILY is a
+ * pure UI convenience meaning "everyone" - it expands to the other 3 at save
+ * time and is never stored on an event itself.
+ */
+export const CALENDAR_CODES = [
+  { code: 'MLA_S', label: 'MLA - Davanagere South', title: 'MLA South', short: 'South', badge: 'S', color: '#1E88E5' },
+  { code: 'MLA_N', label: 'MLA - Davanagere North', title: 'MLA North', short: 'North', badge: 'N', color: '#00897B' },
+  { code: 'MP', label: 'MP - Davanagere', title: 'MP', short: 'MP', badge: 'MP', color: '#8E24AA' },
+] as const;
+export type CalendarCode = (typeof CALENDAR_CODES)[number]['code'];
+export const CALENDAR_REAL_CODES = CALENDAR_CODES.map((c) => c.code) as [CalendarCode, ...CalendarCode[]];
+
+export const CALENDAR_SS_FAMILY = {
+  code: 'SS_FAMILY', label: 'SS Family (everyone)', title: 'SS Family', short: 'SS Family', badge: 'SS', color: '#D81B60',
+} as const;
+
+/** Expands SS_FAMILY to the 3 real codes; any real code passes through unchanged. De-duplicated. */
+export function expandMembers(codes: string[]): CalendarCode[] {
+  const out = new Set<CalendarCode>();
+  for (const c of codes) {
+    if (c === CALENDAR_SS_FAMILY.code) CALENDAR_REAL_CODES.forEach((r) => out.add(r));
+    else if ((CALENDAR_REAL_CODES as string[]).includes(c)) out.add(c as CalendarCode);
+  }
+  return [...out];
+}
+
+/** True when `members` is exactly the 3 real codes - i.e. the UI should show it collapsed back to "SS Family". */
+export function isWholeFamily(members: string[]): boolean {
+  return CALENDAR_REAL_CODES.every((c) => members.includes(c)) && members.length >= CALENDAR_REAL_CODES.length;
+}
 
 /**
  * Event types, colour-coded with Google Calendar's named colours (as the
@@ -13,24 +46,31 @@ export const CALENDAR_EVENT_GROUPS = [
   { code: 'FIELD', label: 'Field work' },
   { code: 'PERSONAL', label: 'Personal' },
   { code: 'PARTY', label: 'Party' },
+  { code: 'AWAY', label: 'Away' },
 ] as const;
 
 export const CALENDAR_EVENT_TYPES = [
-  { code: 'MEETING_OFFICIAL', group: 'MEETING', label: 'Official MLA Meeting', colorName: 'Blueberry', color: '#3F51B5', hint: 'Official MLA meetings' },
+  { code: 'MEETING_OFFICIAL', group: 'MEETING', label: 'Official Meeting', colorName: 'Blueberry', color: '#3F51B5', hint: 'Official meetings' },
   { code: 'MEETING_GOVERNANCE', group: 'MEETING', label: 'Governance Meeting', colorName: 'Lavender', color: '#7986CB', hint: 'Governance / review meetings' },
   { code: 'EVENT_T1', group: 'EVENT', label: 'Event T1 - Chief Guest', colorName: 'Flamingo', color: '#E67C73', hint: 'Chief guest, felicitation, etc.' },
   { code: 'EVENT_T2', group: 'EVENT', label: 'Event T2 - Family Function', colorName: 'Mango', color: '#F09300', hint: 'Wedding, Namakarana, Shreemathi Karya, Gruhapravesha, Birthday, etc.' },
   { code: 'EVENT_T2B', group: 'EVENT', label: 'Event T2B - Store Opening', colorName: 'Banana', color: '#F6BF26', hint: 'Store / shop openings' },
   { code: 'EVENT_T3', group: 'EVENT', label: 'Event T3 - Devasthana / Matha', colorName: 'Tangerine', color: '#F4511E', hint: 'Temple (Devasthana) and Matha events' },
+  { code: 'EVENT_FUNERAL', group: 'EVENT', label: 'Funeral', colorName: 'Graphite', color: '#616161', hint: 'Funerals and condolence visits' },
   { code: 'SITE_VISIT', group: 'FIELD', label: 'Site Visit', colorName: 'Basil', color: '#0B8043', hint: 'Work sites, inspections' },
   { code: 'JANA_SAMPARKA', group: 'FIELD', label: 'Jana Samparka', colorName: 'Sage', color: '#33B679', hint: 'Meeting the public' },
-  { code: 'BOOTH_NADIGE', group: 'FIELD', label: 'Boothina Nadige', colorName: 'Pistachio', color: '#7CB342', hint: 'Booth-level visits' },
+  { code: 'BOOTH_NADIGE', group: 'FIELD', label: 'Booth / Gramina Nadige', colorName: 'Pistachio', color: '#7CB342', hint: 'Booth-level and village visits' },
   { code: 'PERSONAL', group: 'PERSONAL', label: 'Personal', colorName: 'Tomato', color: '#D50000', hint: 'Personal / family time' },
-  { code: 'PARTY', group: 'PARTY', label: 'Congress Party Event', colorName: 'Citron', color: '#E4C441', hint: 'INC party programmes and meetings' },
+  { code: 'PARTY', group: 'PARTY', label: 'Party Event', colorName: 'Citron', color: '#E4C441', hint: 'Party programmes and meetings' },
+  { code: 'PARTY_PROTEST', group: 'PARTY', label: 'Protest', colorName: 'Cocoa', color: '#795548', hint: 'Protests and dharnas' },
+  { code: 'UNAVAILABLE', group: 'AWAY', label: 'Out of station / Unavailable', colorName: 'Grey', color: '#90A4AE', hint: 'Parliament or Assembly session, travel, leave - blocks the day' },
 ] as const;
 
 export type CalendarEventType = (typeof CALENDAR_EVENT_TYPES)[number]['code'];
 export const CALENDAR_EVENT_TYPE_CODES = CALENDAR_EVENT_TYPES.map((t) => t.code) as [CalendarEventType, ...CalendarEventType[]];
+
+/** Types that default to NOT shown on the public schedule / social posts (everything else defaults to true). */
+export const CALENDAR_PRIVATE_BY_DEFAULT: CalendarEventType[] = ['MEETING_OFFICIAL', 'MEETING_GOVERNANCE', 'PERSONAL', 'UNAVAILABLE'];
 
 export const CALENDAR_EVENT_STATUSES = ['SCHEDULED', 'TENTATIVE', 'COMPLETED', 'CANCELLED'] as const;
 export type CalendarEventStatus = (typeof CALENDAR_EVENT_STATUSES)[number];
@@ -45,6 +85,32 @@ export const CALENDAR_RECURRENCE = [
 ] as const;
 export type CalendarRecurrence = (typeof CALENDAR_RECURRENCE)[number]['code'];
 export const CALENDAR_RECURRENCE_CODES = CALENDAR_RECURRENCE.map((r) => r.code) as [CalendarRecurrence, ...CalendarRecurrence[]];
+
+export const CALENDAR_RSVP_STATUSES = ['GOING', 'UNDECIDED', 'NOT_GOING'] as const;
+export type CalendarRsvpStatus = (typeof CALENDAR_RSVP_STATUSES)[number];
+
+export const CALENDAR_ATTENDANCE_STATUSES = ['ATTENDED', 'REPRESENTATIVE', 'NOT_ATTENDED'] as const;
+export type CalendarAttendanceStatus = (typeof CALENDAR_ATTENDANCE_STATUSES)[number];
+
+export const CALENDAR_ORGANISER_KINDS = ['IND', 'SANGA'] as const;
+export type CalendarOrganiserKind = (typeof CALENDAR_ORGANISER_KINDS)[number];
+
+export const CALENDAR_ORGANISER_REPLY_STATUSES = ['PENDING', 'CONFIRMED', 'REGRET'] as const;
+export type CalendarOrganiserReply = (typeof CALENDAR_ORGANISER_REPLY_STATUSES)[number];
+
+export const CALENDAR_ROLE_AT_EVENT = ['CHIEF_GUEST', 'INAUGURATOR', 'GUEST_OF_HONOUR', 'PRESIDING', 'SPEAKER', 'GUEST'] as const;
+export type CalendarRoleAtEvent = (typeof CALENDAR_ROLE_AT_EVENT)[number];
+
+export const CALENDAR_PREP_ITEMS = ['SHAWL', 'MEMENTO', 'DONATION', 'SPEECH', 'PRESS', 'PHOTO', 'POLICE', 'VEHICLE'] as const;
+export type CalendarPrepItem = (typeof CALENDAR_PREP_ITEMS)[number];
+
+export const CALENDAR_SOCIAL_STATUSES = ['POSTED', 'SKIPPED'] as const;
+export type CalendarSocialStatus = (typeof CALENDAR_SOCIAL_STATUSES)[number];
+
+export const CALENDAR_SOCIAL_PLATFORMS = ['Facebook', 'Instagram', 'X (Twitter)', 'WhatsApp Channel', 'YouTube'] as const;
+
+export const CALENDAR_ATTACHMENT_LABELS = ['Invitation', 'Agenda', 'Notes', 'Letter', 'Photo', 'Event photo', 'Other'] as const;
+export type CalendarAttachmentLabel = (typeof CALENDAR_ATTACHMENT_LABELS)[number];
 
 /** Colour for the read-only "request deadline" layer (Graphite - kept apart from Tomato / Personal). */
 export const CALENDAR_DEADLINE_COLOR = '#616161';
@@ -64,6 +130,8 @@ export const CALENDAR_LEGACY_TYPE_MAP: Record<string, CalendarEventType> = {
   PUBLIC_EVENT: 'EVENT_T1',
   INAUGURATION: 'EVENT_T1',
   JANATA_DARSHAN: 'JANA_SAMPARKA',
+  // 2nd-generation codes (pre multi-member rebuild), kept for the startup remap.
+  BOOTH_NADIGE_OLD: 'BOOTH_NADIGE',
 };
 
 type TypeMeta = { code: string; group: string; label: string; colorName: string; color: string; hint: string };

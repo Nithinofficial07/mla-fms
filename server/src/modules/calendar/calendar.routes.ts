@@ -1,85 +1,90 @@
 import { Router } from 'express';
-import { PERMISSIONS, expandOccurrences } from '@mla/shared';
+import { z } from 'zod';
+import dayjs from 'dayjs';
+import {
+  PERMISSIONS, CALENDAR_REAL_CODES, CALENDAR_SS_FAMILY, calendarTypeMeta,
+} from '@mla/shared';
 import { authenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
+import { calendarUpload } from '../../middleware/upload.js';
 import { asyncHandler, created, ok } from '../../utils/http.js';
 import { AppError } from '../../utils/AppError.js';
 import { recordAudit } from '../../utils/audit.js';
 import { withId } from '../../utils/queryFeatures.js';
-import { CalendarEvent } from '../../models/CalendarEvent.js';
+import { CalendarEvent, type CalendarEventDoc } from '../../models/CalendarEvent.js';
+import { CalendarEventLog } from '../../models/CalendarEventLog.js';
+import { CalendarPhoto } from '../../models/CalendarPhoto.js';
 import { RequestModel } from '../../models/Request.js';
 import { RequestStatus } from '../../models/config.js';
 import { requestsService } from '../requests/requests.service.js';
-import { createEventSchema, rangeQuerySchema, updateEventSchema } from './calendar.validation.js';
+import { toCsv, toXlsx } from '../reports/reports.service.js';
+import { storage } from '../../storage/index.js';
+import {
+  myCalendarCodes, scopeFilter, loadScoped, resolveMembers, defaultPublicSchedule, logChange, findClashes,
+  toApiShape, expandEventsInRange,
+} from './calendar.service.js';
+import {
+  createEventSchema, updateEventSchema, quickEventSchema, rangeQuerySchema, rsvpSchema, attendanceSchema,
+  prepUpdateSchema, replyUpdateSchema, socialUpdateSchema, moveEventSchema, awayRangeSchema, exportQuerySchema,
+} from './calendar.validation.js';
 
 const router = Router();
 router.use(authenticate);
 
 const MAX_RANGE_DAYS = 120;
-const POPULATE = ['wardId', 'gramPanchayatId', 'createdBy'];
 
-function scopeFilter(auth: Express.AuthContext): Record<string, unknown> {
-  return auth.viewAllPrincipals ? {} : { principalId: { $in: auth.principalIds } };
+/** Narrows a scope filter to only the calendars both the viewer can see AND asked to see (?members=). */
+function resolveViewFilter(auth: Express.AuthContext, codes: string[], membersParam?: string): Record<string, unknown> {
+  const requested = membersParam?.split(',').map((m) => m.trim()).filter(Boolean);
+  if (!requested?.length) return scopeFilter(codes, auth.viewAllPrincipals);
+  const allowed = auth.viewAllPrincipals ? requested : requested.filter((m) => codes.includes(m));
+  return { members: { $in: allowed.length ? allowed : codes } };
 }
 
-async function loadScoped(id: string, auth: Express.AuthContext) {
-  const doc = await CalendarEvent.findOne({ _id: id, ...scopeFilter(auth) });
-  if (!doc) throw AppError.notFound('Event not found');
-  return doc;
+function assertTouchesOwnScope(auth: Express.AuthContext, codes: string[], members: string[]) {
+  if (auth.viewAllPrincipals) return;
+  if (!members.some((m) => codes.includes(m))) {
+    throw AppError.forbidden('You can only save events that include one of your own calendars');
+  }
 }
 
-/**
- * Every occurrence overlapping [from, to): recurring events are expanded,
- * and (optionally) open requests whose due date falls in range are added as
- * read-only "deadline" entries.
- */
+/** A short list of human-readable change lines for the log - just the fields staff actually care to see. */
+function diffDetail(before: Record<string, any>, after: Record<string, any>): string[] {
+  const out: string[] = [];
+  for (const key of ['title', 'start', 'end', 'venue', 'status', 'type'] as const) {
+    const a = before[key] instanceof Date ? before[key].toISOString() : before[key];
+    const b = after[key] instanceof Date ? after[key].toISOString() : after[key];
+    if (JSON.stringify(a) !== JSON.stringify(b)) out.push(`${key}: ${a ?? '-'} -> ${b ?? '-'}`);
+  }
+  return out;
+}
+
+const asObject = (doc: CalendarEventDoc & { _id: unknown }) => (doc as any).toObject({ flattenMaps: true });
+
+/* --------------------------------------------------------------------- */
+/* events                                                                 */
+/* --------------------------------------------------------------------- */
+
 router.get(
   '/events',
   requirePermission(PERMISSIONS.CALENDAR_VIEW),
   validate({ query: rangeQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { from, to, types, includeDeadlines } = req.query as unknown as {
-      from: Date; to: Date; types?: string; includeDeadlines?: string;
+    const { from, to, types, members, includeDeadlines } = req.query as unknown as {
+      from: Date; to: Date; types?: string; members?: string; includeDeadlines?: string;
     };
     if (to.getTime() <= from.getTime()) throw AppError.badRequest('"to" must be after "from"');
     if (to.getTime() - from.getTime() > MAX_RANGE_DAYS * 86_400_000) {
       throw AppError.badRequest(`Range can be at most ${MAX_RANGE_DAYS} days`);
     }
     const auth = req.auth!;
-
-    const filter: Record<string, unknown> = {
-      ...scopeFilter(auth),
-      start: { $lt: to },
-      $or: [
-        { recurrence: { $in: [null, 'NONE'] }, end: { $gte: from } },
-        { recurrence: { $nin: [null, 'NONE'] }, $or: [{ recurrenceUntil: null }, { recurrenceUntil: { $gte: new Date(from.getTime() - 86_400_000) } }] },
-      ],
-    };
+    const codes = await myCalendarCodes(auth);
+    const filter = resolveViewFilter(auth, codes, members);
     const typeList = types?.split(',').map((t) => t.trim()).filter(Boolean);
     if (typeList?.length) filter.type = { $in: typeList };
 
-    const events = await CalendarEvent.find(filter).populate(['wardId', 'gramPanchayatId']).sort('start').lean();
-
-    const items: Record<string, unknown>[] = [];
-    for (const ev of events) {
-      const base = withId(ev) as Record<string, any>;
-      const duration = new Date(ev.end).getTime() - new Date(ev.start).getTime();
-      const recurring = !!ev.recurrence && ev.recurrence !== 'NONE';
-      for (const occStart of expandOccurrences(ev, from, to)) {
-        items.push({
-          ...base,
-          kind: 'event',
-          eventId: base.id,
-          id: recurring ? `${base.id}:${occStart.toISOString()}` : base.id,
-          isRecurring: recurring,
-          seriesStart: ev.start,
-          seriesEnd: ev.end,
-          start: occStart,
-          end: new Date(occStart.getTime() + duration),
-        });
-      }
-    }
+    const items = await expandEventsInRange(filter, from, to);
 
     if (includeDeadlines === 'true' && (auth.roleCode === 'SUPER_ADMIN' || auth.permissions.includes(PERMISSIONS.REQUEST_VIEW))) {
       const terminal = (await RequestStatus.find({ isTerminal: true }, { code: 1 }).lean()).map((s) => s.code);
@@ -107,7 +112,7 @@ router.get(
       }
     }
 
-    items.sort((a, b) => new Date(a.start as Date).getTime() - new Date(b.start as Date).getTime());
+    items.sort((a, b) => new Date(a.start as any).getTime() - new Date(b.start as any).getTime());
     ok(res, items);
   }),
 );
@@ -116,9 +121,9 @@ router.get(
   '/events/:id',
   requirePermission(PERMISSIONS.CALENDAR_VIEW),
   asyncHandler(async (req, res) => {
-    const doc = await loadScoped(req.params.id, req.auth!);
-    await doc.populate(POPULATE);
-    ok(res, doc);
+    const codes = await myCalendarCodes(req.auth!);
+    const doc = await loadScoped(req.params.id, codes, req.auth!.viewAllPrincipals);
+    ok(res, toApiShape(asObject(doc)));
   }),
 );
 
@@ -128,13 +133,48 @@ router.post(
   validate({ body: createEventSchema }),
   asyncHandler(async (req, res) => {
     const auth = req.auth!;
-    if (!auth.viewAllPrincipals && !auth.principalIds.includes(String(req.body.principalId))) {
-      throw AppError.forbidden('You can only add events for your own office');
-    }
-    const doc = await CalendarEvent.create({ ...req.body, createdBy: auth.userId });
+    const codes = await myCalendarCodes(auth);
+    const members = resolveMembers(req.body.members);
+    assertTouchesOwnScope(auth, codes, members);
+
+    const doc = await CalendarEvent.create({
+      ...req.body,
+      members,
+      publicSchedule: req.body.publicSchedule ?? defaultPublicSchedule(req.body.type ?? 'MEETING_OFFICIAL'),
+      createdBy: auth.userId,
+    });
+    await logChange(String(doc._id), doc.title, 'created', [], auth.userId, auth.name);
     recordAudit(req, { action: 'CREATE', entity: 'CalendarEvent', entityId: String(doc._id), after: { title: doc.title, start: doc.start } });
-    await doc.populate(POPULATE);
-    created(res, doc);
+    created(res, toApiShape(asObject(doc)));
+  }),
+);
+
+router.post(
+  '/events/quick',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: quickEventSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const members = resolveMembers(req.body.members);
+    assertTouchesOwnScope(auth, codes, members);
+
+    const now = new Date();
+    const start = req.body.start ?? now;
+    const end = req.body.end ?? new Date(start.getTime() + 30 * 60_000);
+
+    const doc = await CalendarEvent.create({
+      ...req.body,
+      members,
+      start,
+      end,
+      draft: true,
+      publicSchedule: defaultPublicSchedule(req.body.type ?? 'MEETING_OFFICIAL'),
+      createdBy: auth.userId,
+    });
+    await logChange(String(doc._id), doc.title, 'quick', [], auth.userId, auth.name);
+    recordAudit(req, { action: 'CREATE', entity: 'CalendarEvent', entityId: String(doc._id), message: 'quick event' });
+    created(res, toApiShape(asObject(doc)));
   }),
 );
 
@@ -143,14 +183,42 @@ router.patch(
   requirePermission(PERMISSIONS.CALENDAR_MANAGE),
   validate({ body: updateEventSchema }),
   asyncHandler(async (req, res) => {
-    const doc = await loadScoped(req.params.id, req.auth!);
-    const before = doc.toJSON();
-    doc.set({ ...req.body, updatedBy: req.auth!.userId });
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    const before = asObject(doc);
+
+    const patch: Record<string, unknown> = { ...req.body, updatedBy: auth.userId };
+    if (req.body.members) {
+      const members = resolveMembers(req.body.members);
+      assertTouchesOwnScope(auth, codes, members);
+      patch.members = members;
+    }
+    doc.set(patch);
     if (doc.end.getTime() < doc.start.getTime()) throw AppError.badRequest('End must be after start');
     await doc.save();
-    recordAudit(req, { action: 'UPDATE', entity: 'CalendarEvent', entityId: req.params.id, before, after: doc.toJSON() });
-    await doc.populate(POPULATE);
-    ok(res, doc);
+
+    const after = asObject(doc);
+    await logChange(String(doc._id), doc.title, 'edited', diffDetail(before, after), auth.userId, auth.name);
+    recordAudit(req, { action: 'UPDATE', entity: 'CalendarEvent', entityId: req.params.id, before, after });
+    ok(res, toApiShape(after));
+  }),
+);
+
+router.patch(
+  '/events/:id/move',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: moveEventSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    const prevStart = doc.start;
+    doc.set({ start: req.body.start, end: req.body.end, updatedBy: auth.userId });
+    await doc.save();
+    await logChange(String(doc._id), doc.title, 'moved', [`${prevStart.toISOString()} -> ${doc.start.toISOString()}`], auth.userId, auth.name);
+    recordAudit(req, { action: 'UPDATE', entity: 'CalendarEvent', entityId: req.params.id, message: 'moved' });
+    ok(res, toApiShape(asObject(doc)));
   }),
 );
 
@@ -158,10 +226,467 @@ router.delete(
   '/events/:id',
   requirePermission(PERMISSIONS.CALENDAR_MANAGE),
   asyncHandler(async (req, res) => {
-    const doc = await loadScoped(req.params.id, req.auth!);
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    const title = doc.title;
     await (doc as unknown as { softDelete: () => Promise<unknown> }).softDelete();
+    await logChange(req.params.id, title, 'deleted', [], auth.userId, auth.name);
     recordAudit(req, { action: 'SOFT_DELETE', entity: 'CalendarEvent', entityId: req.params.id });
     ok(res, { id: req.params.id });
+  }),
+);
+
+/* -------------------------- per-calendar decisions ------------------------ */
+
+router.post(
+  '/events/:id/rsvp',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: rsvpSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    if (!doc.members.includes(req.body.code)) throw AppError.badRequest('That calendar is not invited to this event');
+    if (!auth.viewAllPrincipals && !codes.includes(req.body.code)) throw AppError.forbidden('Not your calendar to RSVP for');
+
+    doc.rsvp.set(req.body.code, req.body.status);
+    doc.updatedBy = auth.userId as any;
+    await doc.save();
+    await logChange(String(doc._id), doc.title, 'rsvp', [`${req.body.code}: ${req.body.status}`], auth.userId, auth.name);
+    ok(res, toApiShape(asObject(doc)));
+  }),
+);
+
+router.post(
+  '/events/:id/attendance',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: attendanceSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    if (!doc.members.includes(req.body.code)) throw AppError.badRequest('That calendar is not invited to this event');
+
+    doc.attendance.set(req.body.code, {
+      status: req.body.status, members: req.body.members ?? [], note: req.body.note ?? '',
+      by: auth.userId, at: new Date(),
+    } as any);
+    doc.updatedBy = auth.userId as any;
+    await doc.save();
+    await logChange(String(doc._id), doc.title, 'attendance', [`${req.body.code}: ${req.body.status}`], auth.userId, auth.name);
+    ok(res, toApiShape(asObject(doc)));
+  }),
+);
+
+router.patch(
+  '/events/:id/prep',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: prepUpdateSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    doc.set({ ...req.body, updatedBy: auth.userId });
+    await doc.save();
+    await logChange(String(doc._id), doc.title, 'prep', [], auth.userId, auth.name);
+    ok(res, toApiShape(asObject(doc)));
+  }),
+);
+
+router.patch(
+  '/events/:id/reply',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: replyUpdateSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    doc.set({ reply: req.body.reply, updatedBy: auth.userId });
+    await doc.save();
+    await logChange(String(doc._id), doc.title, 'reply', [`reply: ${req.body.reply}`], auth.userId, auth.name);
+    ok(res, toApiShape(asObject(doc)));
+  }),
+);
+
+router.post(
+  '/events/:id/social',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: socialUpdateSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
+    if (!doc.members.includes(req.body.code)) throw AppError.badRequest('That calendar is not invited to this event');
+
+    doc.social.set(req.body.code, {
+      status: req.body.status, platforms: req.body.platforms ?? [], caption: req.body.caption ?? '',
+      by: auth.userId, at: new Date(),
+    } as any);
+    doc.updatedBy = auth.userId as any;
+    await doc.save();
+    await logChange(String(doc._id), doc.title, 'social', [`${req.body.code}: ${req.body.status}`], auth.userId, auth.name);
+    ok(res, toApiShape(asObject(doc)));
+  }),
+);
+
+/* -------------------------------- clashes --------------------------------- */
+
+const clashBody = z.object({
+  members: z.array(z.string()).min(1),
+  start: z.coerce.date(),
+  end: z.coerce.date(),
+  excludeId: z.string().length(24).optional(),
+});
+router.post(
+  '/clashes',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  validate({ body: clashBody }),
+  asyncHandler(async (req, res) => {
+    const members = resolveMembers(req.body.members);
+    const clashes = await findClashes(members, req.body.start, req.body.end, req.body.excludeId);
+    ok(res, clashes);
+  }),
+);
+
+/* ------------------------------- away / out ------------------------------- */
+
+router.post(
+  '/away',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: awayRangeSchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    assertTouchesOwnScope(auth, codes, req.body.members);
+
+    const doc = await CalendarEvent.create({
+      members: req.body.members,
+      title: req.body.reason?.trim() || 'Out of station / Unavailable',
+      type: 'UNAVAILABLE',
+      start: req.body.start,
+      end: req.body.end,
+      allDay: true,
+      publicSchedule: false,
+      createdBy: auth.userId,
+    });
+    await logChange(String(doc._id), doc.title, 'created', ['Marked away / unavailable'], auth.userId, auth.name);
+    recordAudit(req, { action: 'CREATE', entity: 'CalendarEvent', entityId: String(doc._id), message: 'away range' });
+    created(res, toApiShape(asObject(doc)));
+  }),
+);
+
+/* ------------------------------- work lists -------------------------------- */
+
+router.get(
+  '/worklists',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const filter = scopeFilter(codes, auth.viewAllPrincipals);
+    const now = new Date();
+    const soon = dayjs(now).add(21, 'day').toDate();
+    const recentPast = dayjs(now).subtract(14, 'day').toDate();
+
+    const [upcoming, pastRecent] = await Promise.all([
+      CalendarEvent.find({ ...filter, start: { $gte: now, $lte: soon }, status: { $ne: 'CANCELLED' } })
+        .sort('start').limit(300).lean({ flattenMaps: true }),
+      CalendarEvent.find({ ...filter, start: { $gte: recentPast, $lt: now }, status: { $ne: 'CANCELLED' } })
+        .sort('-start').limit(300).lean({ flattenMaps: true }),
+    ]);
+
+    const myRsvp = (ev: any) => {
+      const mine = (ev.members as string[]).find((m) => codes.includes(m));
+      return mine ? (ev.rsvp?.[mine] ?? 'UNDECIDED') : null;
+    };
+    const posted = (ev: any) => Object.values(ev.social ?? {}).some((s: any) => s?.status === 'POSTED');
+
+    const shape = (list: any[]) => list.slice(0, 50).map((ev) => toApiShape(ev));
+    ok(res, {
+      toDecide: shape(upcoming.filter((ev) => myRsvp(ev) === 'UNDECIDED')),
+      toCheck: shape(upcoming.filter((ev) => (ev.prep ?? []).length > (ev.prepDone ?? []).length)),
+      toFill: shape([...upcoming, ...pastRecent].filter((ev) => ev.draft || ev.dateUnknown)),
+      toPost: shape(pastRecent.filter((ev) => ev.publicSchedule && !posted(ev))),
+      organisersNotReplied: shape(upcoming.filter((ev) => ev.reply === 'PENDING')),
+      comingUp: shape(upcoming),
+    });
+  }),
+);
+
+/* --------------------------------- reports --------------------------------- */
+
+const summaryQuery = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/, 'Expected YYYY-MM') });
+router.get(
+  '/reports/summary',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  validate({ query: summaryQuery }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const filter = scopeFilter(codes, auth.viewAllPrincipals);
+    const { month } = req.query as unknown as { month: string };
+    const from = dayjs(`${month}-01`).startOf('month').toDate();
+    const to = dayjs(from).add(1, 'month').toDate();
+
+    const events = await CalendarEvent.find({ ...filter, start: { $gte: from, $lt: to } }).lean({ flattenMaps: true });
+    const byType: Record<string, number> = {};
+    let going = 0, notGoing = 0, attended = 0, notAttended = 0;
+    for (const ev of events as any[]) {
+      byType[ev.type] = (byType[ev.type] ?? 0) + 1;
+      for (const code of ev.members as string[]) {
+        const r = ev.rsvp?.[code];
+        if (r === 'GOING') going++; else if (r === 'NOT_GOING') notGoing++;
+        const a = ev.attendance?.[code]?.status;
+        if (a === 'ATTENDED' || a === 'REPRESENTATIVE') attended++; else if (a === 'NOT_ATTENDED') notAttended++;
+      }
+    }
+    ok(res, { month, total: events.length, byType, rsvp: { going, notGoing }, attendance: { attended, notAttended } });
+  }),
+);
+
+const changesQuery = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  eventId: z.string().length(24).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+});
+router.get(
+  '/reports/changes',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ query: changesQuery }),
+  asyncHandler(async (req, res) => {
+    const { from, to, eventId, limit } = req.query as unknown as { from?: Date; to?: Date; eventId?: string; limit?: number };
+    const filter: Record<string, unknown> = {};
+    if (eventId) filter.eventId = eventId;
+    if (from || to) filter.at = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
+    const logs = await CalendarEventLog.find(filter).sort('-at').limit(limit ?? 200).lean();
+    ok(res, withId(logs));
+  }),
+);
+
+/* --------------------------------- export ---------------------------------- */
+
+function icsEscape(s: string): string {
+  return String(s ?? '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+}
+function icsDateUTC(d: Date): string {
+  return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+function icsDateOnly(d: Date): string {
+  return d.toISOString().slice(0, 10).replace(/-/g, '');
+}
+function toIcs(items: any[]): string {
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MLA FMS//Office Calendar//EN', 'CALSCALE:GREGORIAN'];
+  for (const ev of items) {
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${ev.id}@mla-fms`);
+    lines.push(`DTSTAMP:${icsDateUTC(new Date())}`);
+    if (ev.allDay) {
+      lines.push(`DTSTART;VALUE=DATE:${icsDateOnly(new Date(ev.start))}`);
+      lines.push(`DTEND;VALUE=DATE:${icsDateOnly(new Date(new Date(ev.end).getTime() + 86_400_000))}`);
+    } else {
+      lines.push(`DTSTART:${icsDateUTC(new Date(ev.start))}`);
+      lines.push(`DTEND:${icsDateUTC(new Date(ev.end))}`);
+    }
+    lines.push(`SUMMARY:${icsEscape(ev.title)}`);
+    if (ev.venue) lines.push(`LOCATION:${icsEscape(ev.venue)}`);
+    if (ev.description) lines.push(`DESCRIPTION:${icsEscape(String(ev.description).replace(/<[^>]+>/g, ' '))}`);
+    lines.push('END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function toWhatsappText(items: any[]): string {
+  const byDay = new Map<string, any[]>();
+  for (const ev of items) {
+    const key = dayjs(ev.start).format('DD MMM YYYY (ddd)');
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key)!.push(ev);
+  }
+  const out: string[] = [];
+  for (const [day, list] of byDay) {
+    out.push(`*${day}*`);
+    for (const ev of list) {
+      const time = ev.allDay ? 'All day' : dayjs(ev.start).format('h:mm A');
+      out.push(`- ${time}  ${ev.title}${ev.venue ? ` (${ev.venue})` : ''}`);
+    }
+    out.push('');
+  }
+  return out.join('\n').trim();
+}
+
+router.get(
+  '/export',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  validate({ query: exportQuerySchema.extend({ format: z.enum(['ics', 'csv', 'xlsx', 'whatsapp']) }) }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const { from, to, types, members, excludeNotGoing, format } = req.query as unknown as {
+      from: Date; to: Date; types?: string; members?: string; excludeNotGoing?: string; format: 'ics' | 'csv' | 'xlsx' | 'whatsapp';
+    };
+    const filter = resolveViewFilter(auth, codes, members);
+    const typeList = types?.split(',').map((t) => t.trim()).filter(Boolean);
+    if (typeList?.length) filter.type = { $in: typeList };
+
+    let items = await expandEventsInRange(filter, from, to);
+    if (excludeNotGoing === 'true') {
+      items = items.filter((ev: any) => !(ev.members as string[]).every((m) => ev.rsvp?.[m] === 'NOT_GOING'));
+    }
+    items.sort((a, b) => new Date(a.start as any).getTime() - new Date(b.start as any).getTime());
+
+    recordAudit(req, { action: 'READ', entity: 'CalendarEvent', message: `export ${format} (${items.length} items)` });
+
+    if (format === 'ics') {
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="calendar.ics"');
+      return res.send(toIcs(items as any[]));
+    }
+    if (format === 'whatsapp') {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.send(toWhatsappText(items as any[]));
+    }
+    const columns = ['date', 'time', 'title', 'type', 'venue', 'calendars'];
+    const rows = (items as any[]).map((ev) => ({
+      date: dayjs(ev.start).format('DD-MM-YYYY'),
+      time: ev.allDay ? 'All day' : `${dayjs(ev.start).format('HH:mm')}-${dayjs(ev.end).format('HH:mm')}`,
+      title: ev.title,
+      type: calendarTypeMeta(ev.type).label,
+      venue: ev.venue ?? '',
+      calendars: (ev.members ?? []).join(', '),
+    }));
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="calendar.csv"');
+      return res.send(toCsv(columns, rows));
+    }
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="calendar.xlsx"');
+    return res.send(await toXlsx('Calendar', columns, rows));
+  }),
+);
+
+/* ------------------------------ admin: backup ------------------------------ */
+
+router.get(
+  '/backup',
+  requirePermission(PERMISSIONS.CALENDAR_ADMIN),
+  asyncHandler(async (req, res) => {
+    const [events, logs, photos] = await Promise.all([
+      CalendarEvent.find({}).lean({ flattenMaps: true }),
+      CalendarEventLog.find({}).sort('-at').lean(),
+      CalendarPhoto.find({}).lean(),
+    ]);
+    recordAudit(req, { action: 'READ', entity: 'CalendarEvent', message: `full backup export (${events.length} events)` });
+    res.setHeader('Content-Disposition', `attachment; filename="calendar-backup-${dayjs().format('YYYY-MM-DD')}.json"`);
+    ok(res, { exportedAt: new Date().toISOString(), version: 1, events: withId(events), logs: withId(logs), photos: withId(photos) });
+  }),
+);
+
+/**
+ * Admin-only import of the OLD standalone calendar artifact's backup JSON.
+ * That artifact's own id format isn't known to be a Mongo ObjectId, so
+ * original ids are kept on `legacyId` (not `_id`) and upserted on it - safe
+ * to run the same backup file twice. Best-effort field mapping: unrecognised
+ * or missing fields fall back to sane defaults rather than failing the row.
+ */
+const importBody = z.object({ events: z.array(z.record(z.string(), z.any())).max(5000) });
+router.post(
+  '/import',
+  requirePermission(PERMISSIONS.CALENDAR_ADMIN),
+  validate({ body: importBody }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    let createdCount = 0, updatedCount = 0, skipped = 0;
+    const errors: string[] = [];
+
+    for (const raw of req.body.events as Record<string, any>[]) {
+      try {
+        const legacyId = raw.id != null ? String(raw.id) : null;
+        if (!legacyId) { skipped++; continue; }
+        const start = raw.start ? new Date(raw.start) : null;
+        if (!start || Number.isNaN(start.getTime())) { skipped++; continue; }
+        const end = raw.end ? new Date(raw.end) : start;
+
+        const rawMembers: string[] = raw.members ?? raw.calendars ?? (raw.calendar ? [raw.calendar] : []);
+        const members = resolveMembers(rawMembers.length ? rawMembers : ['MLA_S']);
+        const meta = calendarTypeMeta(raw.type ?? '');
+        const type = meta.code === 'UNKNOWN' ? 'MEETING_OFFICIAL' : meta.code;
+
+        const fields = {
+          legacyId, members, title: String(raw.title ?? 'Untitled'), description: raw.description ?? '',
+          type, status: raw.status ?? 'SCHEDULED', start, end: end.getTime() >= start.getTime() ? end : start,
+          allDay: !!raw.allDay, recurrence: raw.recurrence ?? 'NONE',
+          recurrenceUntil: raw.recurrenceUntil ? new Date(raw.recurrenceUntil) : null,
+          venue: raw.venue ?? '', area: raw.area ?? raw.ward ?? '', organizer: raw.organizer ?? '',
+          organizerKind: raw.organizerKind ?? 'IND', contactName: raw.contactName ?? '', contactPhone: raw.contactPhone ?? '',
+          attendees: Array.isArray(raw.attendees) ? raw.attendees.map(String) : [],
+          role: raw.role ?? null,
+          prep: Array.isArray(raw.prep) ? raw.prep : [], prepDone: Array.isArray(raw.prepDone) ? raw.prepDone : [],
+          prepNote: raw.prepNote ?? '', reply: raw.reply ?? 'PENDING',
+          publicSchedule: raw.publicSchedule ?? defaultPublicSchedule(type),
+          writeup: raw.writeup ?? '', draft: !!raw.draft, dateUnknown: !!raw.dateUnknown,
+          updatedBy: auth.userId,
+        };
+
+        const existing = await CalendarEvent.findOne({ legacyId });
+        if (existing) {
+          existing.set(fields);
+          await existing.save();
+          updatedCount++;
+        } else {
+          await CalendarEvent.create({ ...fields, createdBy: auth.userId });
+          createdCount++;
+        }
+      } catch (err) {
+        errors.push(`${raw.id ?? '?'}: ${(err as Error).message}`);
+        skipped++;
+      }
+    }
+
+    recordAudit(req, {
+      action: 'CREATE', entity: 'CalendarEvent',
+      message: `import backup: ${createdCount} created, ${updatedCount} updated, ${skipped} skipped`,
+    });
+    ok(res, { created: createdCount, updated: updatedCount, skipped, errors: errors.slice(0, 50) });
+  }),
+);
+
+/* ------------------------------ calendar photos ----------------------------- */
+
+const photoCodeParam = z.object({ code: z.enum([...CALENDAR_REAL_CODES, CALENDAR_SS_FAMILY.code]) });
+
+router.get(
+  '/photos/:code',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  validate({ params: photoCodeParam }),
+  asyncHandler(async (req, res) => {
+    const photo = await CalendarPhoto.findById(req.params.code).lean();
+    if (!photo) return ok(res, { url: null });
+    const url = await storage().getSignedUrl(photo.storageKey, {});
+    ok(res, { url, updatedAt: (photo as any).updatedAt });
+  }),
+);
+
+router.put(
+  '/photos/:code',
+  requirePermission(PERMISSIONS.CALENDAR_ADMIN),
+  validate({ params: photoCodeParam }),
+  calendarUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw AppError.badRequest('File is required');
+    if (!req.file.mimetype.startsWith('image/')) throw AppError.badRequest('Photo must be an image');
+    const ext = req.file.mimetype.split('/')[1] ?? 'jpg';
+    const key = `calendar-photos/${req.params.code}-${Date.now()}.${ext}`;
+    const stored = await storage().put({ key, body: req.file.buffer, contentType: req.file.mimetype });
+    await CalendarPhoto.findByIdAndUpdate(
+      req.params.code,
+      { storageKey: stored.key, contentType: req.file.mimetype, updatedBy: req.auth!.userId },
+      { upsert: true },
+    );
+    recordAudit(req, { action: 'UPDATE', entity: 'CalendarPhoto', entityId: req.params.code });
+    ok(res, { ok: true });
   }),
 );
 
