@@ -18,7 +18,9 @@ import { RequestDetailDialog } from '../requests/RequestDetailDialog';
 import { AgendaView, MiniCalendar, MonthView, TimeGridView, itemColor } from './CalendarViews';
 import { EventDialog } from './EventDialog';
 import { EventDetailsDialog } from './EventDetailsDialog';
-import { AdminCalendarDialog, AwayDialog, QuickEventDialog, ReportsDialog, WorkListsDialog } from './CalendarExtras';
+import {
+  AdminCalendarDialog, AwayDialog, ImportGoogleCalendarDialog, QuickEventDialog, ReportsDialog, WorkListsDialog,
+} from './CalendarExtras';
 import { CalendarsField } from './CalendarsField';
 import { useCalendarReference } from './useCalendarReference';
 import { onDay, rangeTitle, stepDate, timeLabel, viewRange, type CalendarItem, type CalendarView } from './calendarUtils';
@@ -157,6 +159,7 @@ export function CalendarPage() {
   const [worklistsOpen, setWorklistsOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [importGoogleOpen, setImportGoogleOpen] = useState(false);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const exportFilters = useMemo(
     () => ({ types: visibleTypes.length === ALL_TYPES.length ? undefined : visibleTypes.join(','), members: prefs.calendars.join(',') || undefined }),
@@ -217,6 +220,11 @@ export function CalendarPage() {
               {canManage && (
                 <MenuItem onClick={() => { setMoreAnchor(null); setAwayOpen(true); }}>
                   <Icon name="FlightTakeoff" sx={{ mr: 1.5 }} />Mark away / unavailable
+                </MenuItem>
+              )}
+              {canManage && (
+                <MenuItem onClick={() => { setMoreAnchor(null); setImportGoogleOpen(true); }}>
+                  <Icon name="UploadFile" sx={{ mr: 1.5 }} />Import from Google Calendar
                 </MenuItem>
               )}
               <MenuItem onClick={() => { setMoreAnchor(null); setWorklistsOpen(true); }}>
@@ -431,6 +439,7 @@ export function CalendarPage() {
       <RequestDetailDialog id={requestId} onClose={() => setRequestId(null)} />
       <QuickEventDialog open={quickOpen} onClose={() => setQuickOpen(false)} />
       <AwayDialog open={awayOpen} onClose={() => setAwayOpen(false)} />
+      <ImportGoogleCalendarDialog open={importGoogleOpen} onClose={() => setImportGoogleOpen(false)} />
       <WorkListsDialog open={worklistsOpen} onClose={() => setWorklistsOpen(false)} onSelect={setSelected} />
       <ReportsDialog open={reportsOpen} onClose={() => setReportsOpen(false)} filters={exportFilters} />
       {canAdmin && <AdminCalendarDialog open={adminOpen} onClose={() => setAdminOpen(false)} />}

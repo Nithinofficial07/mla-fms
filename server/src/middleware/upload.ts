@@ -46,3 +46,22 @@ export const calendarUpload = multer({
     cb(null, true);
   },
 });
+
+/**
+ * Calendar backup / .ics import: a plain text file, so browsers report all
+ * sorts of content-types for it (text/calendar, text/plain, even
+ * application/octet-stream depending on OS) - checked by extension instead,
+ * same approach as the general `upload` instance. 15MB covers years of a
+ * personal Google Calendar's worth of events as plain text.
+ */
+export const icsUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024, files: 1 },
+  fileFilter(_req, file, cb) {
+    const ext = file.originalname.match(EXT_RE)?.[1]?.toLowerCase();
+    if (ext !== 'ics') {
+      return cb(AppError.badRequest('Please choose a .ics calendar file'));
+    }
+    cb(null, true);
+  },
+});

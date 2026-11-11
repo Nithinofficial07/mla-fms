@@ -81,8 +81,19 @@ export function fetchWhatsappText(params: Record<string, string | undefined>) {
   return api.get('/calendar/export', { params: { ...params, format: 'whatsapp' } }).then((r) => r.data as string);
 }
 
+export interface ImportResult { created: number; updated: number; skipped: number; errors: string[] }
+
 export function importBackup(events: Record<string, unknown>[]) {
-  return api.post('/calendar/import', { events }).then((r) => r.data as { created: number; updated: number; skipped: number; errors: string[] });
+  return api.post('/calendar/import', { events }).then((r) => r.data as ImportResult);
+}
+
+/** Google Calendar: Settings > Import & export > Export gives a .ics per calendar - upload one here. */
+export function importGoogleIcs(members: string[], file: File, type?: string) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('members', members.join(','));
+  if (type) form.append('type', type);
+  return api.post('/calendar/import-ics', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data as ImportResult);
 }
 
 export function fetchPhoto(code: string) {

@@ -13,7 +13,7 @@ import { Icon } from '@/components/Icon';
 import { downloadViaApi } from '@/lib/download';
 import {
   createQuickEvent, fetchChangeLog, fetchMonthlySummary, fetchPhoto, fetchReferenceData, fetchWhatsappText, fetchWorkLists,
-  importBackup, markAway, uploadPhoto, type WorkLists,
+  importBackup, importGoogleIcs, markAway, uploadPhoto, type WorkLists,
 } from './calendarApi';
 import { CalendarsField, useDefaultCalendars } from './CalendarsField';
 import { timeLabel, type CalendarItem } from './calendarUtils';
@@ -136,6 +136,65 @@ export function AwayDialog({ open, onClose }: { open: boolean; onClose: () => vo
           {save.isPending ? 'Saving…' : 'Mark away'}
         </Button>
       </DialogActions>
+    </Dialog>
+  );
+}
+
+/* ---------------------------- import from google ---------------------------- */
+export function ImportGoogleCalendarDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { enqueueSnackbar } = useSnackbar();
+  const defaultCalendars = useDefaultCalendars();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [members, setMembers] = useState<string[]>([]);
+  const [type, setType] = useState<string>(CALENDAR_DEFAULT_TYPE);
+  const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setMembers(defaultCalendars);
+    setResult(null);
+  }, [open, defaultCalendars]);
+
+  const importMut = useMutation({
+    mutationFn: (file: File) => importGoogleIcs(members, file, type),
+    onSuccess: (r) => { setResult(r); enqueueSnackbar('Import finished', { variant: 'success' }); },
+    onError: (e) => enqueueSnackbar(errorMessage(e), { variant: 'error' }),
+  });
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle>Import from Google Calendar</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2}>
+          <Box component="ol" sx={{ m: 0, pl: 2.5, '& li': { mb: 0.5 } }}>
+            <Typography component="li" variant="body2" color="text.secondary">
+              On a computer, open Google Calendar and go to Settings (the gear icon).
+            </Typography>
+            <Typography component="li" variant="body2" color="text.secondary">
+              Under "Import &amp; export", click <b>Export</b>. This downloads a .zip file.
+            </Typography>
+            <Typography component="li" variant="body2" color="text.secondary">
+              Unzip it - inside is one .ics file per calendar. Pick the one for the calendar you want to bring in.
+            </Typography>
+          </Box>
+          <CalendarsField value={members} onChange={setMembers} label="Add these events to" size="small" />
+          <TextField select fullWidth size="small" label="Import as type" value={type} onChange={(e) => setType(e.target.value)} helperText="You can re-sort individual events afterwards.">
+            {CALENDAR_EVENT_TYPES.map((t) => <MenuItem key={t.code} value={t.code}>{t.label}</MenuItem>)}
+          </TextField>
+          <Button variant="outlined" startIcon={<Icon name="UploadFile" />} onClick={() => fileRef.current?.click()} disabled={!members.length || importMut.isPending}>
+            {importMut.isPending ? 'Importing…' : 'Choose .ics file'}
+          </Button>
+          <input ref={fileRef} type="file" hidden accept=".ics" onChange={(e) => { const f = e.target.files?.[0]; if (f) importMut.mutate(f); e.target.value = ''; }} />
+          {result && (
+            <Alert severity={result.errors.length ? 'warning' : 'success'}>
+              {result.created} added, {result.updated} already there (updated), {result.skipped} skipped.
+              {!!result.errors.length && ` ${result.errors.length} error(s): ${result.errors.slice(0, 3).join('; ')}`}
+              {' '}Repeating events came in as separate one-off entries, not a single series - edit any of them if you'd like it to repeat going forward.
+            </Alert>
+          )}
+        </Stack>
+      </DialogContent>
+      <DialogActions><Button onClick={onClose}>Close</Button></DialogActions>
     </Dialog>
   );
 }

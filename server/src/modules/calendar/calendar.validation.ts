@@ -136,4 +136,10 @@ export const exportQuerySchema = z.object({
   excludeNotGoing: z.enum(['true', 'false']).optional(),
 });
 
+/** multer puts non-file multipart fields on req.body as plain strings - members stays comma-separated here, split by the route. */
+export const importIcsBodySchema = z.object({
+  members: z.string().min(1, 'Pick at least one calendar'),
+  type: z.string().optional(),
+});
+
 export const idParam = z.object({ id: objectId });

@@ -5,12 +5,12 @@ import { Router } from 'express';
 import { z } from 'zod';
 import dayjs from 'dayjs';
 import {
-  PERMISSIONS, CALENDAR_REAL_CODES, CALENDAR_SS_FAMILY, calendarTypeMeta,
+  PERMISSIONS, CALENDAR_EVENT_TYPE_CODES, CALENDAR_REAL_CODES, CALENDAR_SS_FAMILY, calendarTypeMeta,
 } from '@mla/shared';
 import { authenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
-import { calendarUpload } from '../../middleware/upload.js';
+import { calendarUpload, icsUpload } from '../../middleware/upload.js';
 import { asyncHandler, created, ok } from '../../utils/http.js';
 import { AppError } from '../../utils/AppError.js';
 import { recordAudit } from '../../utils/audit.js';
@@ -25,11 +25,12 @@ import { toCsv, toXlsx } from '../reports/reports.service.js';
 import { storage } from '../../storage/index.js';
 import {
   myCalendarCodes, scopeFilter, loadScoped, resolveMembers, defaultPublicSchedule, logChange, findClashes,
-  toApiShape, expandEventsInRange,
+  toApiShape, expandEventsInRange, importGoogleIcs,
 } from './calendar.service.js';
 import {
   createEventSchema, updateEventSchema, quickEventSchema, rangeQuerySchema, rsvpSchema, attendanceSchema,
   prepUpdateSchema, replyUpdateSchema, socialUpdateSchema, moveEventSchema, awayRangeSchema, exportQuerySchema,
+  importIcsBodySchema,
 } from './calendar.validation.js';
 
 const router = Router();
@@ -670,6 +671,39 @@ router.post(
       message: `import backup: ${createdCount} created, ${updatedCount} updated, ${skipped} skipped`,
     });
     ok(res, { created: createdCount, updated: updatedCount, skipped, errors: errors.slice(0, 50) });
+  }),
+);
+
+/**
+ * Google Calendar import: Settings > Import & export > Export downloads a
+ * .zip of .ics files, one per calendar - the user picks one and which of our
+ * calendars to drop it onto. Open to anyone who can manage the calendar
+ * (not admin-only like /import above): this is "bring in events I already
+ * made", not a system-level backup restore.
+ */
+router.post(
+  '/import-ics',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  icsUpload.single('file'),
+  validate({ body: importIcsBodySchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    if (!req.file) throw AppError.badRequest('Choose a .ics file to import');
+    const codes = await myCalendarCodes(auth);
+    const members = resolveMembers(req.body.members.split(',').map((m: string) => m.trim()).filter(Boolean));
+    if (!auth.viewAllPrincipals && !members.some((m) => codes.includes(m))) {
+      throw AppError.forbidden('You can only import onto one of your own calendars');
+    }
+    const type = req.body.type && (CALENDAR_EVENT_TYPE_CODES as readonly string[]).includes(req.body.type)
+      ? req.body.type
+      : 'MEETING_OFFICIAL';
+
+    const result = await importGoogleIcs(req.file.buffer.toString('utf8'), members, type, auth.userId);
+    recordAudit(req, {
+      action: 'CREATE', entity: 'CalendarEvent',
+      message: `import .ics: ${result.created} created, ${result.updated} updated, ${result.skipped} skipped`,
+    });
+    ok(res, result);
   }),
 );
 
