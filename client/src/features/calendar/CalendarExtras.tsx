@@ -17,6 +17,7 @@ import {
 } from './calendarApi';
 import { CalendarsField, useDefaultCalendars } from './CalendarsField';
 import { timeLabel, type CalendarItem } from './calendarUtils';
+import { CheckRow, DecideRow } from './CalendarPanels';
 
 /* ------------------------------- quick event ------------------------------ */
 export function QuickEventDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -203,7 +204,8 @@ export function ImportGoogleCalendarDialog({ open, onClose }: { open: boolean; o
 const LIST_META: { key: keyof WorkLists; label: string; icon: string; empty: string }[] = [
   { key: 'toDecide', label: 'To decide (RSVP)', icon: 'HelpOutline', empty: 'Nothing waiting on an RSVP.' },
   { key: 'organisersNotReplied', label: 'Organisers not replied', icon: 'MarkEmailRead', empty: 'Every organiser has replied.' },
-  { key: 'toCheck', label: 'To check (preparation)', icon: 'Checklist', empty: 'Preparation is up to date.' },
+  { key: 'toCheck', label: 'To check (attendance)', icon: 'FactCheck', empty: 'Attendance is marked for every past event.' },
+  { key: 'toPrepare', label: 'To prepare', icon: 'Checklist', empty: 'Preparation is up to date.' },
   { key: 'toFill', label: 'To fill in (quick events)', icon: 'EditNote', empty: 'No quick events waiting for details.' },
   { key: 'toPost', label: 'To post (social media)', icon: 'ContentCopy', empty: 'Nothing waiting to be posted.' },
   { key: 'comingUp', label: 'Coming up', icon: 'Event', empty: 'Nothing in the next 3 weeks.' },
@@ -224,14 +226,15 @@ function ItemRow({ item, onClick }: { item: CalendarItem; onClick: () => void })
   );
 }
 
-export function WorkListsDialog({ open, onClose, onSelect }: { open: boolean; onClose: () => void; onSelect: (item: CalendarItem) => void }) {
+export function WorkListsDialog({ open, onClose, onSelect, initial }: { open: boolean; onClose: () => void; onSelect: (item: CalendarItem) => void; initial?: keyof WorkLists }) {
   const [tab, setTab] = useState(0);
+  useEffect(() => { if (open) setTab(Math.max(0, LIST_META.findIndex((m) => m.key === initial))); }, [open, initial]);
   const { data, isLoading } = useQuery({ queryKey: ['calendar', 'worklists'], queryFn: fetchWorkLists, enabled: open });
   const meta = LIST_META[tab];
   const list = data?.[meta.key] ?? [];
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Work lists</DialogTitle>
       <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}>
         {LIST_META.map((m, i) => <Tab key={m.key} label={`${m.label}${data ? ` (${data[m.key].length})` : ''}`} value={i} />)}
@@ -239,9 +242,18 @@ export function WorkListsDialog({ open, onClose, onSelect }: { open: boolean; on
       <DialogContent dividers sx={{ minHeight: 320 }}>
         {isLoading && <Typography color="text.secondary">Loading…</Typography>}
         {!isLoading && !list.length && <Typography color="text.secondary">{meta.empty}</Typography>}
-        <List dense>
-          {list.map((it) => <ItemRow key={it.id} item={it} onClick={() => { onSelect(it); onClose(); }} />)}
-        </List>
+        {meta.key === 'toDecide' || meta.key === 'toCheck' ? (
+          <Stack spacing={1.25}>
+            {meta.key === 'toCheck' && !!list.length && <Typography variant="caption" color="text.secondary">Past 60 days - mark whether each calendar went, who went, and add photos.</Typography>}
+            {list.map((it) => (meta.key === 'toDecide'
+              ? <DecideRow key={it.id} item={it} onOpen={(i) => { onSelect(i); onClose(); }} />
+              : <CheckRow key={it.id} item={it} onOpen={(i) => { onSelect(i); onClose(); }} />))}
+          </Stack>
+        ) : (
+          <List dense>
+            {list.map((it) => <ItemRow key={it.id} item={it} onClick={() => { onSelect(it); onClose(); }} />)}
+          </List>
+        )}
       </DialogContent>
       <DialogActions><Button onClick={onClose}>Close</Button></DialogActions>
     </Dialog>

@@ -28,7 +28,7 @@ import {
   toApiShape, expandEventsInRange, importGoogleIcs,
 } from './calendar.service.js';
 import {
-  createEventSchema, updateEventSchema, quickEventSchema, rangeQuerySchema, rsvpSchema, attendanceSchema,
+  createEventSchema, updateEventSchema, quickEventSchema, rangeQuerySchema, searchQuerySchema, rsvpSchema, attendanceSchema,
   prepUpdateSchema, replyUpdateSchema, socialUpdateSchema, moveEventSchema, awayRangeSchema, exportQuerySchema,
   importIcsBodySchema,
 } from './calendar.validation.js';
@@ -289,13 +289,16 @@ router.post(
     const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
     if (!doc.members.includes(req.body.code)) throw AppError.badRequest('That calendar is not invited to this event');
 
-    doc.attendance.set(req.body.code, {
-      status: req.body.status, members: req.body.members ?? [], note: req.body.note ?? '',
-      by: auth.userId, at: new Date(),
-    } as any);
+    if (req.body.status === null) doc.attendance.delete(req.body.code);
+    else {
+      doc.attendance.set(req.body.code, {
+        status: req.body.status, members: req.body.members ?? [], note: req.body.note ?? '',
+        by: auth.userId, at: new Date(),
+      } as any);
+    }
     doc.updatedBy = auth.userId as any;
     await doc.save();
-    await logChange(String(doc._id), doc.title, 'attendance', [`${req.body.code}: ${req.body.status}`], auth.userId, auth.name);
+    await logChange(String(doc._id), doc.title, 'attendance', [`${req.body.code}: ${req.body.status ?? 'cleared'}`], auth.userId, auth.name);
     ok(res, toApiShape(asObject(doc)));
   }),
 );
@@ -340,13 +343,16 @@ router.post(
     const doc = await loadScoped(req.params.id, codes, auth.viewAllPrincipals);
     if (!doc.members.includes(req.body.code)) throw AppError.badRequest('That calendar is not invited to this event');
 
-    doc.social.set(req.body.code, {
-      status: req.body.status, platforms: req.body.platforms ?? [], caption: req.body.caption ?? '',
-      by: auth.userId, at: new Date(),
-    } as any);
+    if (req.body.status === null) doc.social.delete(req.body.code);
+    else {
+      doc.social.set(req.body.code, {
+        status: req.body.status, platforms: req.body.platforms ?? [], caption: req.body.caption ?? '',
+        by: auth.userId, at: new Date(),
+      } as any);
+    }
     doc.updatedBy = auth.userId as any;
     await doc.save();
-    await logChange(String(doc._id), doc.title, 'social', [`${req.body.code}: ${req.body.status}`], auth.userId, auth.name);
+    await logChange(String(doc._id), doc.title, 'social', [`${req.body.code}: ${req.body.status ?? 'cleared'}`], auth.userId, auth.name);
     ok(res, toApiShape(asObject(doc)));
   }),
 );
@@ -408,7 +414,8 @@ router.get(
     const filter = scopeFilter(codes, auth.viewAllPrincipals);
     const now = new Date();
     const soon = dayjs(now).add(21, 'day').toDate();
-    const recentPast = dayjs(now).subtract(14, 'day').toDate();
+    const recentPast = dayjs(now).subtract(60, 'day').toDate();
+    const postWindow = dayjs(now).subtract(45, 'day').toDate();
 
     const [upcoming, pastRecent] = await Promise.all([
       CalendarEvent.find({ ...filter, start: { $gte: now, $lte: soon }, status: { $ne: 'CANCELLED' } })
@@ -421,17 +428,100 @@ router.get(
       const mine = (ev.members as string[]).find((m) => codes.includes(m));
       return mine ? (ev.rsvp?.[mine] ?? 'UNDECIDED') : null;
     };
-    const posted = (ev: any) => Object.values(ev.social ?? {}).some((s: any) => s?.status === 'POSTED');
+    const socialDone = (ev: any) => Object.values(ev.social ?? {}).some((s: any) => s?.status === 'POSTED' || s?.status === 'SKIPPED');
+    const going = (ev: any) => (ev.members as string[]).some((m) => ev.rsvp?.[m] === 'GOING');
+    const marked = (ev: any) => Object.keys(ev.attendance ?? {}).length > 0;
+    const attended = (ev: any) => Object.values(ev.attendance ?? {}).some((a: any) => a?.status === 'ATTENDED' || a?.status === 'REPRESENTATIVE');
+    const real = (ev: any) => !ev.draft && ev.type !== 'UNAVAILABLE';
 
     const shape = (list: any[]) => list.slice(0, 50).map((ev) => toApiShape(ev));
     ok(res, {
       toDecide: shape(upcoming.filter((ev) => myRsvp(ev) === 'UNDECIDED')),
-      toCheck: shape(upcoming.filter((ev) => (ev.prep ?? []).length > (ev.prepDone ?? []).length)),
+      // Past 60 days: someone was going but attendance isn't recorded yet.
+      toCheck: shape(pastRecent.filter((ev) => real(ev) && going(ev) && !marked(ev))),
+      toPrepare: shape(upcoming.filter((ev) => (ev.prep ?? []).length > (ev.prepDone ?? []).length)),
       toFill: shape([...upcoming, ...pastRecent].filter((ev) => ev.draft || ev.dateUnknown)),
-      toPost: shape(pastRecent.filter((ev) => ev.publicSchedule && !posted(ev))),
+      // Past 45 days: attended (or a representative went), public, not posted or skipped yet.
+      toPost: shape(pastRecent.filter((ev) => real(ev) && ev.start >= postWindow && ev.publicSchedule !== false && attended(ev) && !socialDone(ev))),
       organisersNotReplied: shape(upcoming.filter((ev) => ev.reply === 'PENDING')),
       comingUp: shape(upcoming),
     });
+  }),
+);
+
+/* ------------------------------- suggestions ------------------------------ */
+
+/** Past venues / areas / organisers / contacts, most-used first - feeds the editor's autocompletes. */
+router.get(
+  '/suggestions',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const since = dayjs().subtract(2, 'year').toDate();
+    const docs = (await CalendarEvent.find({ ...scopeFilter(codes, auth.viewAllPrincipals), start: { $gte: since } })
+      .select('venue area organizer organizerKind contactName contactPhone contact2Name contact2Phone')
+      .sort('-start').limit(3000).lean()) as any[];
+    const top = (vals: (string | undefined)[], n = 300) => {
+      const m = new Map<string, number>();
+      for (const v of vals) { const t = (v ?? '').trim(); if (t) m.set(t, (m.get(t) ?? 0) + 1); }
+      return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k);
+    };
+    const contacts = new Map<string, { name: string; phone: string; n: number }>();
+    for (const d of docs) {
+      for (const [name, phone] of [[d.contactName, d.contactPhone], [d.contact2Name, d.contact2Phone]]) {
+        const nm = (name ?? '').trim();
+        if (!nm) continue;
+        const ph = (phone ?? '').trim();
+        const key = `${nm.toLowerCase()}|${ph}`;
+        const c = contacts.get(key);
+        if (c) c.n++; else contacts.set(key, { name: nm, phone: ph, n: 1 });
+      }
+    }
+    const organizerKinds: Record<string, string> = {};
+    for (const d of docs) if (d.organizer && d.organizerKind && !organizerKinds[d.organizer]) organizerKinds[d.organizer] = d.organizerKind;
+    ok(res, {
+      venues: top(docs.map((d) => d.venue)),
+      areas: top(docs.map((d) => d.area)),
+      organizers: top(docs.map((d) => d.organizer)),
+      organizerKinds,
+      contacts: [...contacts.values()].sort((a, b) => b.n - a.n).slice(0, 400).map(({ name, phone }) => ({ name, phone })),
+    });
+  }),
+);
+
+/* --------------------------------- search ---------------------------------- */
+
+router.get(
+  '/search',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  validate({ query: searchQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const codes = await myCalendarCodes(auth);
+    const { q } = req.query as unknown as { q: string };
+    const words = q.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
+    const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const fields = ['title', 'venue', 'area', 'organizer', 'contactName', 'contactPhone', 'contact2Name', 'contact2Phone', 'description', 'attendees'];
+    // Every word must match somewhere; phone digits also match ignoring spaces.
+    const and = words.map((w) => ({ $or: fields.map((f) => ({ [f]: { $regex: esc(w), $options: 'i' } })) }));
+    const docs = (await CalendarEvent.find({ ...scopeFilter(codes, auth.viewAllPrincipals), $and: and })
+      .sort('-start').limit(80).lean({ flattenMaps: true })) as any[];
+    // Upcoming first (soonest), then past (most recent).
+    const nowMs = Date.now();
+    docs.sort((x, y) => {
+      const dx = new Date(x.start).getTime() - nowMs;
+      const dy = new Date(y.start).getTime() - nowMs;
+      if ((dx >= 0) !== (dy >= 0)) return dx >= 0 ? -1 : 1;
+      return dx >= 0 ? dx - dy : dy - dx;
+    });
+    ok(res, docs.slice(0, 50).map((ev) => {
+      const base = toApiShape(ev);
+      return {
+        ...base, kind: 'event', eventId: base.id,
+        isRecurring: !!ev.recurrence && ev.recurrence !== 'NONE', seriesStart: ev.start, seriesEnd: ev.end,
+      };
+    }));
   }),
 );
 
@@ -450,19 +540,69 @@ router.get(
     const from = dayjs(`${month}-01`).startOf('month').toDate();
     const to = dayjs(from).add(1, 'month').toDate();
 
-    const events = await CalendarEvent.find({ ...filter, start: { $gte: from, $lt: to } }).lean({ flattenMaps: true });
+    // Everything touching the month (an away block can start in the previous one).
+    const all = (await CalendarEvent.find({ ...filter, start: { $lt: to }, end: { $gt: from }, draft: { $ne: true }, status: { $ne: 'CANCELLED' } })
+      .lean({ flattenMaps: true })) as any[];
+    const away = all.filter((ev) => ev.type === 'UNAVAILABLE');
+    const events = all.filter((ev) => ev.type !== 'UNAVAILABLE' && new Date(ev.start) >= from);
+    const now = new Date();
+
     const byType: Record<string, number> = {};
-    let going = 0, notGoing = 0, attended = 0, notAttended = 0;
-    for (const ev of events as any[]) {
-      byType[ev.type] = (byType[ev.type] ?? 0) + 1;
+    const byTypeAttended: Record<string, number> = {};
+    const areas: Record<string, number> = {};
+    const replies: Record<string, number> = { PENDING: 0, CONFIRMED: 0, REGRET: 0 };
+    let going = 0, notGoing = 0, attended = 0, notAttended = 0, posted = 0, toPost = 0, attendedEvents = 0;
+    const visibleCodes = auth.viewAllPrincipals ? [...CALENDAR_REAL_CODES] : codes;
+    const perMember = Object.fromEntries(visibleCodes.map((c) => [c, {
+      invited: 0, going: 0, notGoing: 0, undecided: 0, attended: 0, representative: 0, notAttended: 0, unmarked: 0, awayDays: 0,
+    }])) as Record<string, Record<string, number>>;
+
+    for (const ev of events) {
+      const someoneGoing = (ev.members as string[]).some((c) => ev.rsvp?.[c] === 'GOING');
+      if (someoneGoing) {
+        byType[ev.type] = (byType[ev.type] ?? 0) + 1;
+        const area = String(ev.area ?? '').trim();
+        if (area) areas[area] = (areas[area] ?? 0) + 1;
+      }
+      if (ev.reply && replies[ev.reply] !== undefined) replies[ev.reply]++;
+      const wentAny = Object.values(ev.attendance ?? {}).some((a: any) => a?.status === 'ATTENDED' || a?.status === 'REPRESENTATIVE');
+      if (wentAny) {
+        attendedEvents++;
+        byTypeAttended[ev.type] = (byTypeAttended[ev.type] ?? 0) + 1;
+        const isPosted = Object.values(ev.social ?? {}).some((x: any) => x?.status === 'POSTED');
+        if (isPosted) posted++; else if (ev.publicSchedule) toPost++;
+      }
       for (const code of ev.members as string[]) {
-        const r = ev.rsvp?.[code];
+        const r = ev.rsvp?.[code] ?? 'UNDECIDED';
         if (r === 'GOING') going++; else if (r === 'NOT_GOING') notGoing++;
         const a = ev.attendance?.[code]?.status;
         if (a === 'ATTENDED' || a === 'REPRESENTATIVE') attended++; else if (a === 'NOT_ATTENDED') notAttended++;
+        const m = perMember[code];
+        if (!m) continue;
+        m.invited++;
+        if (r === 'GOING') m.going++; else if (r === 'NOT_GOING') m.notGoing++; else m.undecided++;
+        if (a === 'ATTENDED') m.attended++;
+        else if (a === 'REPRESENTATIVE') m.representative++;
+        else if (a === 'NOT_ATTENDED') m.notAttended++;
+        else if (r === 'GOING' && new Date(ev.end) < now) m.unmarked++;
       }
     }
-    ok(res, { month, total: events.length, byType, rsvp: { going, notGoing }, attendance: { attended, notAttended } });
+    for (const code of visibleCodes) {
+      const days = new Set<string>();
+      for (const ev of away.filter((e) => (e.members as string[]).includes(code))) {
+        let d = dayjs(ev.start).startOf('day');
+        for (let g = 0; g < 62 && d.isBefore(dayjs(ev.end)) && d.isBefore(to); g++, d = d.add(1, 'day')) {
+          if (!d.isBefore(from)) days.add(d.format('YYYY-MM-DD'));
+        }
+      }
+      perMember[code].awayDays = days.size;
+    }
+    const topAreas = Object.entries(areas).sort((x, y) => y[1] - x[1]).slice(0, 10).map(([area, count]) => ({ area, count }));
+    ok(res, {
+      month, total: events.length, attendedEvents, byType, byTypeAttended, topAreas, replies,
+      social: { posted, toPost }, perMember,
+      rsvp: { going, notGoing }, attendance: { attended, notAttended },
+    });
   }),
 );
 

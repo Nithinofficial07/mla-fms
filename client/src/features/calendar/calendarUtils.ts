@@ -1,6 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 
-export type CalendarView = 'month' | 'week' | 'day' | 'agenda';
+export type CalendarView = 'year' | 'month' | 'week' | 'day' | 'agenda';
 
 export interface AttendanceEntry {
   status: 'ATTENDED' | 'REPRESENTATIVE' | 'NOT_ATTENDED';
@@ -27,7 +27,10 @@ export interface EventSession {
 /** One entry as returned by GET /calendar/events (an occurrence, or a request deadline). */
 export interface CalendarItem {
   id: string;
-  kind: 'event' | 'deadline';
+  kind: 'event' | 'deadline' | 'holiday';
+  /** holiday items only */
+  holidaySource?: string;
+  note?: string;
   eventId?: string;
   requestId?: string;
   title: string;
@@ -67,11 +70,19 @@ export interface CalendarItem {
   writeup?: string;
   draft?: boolean;
   dateUnknown?: boolean;
+  /** set by expandSessions on multi-day events */
+  dayNo?: number;
+  dayCount?: number;
+  seriesArrival?: string;
 }
 
 /** Visible date range [from, to) for a view anchored on `date`. */
 export function viewRange(view: CalendarView, date: Dayjs): { from: Dayjs; to: Dayjs } {
   switch (view) {
+    case 'year': {
+      const from = date.startOf('year');
+      return { from, to: from.add(1, 'year') };
+    }
     case 'month': {
       const from = date.startOf('month').startOf('week');
       return { from, to: from.add(42, 'day') };
@@ -89,11 +100,12 @@ export function viewRange(view: CalendarView, date: Dayjs): { from: Dayjs; to: D
 }
 
 export function stepDate(view: CalendarView, date: Dayjs, dir: 1 | -1): Dayjs {
-  const unit = view === 'month' ? 'month' : view === 'week' ? 'week' : view === 'agenda' ? 'month' : 'day';
+  const unit = view === 'year' ? 'year' : view === 'month' ? 'month' : view === 'week' ? 'week' : view === 'agenda' ? 'month' : 'day';
   return date.add(dir, unit);
 }
 
 export function rangeTitle(view: CalendarView, date: Dayjs): string {
+  if (view === 'year') return date.format('YYYY');
   if (view === 'month') return date.format('MMMM YYYY');
   if (view === 'day') return date.format('dddd, D MMMM YYYY');
   const { from, to } = viewRange(view, date);
@@ -178,3 +190,68 @@ export function roundTo(d: Dayjs, step = 30): Dayjs {
   const m = d.minute();
   return d.minute(Math.round(m / step) * step).second(0).millisecond(0);
 }
+
+/* ------------------------------- holidays ------------------------------- */
+
+export interface HolidaySource { code: string; label: string; short: string; color: string; note: string }
+
+/** Holidays and world/national days in [from, to) as read-only calendar items. */
+export function holidayItems(
+  ref: { holidays?: Record<string, { date: string; name: string; note?: string }[]>; worldDaysEveryYear?: { monthDay: string; name: string }[] } | undefined,
+  from: Dayjs,
+  to: Dayjs,
+  sources: string[],
+): CalendarItem[] {
+  if (!ref || !sources.length) return [];
+  const out: CalendarItem[] = [];
+  const f = from.format('YYYY-MM-DD');
+  const t = to.format('YYYY-MM-DD');
+  const push = (date: string, name: string, source: string, note?: string) => {
+    if (date < f || date >= t) return;
+    const d = dayjs(date);
+    out.push({
+      id: `hol:${source}:${date}:${name}`, kind: 'holiday', holidaySource: source, note, title: name,
+      type: 'HOLIDAY', members: [], start: d.startOf('day').toISOString(), end: d.endOf('day').millisecond(0).toISOString(), allDay: true,
+    });
+  };
+  for (const [source, list] of Object.entries(ref.holidays ?? {})) {
+    if (!sources.includes(source)) continue;
+    for (const h of list) push(h.date, h.name, source, h.note);
+  }
+  if (sources.includes('WORLD')) {
+    for (let y = from.year(); y <= to.year(); y++) {
+      for (const w of ref.worldDaysEveryYear ?? []) push(`${y}-${w.monthDay}`, w.name, 'WORLD');
+    }
+  }
+  return out.sort((a, b) => a.start.localeCompare(b.start));
+}
+
+/** Government holiday that actually closes offices (not a restricted holiday, not one that falls on a Sunday). */
+export const isClosedHoliday = (i: CalendarItem) =>
+  i.kind === 'holiday' && (i.holidaySource === 'CENTRAL' || i.holidaySource === 'KARNATAKA') && !i.note?.startsWith('Falls on');
+
+/** Decision for one calendar (defaults to "not decided"). */
+export const rsvpOf = (i: Pick<CalendarItem, 'rsvp'>, code: string) => i.rsvp?.[code] ?? 'UNDECIDED';
+export const goingMembers = (i: CalendarItem) => (i.members ?? []).filter((c) => rsvpOf(i, c) === 'GOING');
+export const allDeclined = (i: CalendarItem) => !!i.members?.length && i.members.every((c) => rsvpOf(i, c) === 'NOT_GOING');
+
+/** Expands a multi-day event (main day + sessions) into one item per day, so each shows on its own date/time. */
+export function expandSessions(items: CalendarItem[]): CalendarItem[] {
+  const out: CalendarItem[] = [];
+  for (const it of items) {
+    const sessions = it.kind === 'event' && !it.isRecurring ? it.sessions ?? [] : [];
+    if (!sessions.length) { out.push(it); continue; }
+    const count = sessions.length + 1;
+    out.push({ ...it, dayNo: 1, dayCount: count });
+    sessions.forEach((s, idx) => out.push({
+      ...it, id: `${it.id}@${idx + 2}`, start: s.start, end: s.end, arrival: s.arrival ?? '', dayNo: idx + 2, dayCount: count,
+      seriesStart: it.seriesStart ?? it.start, seriesEnd: it.seriesEnd ?? it.end, seriesArrival: it.arrival,
+    }));
+  }
+  return out;
+}
+
+export const googleMapsUrl = (venue?: string, area?: string) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([venue, area, 'Davanagere'].filter(Boolean).join(', '))}`;
+
+export const fmtArrival = (hhmm?: string) => (hhmm ? dayjs(`2000-01-01T${hhmm}`).format('h:mm A') : '');

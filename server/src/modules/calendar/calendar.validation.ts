@@ -55,6 +55,8 @@ const base = z.object({
   writeup: z.string().max(10_000).optional(),
   draft: z.boolean().optional(),
   dateUnknown: z.boolean().optional(),
+  /** Per-calendar decision, set from the editor's "Who is going?" rows. */
+  rsvp: z.record(z.enum(CALENDAR_REAL_CODES), z.enum(CALENDAR_RSVP_STATUSES)).optional(),
 });
 
 const endAfterStart = (e: { start?: Date; end?: Date; dateUnknown?: boolean }) =>
@@ -92,9 +94,10 @@ export const rsvpSchema = z.object({
   status: z.enum(CALENDAR_RSVP_STATUSES),
 });
 
+/** status null clears the mark (the "Clear" / "Undo" buttons). */
 export const attendanceSchema = z.object({
   code: z.enum(CALENDAR_REAL_CODES),
-  status: z.enum(CALENDAR_ATTENDANCE_STATUSES),
+  status: z.enum(CALENDAR_ATTENDANCE_STATUSES).nullable(),
   members: z.array(z.string().trim().max(200)).max(50).optional(),
   note: z.string().max(2000).optional(),
 });
@@ -111,7 +114,7 @@ export const replyUpdateSchema = z.object({
 
 export const socialUpdateSchema = z.object({
   code: z.enum(CALENDAR_REAL_CODES),
-  status: z.enum(CALENDAR_SOCIAL_STATUSES),
+  status: z.enum(CALENDAR_SOCIAL_STATUSES).nullable(),
   platforms: z.array(z.enum(CALENDAR_SOCIAL_PLATFORMS)).optional(),
   caption: z.string().max(4000).optional(),
 });
@@ -143,3 +146,5 @@ export const importIcsBodySchema = z.object({
 });
 
 export const idParam = z.object({ id: objectId });
+
+export const searchQuerySchema = z.object({ q: z.string().trim().min(2).max(100) });

@@ -34,6 +34,48 @@ describe('calendar', () => {
     expect(res.body.publicSchedule).toBe(false); // MEETING_OFFICIAL is private by default
   });
 
+  it('saves per-calendar RSVP from the editor, and finds the event by venue, organiser or phone digits', async () => {
+    const created = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({
+      venue: 'Kalyana Mantapa', organizer: 'Vasavi Sangha', contactName: 'Ramesh', contactPhone: '98450 12345',
+      rsvp: { MLA_S: 'GOING' },
+    }));
+    expect(created.status).toBe(201);
+    expect(created.body.rsvp.MLA_S).toBe('GOING');
+
+    for (const q of ['kalyana', 'vasavi sangha', '98450']) {
+      const res = await request(app).get('/api/calendar/search').set(auth(token)).query({ q });
+      expect(res.status).toBe(200);
+      expect(res.body.map((e: { eventId: string }) => e.eventId)).toContain(created.body.id);
+    }
+    const none = await request(app).get('/api/calendar/search').set(auth(token)).query({ q: 'nothing-like-this' });
+    expect(none.body).toEqual([]);
+
+    const sugg = await request(app).get('/api/calendar/suggestions').set(auth(token));
+    expect(sugg.status).toBe(200);
+    expect(sugg.body.venues).toContain('Kalyana Mantapa');
+    expect(sugg.body.contacts).toContainEqual({ name: 'Ramesh', phone: '98450 12345' });
+  });
+
+  it('lists a past "going" event under To check until attendance is marked, and clears a mark with null', async () => {
+    const start = new Date(Date.now() - 3 * 86_400_000);
+    const created = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({
+      start: start.toISOString(), end: new Date(start.getTime() + 3_600_000).toISOString(), rsvp: { MLA_S: 'GOING' },
+    }));
+    const id = created.body.id;
+    const ids = async () => (await request(app).get('/api/calendar/worklists').set(auth(token))).body.toCheck.map((e: { id: string }) => e.id);
+    expect(await ids()).toContain(id);
+
+    const marked = await request(app).post(`/api/calendar/events/${id}/attendance`).set(auth(token)).send({ code: 'MLA_S', status: 'ATTENDED', members: ['Suresh'], note: 'Spoke briefly' });
+    expect(marked.status).toBe(200);
+    expect(marked.body.attendance.MLA_S.status).toBe('ATTENDED');
+    expect(await ids()).not.toContain(id);
+
+    const cleared = await request(app).post(`/api/calendar/events/${id}/attendance`).set(auth(token)).send({ code: 'MLA_S', status: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.attendance?.MLA_S).toBeUndefined();
+    expect(await ids()).toContain(id);
+  });
+
   it('expands SS Family to all 3 real calendars on save', async () => {
     const res = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({ members: ['SS_FAMILY'] }));
     expect(res.status).toBe(201);

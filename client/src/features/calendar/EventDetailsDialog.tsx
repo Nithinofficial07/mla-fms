@@ -1,25 +1,28 @@
 import { useRef, useState, type ReactNode } from 'react';
 import {
-  Accordion, AccordionDetails, AccordionSummary, Box, Button, Chip, Dialog, DialogActions, DialogContent, IconButton,
-  Link, MenuItem, Stack, TextField, Tooltip, Typography,
+  Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, Divider, IconButton,
+  Link, ListItemIcon, Menu, MenuItem, Stack, TextField, Tooltip, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import dayjs from 'dayjs';
 import {
-  CALENDAR_ATTACHMENT_LABELS, CALENDAR_DEADLINE_COLOR, CALENDAR_RECURRENCE, CALENDAR_SOCIAL_PLATFORMS, PERMISSIONS, calendarTypeMeta,
+  CALENDAR_ATTACHMENT_LABELS, CALENDAR_CODES, CALENDAR_DEADLINE_COLOR, CALENDAR_RECURRENCE, PERMISSIONS, calendarTypeMeta,
 } from '@mla/shared';
 import { api, errorMessage } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
 import { Icon } from '@/components/Icon';
 import { useConfirm } from '@/components/ConfirmDialog';
 import {
-  deleteEvent, documentsForEvent, setAttendance, setPrep, setReply, setRsvp, setSocial, updateEvent, uploadEventDocument,
+  checkClashes, deleteEvent, documentsForEvent, fetchChangeLog, setPrep, updateEvent, uploadEventDocument,
 } from './calendarApi';
-import { CalendarChips, useMyCalendarCodes } from './CalendarsField';
+import { useMyCalendarCodes } from './CalendarsField';
+import { CalendarAvatar } from './CalendarAvatar';
+import { AttendanceEditor, EventPhotos, ReplySelect, RsvpButtons } from './CalendarPanels';
+import { SpeechViewer } from './SpeechEditor';
 import { useCalendarReference } from './useCalendarReference';
-import { STATUS_LABEL } from './EventDialog';
-import { timeLabel, type CalendarItem } from './calendarUtils';
+import { PREP_LABEL, ROLE_LABEL, STATUS_LABEL } from './EventDialog';
+import { fmtArrival, googleMapsUrl, rsvpOf, timeLabel, type CalendarItem } from './calendarUtils';
 
 function Row({ icon, children }: { icon: string; children: ReactNode }) {
   return (
@@ -30,22 +33,13 @@ function Row({ icon, children }: { icon: string; children: ReactNode }) {
   );
 }
 
-const RSVP_OPTS: { code: string; label: string; icon: string; color: 'success' | 'warning' | 'error' }[] = [
-  { code: 'GOING', label: 'Going', icon: 'CheckCircle', color: 'success' },
-  { code: 'UNDECIDED', label: 'Maybe', icon: 'HelpOutline', color: 'warning' },
-  { code: 'NOT_GOING', label: 'Not going', icon: 'Cancel', color: 'error' },
-];
-const ATTENDANCE_OPTS = [
-  { code: 'ATTENDED', label: 'Attended' },
-  { code: 'REPRESENTATIVE', label: 'Representative went' },
-  { code: 'NOT_ATTENDED', label: 'Not attended' },
-];
+const accordionSx = { bgcolor: 'transparent', '&::before': { display: 'none' }, boxShadow: 'none', border: 1, borderColor: 'divider', borderRadius: '8px !important' };
 
 function EventAttachments({ eventId, canManage }: { eventId: string; canManage: boolean }) {
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [label, setLabel] = useState<string>('Photo');
+  const [label, setLabel] = useState<string>('Invitation');
   const { data } = useQuery({
     queryKey: ['calendar', 'documents', eventId],
     queryFn: () => documentsForEvent(eventId) as Promise<{ id: string; documentId: string; documentType: string; versions: { fileName: string }[] }[]>,
@@ -81,15 +75,29 @@ function EventAttachments({ eventId, canManage }: { eventId: string; canManage: 
           <TextField select size="small" value={label} onChange={(e) => setLabel(e.target.value)} sx={{ minWidth: 130 }}>
             {CALENDAR_ATTACHMENT_LABELS.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
           </TextField>
-          <Button size="small" startIcon={<Icon name="UploadFile" />} onClick={() => fileRef.current?.click()} disabled={upload.isPending}>
-            Upload
-          </Button>
+          <Button size="small" startIcon={<Icon name="UploadFile" />} onClick={() => fileRef.current?.click()} disabled={upload.isPending}>Upload</Button>
           <input
             ref={fileRef} type="file" hidden accept="image/jpeg,image/png,image/webp,application/pdf"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) upload.mutate(f); e.target.value = ''; }}
           />
         </Stack>
       )}
+    </Stack>
+  );
+}
+
+function HistoryPanel({ eventId }: { eventId: string }) {
+  const { data, isLoading } = useQuery({ queryKey: ['calendar', 'changes', 'event', eventId], queryFn: () => fetchChangeLog({ eventId, limit: 100 }) });
+  if (isLoading) return <Typography variant="body2" color="text.secondary">Loading…</Typography>;
+  if (!data?.length) return <Typography variant="body2" color="text.secondary">No history recorded.</Typography>;
+  return (
+    <Stack divider={<Divider />} sx={{ maxHeight: 260, overflowY: 'auto' }}>
+      {data.map((c) => (
+        <Box key={c.id} sx={{ py: 0.75 }}>
+          <Typography variant="body2"><b>{c.byName}</b> {c.action}</Typography>
+          <Typography variant="caption" color="text.secondary">{dayjs(c.at).format('D MMM YYYY, h:mm A')}{c.detail.length ? ` · ${c.detail.join('; ')}` : ''}</Typography>
+        </Box>
+      ))}
     </Stack>
   );
 }
@@ -102,57 +110,58 @@ interface Props {
   onOpenRequest: (requestId: string) => void;
 }
 
-export function EventDetailsDialog({ item, canManage, onClose, onEdit, onOpenRequest }: Props) {
+export function EventDetailsDialog(props: Props) {
+  // Keyed so per-event state (menus, queries) resets when a different event opens.
+  if (!props.item) return null;
+  return <Details key={props.item.id} {...props} item={props.item} />;
+}
+
+function Details({ item, canManage, onClose, onEdit, onOpenRequest }: Props & { item: CalendarItem }) {
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const { confirm, dialog } = useConfirm();
   const { tCal } = useCalendarReference();
   const { codes: myCodes, viewAll } = useMyCalendarCodes();
   const { can } = useAuth();
+  const [moveAnchor, setMoveAnchor] = useState<HTMLElement | null>(null);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['calendar'] });
   const onErr = (e: unknown) => enqueueSnackbar(errorMessage(e), { variant: 'error' });
+
+  const isDeadline = item.kind === 'deadline';
+  const eventId = item.eventId;
+  const meta = calendarTypeMeta(item.type);
+  const color = isDeadline ? CALENDAR_DEADLINE_COLOR : meta.color;
+  const repeat = item.isRecurring ? CALENDAR_RECURRENCE.find((r) => r.code === item.recurrence)?.label : null;
+  const cancelled = item.status === 'CANCELLED';
+  const myOwn = isDeadline ? [] : (viewAll ? item.members : item.members.filter((m) => myCodes.includes(m)));
+  const isPast = dayjs(item.start).isBefore(dayjs());
+  const isAway = item.type === 'UNAVAILABLE';
+  const going = item.members.filter((m) => rsvpOf(item, m) === 'GOING');
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteEvent(id),
     onSuccess: () => { enqueueSnackbar('Event deleted', { variant: 'success' }); invalidate(); onClose(); },
     onError: onErr,
   });
-  const setStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => updateEvent(id, { status }),
+  const patch = useMutation({
+    mutationFn: (body: Record<string, unknown>) => updateEvent(eventId!, body),
     onSuccess: () => { enqueueSnackbar('Event updated', { variant: 'success' }); invalidate(); onClose(); },
     onError: onErr,
   });
-  const rsvp = useMutation({
-    mutationFn: ({ id, code, status }: { id: string; code: string; status: string }) => setRsvp(id, code, status),
-    onSuccess: invalidate, onError: onErr,
-  });
-  const attendance = useMutation({
-    mutationFn: ({ id, code, status }: { id: string; code: string; status: string }) => setAttendance(id, { code, status }),
-    onSuccess: invalidate, onError: onErr,
-  });
   const prep = useMutation({
-    mutationFn: ({ id, prepDone }: { id: string; prepDone: string[] }) => setPrep(id, { prepDone }),
+    mutationFn: (prepDone: string[]) => setPrep(eventId!, { prepDone }),
     onSuccess: invalidate, onError: onErr,
   });
-  const reply = useMutation({
-    mutationFn: ({ id, value }: { id: string; value: string }) => setReply(id, value),
-    onSuccess: invalidate, onError: onErr,
+  // Upcoming: does anyone who is going already have something else at this time?
+  const clashQ = useQuery({
+    queryKey: ['calendar', 'clashes', 'details', item.id, going.join(',')],
+    queryFn: () => checkClashes({ members: going, start: item.start, end: item.end, excludeId: eventId }),
+    enabled: !isDeadline && !isPast && !cancelled && going.length > 0 && !!eventId,
   });
-  const social = useMutation({
-    mutationFn: ({ id, code, status, platforms }: { id: string; code: string; status: string; platforms?: string[] }) =>
-      setSocial(id, { code, status, platforms }),
-    onSuccess: invalidate, onError: onErr,
-  });
-
-  if (!item) return dialog;
-  const isDeadline = item.kind === 'deadline';
-  const meta = calendarTypeMeta(item.type);
-  const color = isDeadline ? CALENDAR_DEADLINE_COLOR : meta.color;
-  const repeat = item.isRecurring ? CALENDAR_RECURRENCE.find((r) => r.code === item.recurrence)?.label : null;
-  const cancelled = item.status === 'CANCELLED';
-  const myOwn = isDeadline ? [] : (viewAll ? item.members : item.members.filter((m) => myCodes.includes(m)));
-  const isPast = dayjs(item.end).isBefore(dayjs());
+  const history = useQuery({ queryKey: ['calendar', 'changes', 'event', eventId], queryFn: () => fetchChangeLog({ eventId: eventId!, limit: 100 }), enabled: !!eventId && !isDeadline });
+  const createdEntry = history.data?.length ? history.data[history.data.length - 1] : undefined;
+  const lastEntry = history.data?.[0];
 
   const doDelete = async () => {
     const ok = await confirm({
@@ -161,65 +170,174 @@ export function EventDetailsDialog({ item, canManage, onClose, onEdit, onOpenReq
       confirmLabel: 'Delete',
       destructive: true,
     });
-    if (ok && item.eventId) remove.mutate(item.eventId);
+    if (ok && eventId) remove.mutate(eventId);
+  };
+  const moveTo = (code: string) => {
+    setMoveAnchor(null);
+    patch.mutate({ members: [code], rsvp: { [code]: going.length ? 'GOING' : rsvpOf(item, item.members[0] ?? code) } });
   };
 
-  const copyWhatsapp = () => {
-    const text = `*${item.title}*\n${dayjs(item.start).format('D MMM, h:mm A')}${item.venue ? ` — ${item.venue}` : ''}${item.writeup ? `\n${item.writeup}` : ''}`;
-    navigator.clipboard?.writeText(text).then(() => enqueueSnackbar('Copied', { variant: 'success' })).catch(() => {});
-  };
+  // Multi-day: list every session of the series.
+  const allSessions = item.dayCount
+    ? [{ start: item.seriesStart ?? item.start, end: item.seriesEnd ?? item.end, arrival: item.seriesArrival ?? item.arrival }, ...(item.sessions ?? [])]
+    : [];
+  const contacts = [
+    { name: item.contactName, phone: item.contactPhone },
+    { name: item.contact2Name, phone: item.contact2Phone },
+  ].filter((c) => c.name || c.phone);
 
   return (
     <>
       <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-        <Box sx={{ height: 6, bgcolor: color }} />
+        <Box sx={{ height: 6, bgcolor: color, backgroundImage: isAway ? 'repeating-linear-gradient(135deg, rgba(255,255,255,.45) 0 6px, transparent 6px 12px)' : 'none' }} />
         <DialogContent sx={{ pt: 2.5 }}>
           <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ mb: 2 }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Stack direction="row" spacing={0.75} sx={{ mb: 1 }} flexWrap="wrap" useFlexGap alignItems="center">
-                <Chip size="small" label={isDeadline ? 'Request deadline' : tCal(meta.label)} sx={{ bgcolor: `${color}24`, color, height: 22 }} />
+                <Chip
+                  size="small" label={isDeadline ? 'Request deadline' : tCal(meta.label)}
+                  icon={isAway ? <Icon name="FlightTakeoff" sx={{ fontSize: 14, color: `${color} !important` }} /> : undefined}
+                  sx={{ bgcolor: `${color}24`, color, height: 22, fontWeight: 700 }}
+                />
                 {!isDeadline && item.status && item.status !== 'SCHEDULED' && (
-                  <Chip
-                    size="small" label={STATUS_LABEL[item.status] ?? item.status} sx={{ height: 22 }}
-                    color={item.status === 'COMPLETED' ? 'success' : item.status === 'CANCELLED' ? 'default' : 'warning'}
-                  />
+                  <Chip size="small" label={STATUS_LABEL[item.status] ?? item.status} sx={{ height: 22 }} color={item.status === 'COMPLETED' ? 'success' : item.status === 'CANCELLED' ? 'default' : 'warning'} />
                 )}
                 {isDeadline && item.status && <Chip size="small" label={item.status.replace(/_/g, ' ')} sx={{ height: 22 }} />}
-                {!isDeadline && <CalendarChips members={item.members} />}
-                {item.draft && <Chip size="small" label="Quick / draft" sx={{ height: 22 }} />}
+                {item.role && <Chip size="small" label={tCal(ROLE_LABEL[item.role] ?? item.role)} color="secondary" variant="outlined" sx={{ height: 22 }} />}
+                {item.dayCount && <Chip size="small" label={`Day ${item.dayNo} of ${item.dayCount}`} sx={{ height: 22, fontWeight: 700 }} />}
               </Stack>
-              <Typography variant="h6" sx={{ lineHeight: 1.3, wordBreak: 'break-word', textDecoration: cancelled ? 'line-through' : 'none' }}>
-                {item.title}
-              </Typography>
+              <Typography variant="h6" sx={{ lineHeight: 1.3, wordBreak: 'break-word', textDecoration: cancelled ? 'line-through' : 'none' }}>{item.title}</Typography>
             </Box>
             <IconButton size="small" onClick={onClose} aria-label="Close"><Icon name="Close" fontSize="small" /></IconButton>
           </Stack>
 
-          <Stack spacing={1.5}>
+          <Stack spacing={1.75}>
+            {item.draft && (
+              <Alert severity="error" variant="outlined" action={canManage ? <Button color="inherit" size="small" onClick={() => onEdit(item)}>Fill in</Button> : undefined}>
+                Quick event - the details still need to be filled in.
+              </Alert>
+            )}
+            {!!clashQ.data?.length && (
+              <Alert severity="warning">
+                <b>Clash:</b> {clashQ.data.map((c) => `${CALENDAR_CODES.find((x) => x.code === c.memberCode)?.title ?? c.memberCode} is also ${c.reason === 'AWAY' ? 'away' : `going to "${c.event.title}"`} (${dayjs(c.event.start).format('h:mm A')}).`).join(' ')}
+              </Alert>
+            )}
+
+            {/* attendance - past events */}
+            {!isDeadline && !isAway && isPast && !item.draft && !!myOwn.length && eventId && (
+              <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}><Icon name="FactCheck" fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />Did they go?</Typography>
+                <AttendanceEditor item={item} />
+                <Box sx={{ mt: 1 }}><EventPhotos eventId={eventId} size={60} /></Box>
+              </Box>
+            )}
+
+            {/* invited / who is going */}
+            {!isDeadline && !isAway && !!item.members.length && (
+              <Row icon="Groups">
+                {myOwn.length && eventId ? (
+                  <RsvpButtons item={item} codes={item.members.filter((m) => myOwn.includes(m))} disabled={!canManage} />
+                ) : (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {item.members.map((m) => {
+                      const c = CALENDAR_CODES.find((x) => x.code === m);
+                      const r = rsvpOf(item, m);
+                      return <Chip key={m} size="small" avatar={<CalendarAvatar code={m} size={20} />} label={`${c?.title ?? m}: ${r === 'GOING' ? 'going' : r === 'NOT_GOING' ? 'not going' : 'not decided'}`} />;
+                    })}
+                  </Stack>
+                )}
+              </Row>
+            )}
+            {isAway && (
+              <Row icon="FlightTakeoff">
+                <Stack direction="row" spacing={1}>{item.members.map((m) => <Chip key={m} size="small" avatar={<CalendarAvatar code={m} size={20} />} label={CALENDAR_CODES.find((x) => x.code === m)?.title ?? m} />)}</Stack>
+              </Row>
+            )}
+
             <Row icon="Event">
               <Typography variant="body2" fontWeight={600}>{dayjs(item.start).format('dddd, D MMMM YYYY')}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {isDeadline ? 'Due date' : timeLabel(item)}
-                {repeat ? ` · ${tCal(repeat)}` : ''}
-                {item.isRecurring && item.recurrenceUntil ? ` until ${dayjs(item.recurrenceUntil).format('D MMM YYYY')}` : ''}
-              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                <Typography variant="body2" color="text.secondary">
+                  {isDeadline ? 'Due date' : timeLabel(item)}
+                  {!item.allDay && !dayjs(item.end).isSame(dayjs(item.start), 'day') && !item.dayCount ? ` (ends ${dayjs(item.end).format('ddd D MMM')})` : ''}
+                  {repeat ? ` · ${tCal(repeat)}` : ''}
+                  {item.isRecurring && item.recurrenceUntil ? ` until ${dayjs(item.recurrenceUntil).format('D MMM YYYY')}` : ''}
+                </Typography>
+                {item.arrival && !item.allDay && <Chip size="small" color="warning" icon={<Icon name="Timeline" sx={{ fontSize: 14 }} />} label={`Arrive by ${fmtArrival(item.arrival)}`} sx={{ height: 22, fontWeight: 700 }} />}
+              </Stack>
+              {allSessions.length > 1 && (
+                <Stack spacing={0.25} sx={{ mt: 0.75, pl: 1, borderLeft: 2, borderColor: 'divider' }}>
+                  {allSessions.map((s, i) => (
+                    <Typography key={i} variant="caption" sx={{ fontWeight: i + 1 === item.dayNo ? 800 : 400 }}>
+                      Day {i + 1}: {dayjs(s.start).format('ddd D MMM')}, {dayjs(s.start).format('h:mm A')} – {dayjs(s.end).format('h:mm A')}
+                      {!dayjs(s.end).isSame(dayjs(s.start), 'day') ? ' (next day)' : ''}{s.arrival ? ` · arrive ${fmtArrival(s.arrival)}` : ''}
+                    </Typography>
+                  ))}
+                </Stack>
+              )}
             </Row>
+
             {(item.venue || item.area) && (
               <Row icon="Place">
-                {item.venue && <Typography variant="body2">{item.venue}</Typography>}
-                {item.area && <Typography variant="body2" color="text.secondary">{item.area}</Typography>}
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    {item.venue && <Typography variant="body2">{item.venue}</Typography>}
+                    {item.area && <Typography variant="body2" color="text.secondary">{item.area}</Typography>}
+                  </Box>
+                  <Button size="small" href={googleMapsUrl(item.venue, item.area)} target="_blank" rel="noopener noreferrer" startIcon={<Icon name="OpenInNew" fontSize="small" />}>Maps</Button>
+                </Stack>
               </Row>
             )}
-            {item.organizer && <Row icon="Business"><Typography variant="body2">Organiser: {item.organizer}</Typography></Row>}
-            {(item.contactName || item.contactPhone) && (
-              <Row icon="Phone">
+            {item.organizer && (
+              <Row icon="Business">
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Typography variant="body2">{item.organizer}</Typography>
+                  <Chip size="small" variant="outlined" label={item.organizerKind === 'SANGA' ? 'Sanga' : 'Ind'} sx={{ height: 20, fontSize: 11 }} />
+                </Stack>
+                {!isDeadline && eventId && (
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }} flexWrap="wrap" useFlexGap>
+                    <Typography variant="caption" color="text.secondary" fontWeight={700}>Reply:</Typography>
+                    <ReplySelect item={item} disabled={!canManage} />
+                  </Stack>
+                )}
+              </Row>
+            )}
+            {contacts.map((c, i) => (
+              <Row key={i} icon="Phone">
                 <Typography variant="body2">
-                  {item.contactName}
-                  {item.contactName && item.contactPhone ? ' · ' : ''}
-                  {item.contactPhone && <Link href={`tel:${item.contactPhone}`}>{item.contactPhone}</Link>}
+                  {c.name}{c.name && c.phone ? ' · ' : ''}
+                  {c.phone && <Link href={`tel:${c.phone.replace(/\s/g, '')}`}>{c.phone}</Link>}
                 </Typography>
               </Row>
+            ))}
+
+            {!isDeadline && (!!item.prep?.length || item.prepNote) && (
+              <Row icon="Checklist">
+                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                  {(item.prep ?? []).map((p) => {
+                    const done = item.prepDone?.includes(p);
+                    return (
+                      <Chip
+                        key={p} size="small" label={tCal(PREP_LABEL[p] ?? p)}
+                        icon={<Icon name={done ? 'TaskAlt' : 'RadioButtonUnchecked'} fontSize="small" />}
+                        onClick={canManage && eventId ? () => prep.mutate(done ? (item.prepDone ?? []).filter((x) => x !== p) : [...(item.prepDone ?? []), p]) : undefined}
+                        color={done ? 'success' : 'default'} variant={done ? 'filled' : 'outlined'}
+                      />
+                    );
+                  })}
+                </Stack>
+                {item.prepNote && <Typography variant="body2" sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}><b>Other needs:</b> {item.prepNote}</Typography>}
+              </Row>
             )}
+
+            {!isDeadline && item.speech?.needed && (
+              <Accordion disableGutters defaultExpanded={!isPast} sx={accordionSx}>
+                <AccordionSummary expandIcon={<Icon name="ExpandMore" />}><Typography variant="subtitle2">Speech</Typography></AccordionSummary>
+                <AccordionDetails><SpeechViewer kn={item.speech.kn} en={item.speech.en} title={item.title} /></AccordionDetails>
+              </Accordion>
+            )}
+
+            {item.writeup && <Row icon="Share"><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{item.writeup}</Typography></Row>}
             {!!item.attendees?.length && (
               <Row icon="Group">
                 <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
@@ -227,141 +345,55 @@ export function EventDetailsDialog({ item, canManage, onClose, onEdit, onOpenReq
                 </Stack>
               </Row>
             )}
-            {item.description && (
-              <Row icon="Notes"><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{item.description}</Typography></Row>
-            )}
+            {item.description && <Row icon="Notes"><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{item.description}</Typography></Row>}
 
-            {!isDeadline && !!myOwn.length && item.eventId && (
-              <Row icon="EventAvailable">
-                <Stack spacing={0.75}>
-                  {myOwn.map((code) => (
-                    <Stack key={code} direction="row" spacing={0.5} alignItems="center">
-                      <Chip size="small" label={code.replace('MLA_', '')} sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
-                      {RSVP_OPTS.map((o) => {
-                        const active = (item.rsvp?.[code] ?? 'UNDECIDED') === o.code;
-                        return (
-                          <Tooltip key={o.code} title={o.label}>
-                            <IconButton size="small" color={active ? o.color : 'default'} onClick={() => item.eventId && rsvp.mutate({ id: item.eventId, code, status: o.code })}>
-                              <Icon name={o.icon} fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        );
-                      })}
-                    </Stack>
-                  ))}
-                </Stack>
-              </Row>
-            )}
-
-            {!isDeadline && isPast && !!myOwn.length && item.eventId && (
-              <Row icon="FactCheck">
-                <Stack spacing={0.5}>
-                  {myOwn.map((code) => (
-                    <TextField
-                      key={code} select size="small" label={`Attendance (${code.replace('MLA_', '')})`}
-                      value={item.attendance?.[code]?.status ?? ''}
-                      onChange={(e) => item.eventId && attendance.mutate({ id: item.eventId, code, status: e.target.value })}
-                      sx={{ maxWidth: 220 }}
-                    >
-                      <MenuItem value="">—</MenuItem>
-                      {ATTENDANCE_OPTS.map((o) => <MenuItem key={o.code} value={o.code}>{o.label}</MenuItem>)}
-                    </TextField>
-                  ))}
-                </Stack>
-              </Row>
-            )}
-
-            {!isDeadline && !!item.prep?.length && (
-              <Row icon="Checklist">
-                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                  {item.prep.map((p) => {
-                    const done = item.prepDone?.includes(p);
-                    return (
-                      <Chip
-                        key={p} size="small" label={tCal(p.replace(/_/g, ' '))}
-                        icon={<Icon name={done ? 'TaskAlt' : 'RadioButtonUnchecked'} fontSize="small" />}
-                        onClick={canManage && item.eventId ? () => {
-                          const next = done ? (item.prepDone ?? []).filter((x) => x !== p) : [...(item.prepDone ?? []), p];
-                          prep.mutate({ id: item.eventId!, prepDone: next });
-                        } : undefined}
-                        sx={{ height: 24, bgcolor: done ? 'success.main' : 'transparent', color: done ? '#fff' : 'text.secondary' }}
-                        variant={done ? 'filled' : 'outlined'}
-                      />
-                    );
-                  })}
-                </Stack>
-              </Row>
-            )}
-
-            {!isDeadline && item.organizer && (
-              <Row icon="MarkEmailRead">
-                <TextField
-                  select size="small" label="Organiser's reply" value={item.reply ?? 'PENDING'}
-                  onChange={(e) => item.eventId && reply.mutate({ id: item.eventId, value: e.target.value })}
-                  disabled={!canManage} sx={{ maxWidth: 220 }}
-                >
-                  <MenuItem value="PENDING">Awaiting reply</MenuItem>
-                  <MenuItem value="CONFIRMED">Confirmed</MenuItem>
-                  <MenuItem value="REGRET">Regret / declined</MenuItem>
-                </TextField>
-              </Row>
-            )}
-
-            {!isDeadline && item.publicSchedule && (
-              <Accordion disableGutters sx={{ bgcolor: 'transparent', '&::before': { display: 'none' }, boxShadow: 'none', border: 1, borderColor: 'divider', borderRadius: 1.5 }}>
-                <AccordionSummary expandIcon={<Icon name="ExpandMore" />}><Typography variant="subtitle2">Social media</Typography></AccordionSummary>
-                <AccordionDetails>
-                  <Stack spacing={1}>
-                    {item.writeup && <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{item.writeup}</Typography>}
-                    <Button size="small" startIcon={<Icon name="ContentCopy" />} onClick={copyWhatsapp} sx={{ alignSelf: 'flex-start' }}>Copy for WhatsApp</Button>
-                    {myOwn.map((code) => {
-                      const s = item.social?.[code];
-                      return (
-                        <Stack key={code} direction="row" spacing={1} alignItems="center">
-                          <Chip size="small" label={code.replace('MLA_', '')} sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
-                          <Typography variant="caption" color="text.secondary">{s?.status === 'POSTED' ? `Posted (${s.platforms?.join(', ') || 'platform not noted'})` : s?.status === 'SKIPPED' ? 'Skipped' : 'Not posted yet'}</Typography>
-                          {canManage && item.eventId && s?.status !== 'POSTED' && (
-                            <Button size="small" onClick={() => item.eventId && social.mutate({ id: item.eventId, code, status: 'POSTED', platforms: CALENDAR_SOCIAL_PLATFORMS.slice(0, 1) })}>Mark posted</Button>
-                          )}
-                        </Stack>
-                      );
-                    })}
-                  </Stack>
-                </AccordionDetails>
-              </Accordion>
-            )}
-
-            {!isDeadline && item.eventId && (
-              <Accordion disableGutters sx={{ bgcolor: 'transparent', '&::before': { display: 'none' }, boxShadow: 'none', border: 1, borderColor: 'divider', borderRadius: 1.5 }}>
+            {!isDeadline && eventId && (
+              <Accordion disableGutters sx={accordionSx}>
                 <AccordionSummary expandIcon={<Icon name="ExpandMore" />}><Typography variant="subtitle2">Attachments</Typography></AccordionSummary>
-                <AccordionDetails>
-                  <EventAttachments eventId={item.eventId} canManage={canManage && can(PERMISSIONS.DOCUMENT_UPLOAD)} />
-                </AccordionDetails>
+                <AccordionDetails><EventAttachments eventId={eventId} canManage={canManage && can(PERMISSIONS.DOCUMENT_UPLOAD)} /></AccordionDetails>
               </Accordion>
+            )}
+
+            {!isDeadline && eventId && (
+              <>
+                {createdEntry && (
+                  <Typography variant="caption" color="text.secondary">
+                    Added by {createdEntry.byName} · {dayjs(createdEntry.at).format('D MMM YYYY')}
+                    {lastEntry && lastEntry.id !== createdEntry.id ? ` · last edited by ${lastEntry.byName}, ${dayjs(lastEntry.at).format('D MMM, h:mm A')}` : ''}
+                  </Typography>
+                )}
+                <Accordion disableGutters sx={accordionSx}>
+                  <AccordionSummary expandIcon={<Icon name="ExpandMore" />}><Typography variant="subtitle2"><Icon name="History" fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />History</Typography></AccordionSummary>
+                  <AccordionDetails><HistoryPanel eventId={eventId} /></AccordionDetails>
+                </Accordion>
+              </>
             )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, gap: 1 }}>
           {isDeadline ? (
-            <Button variant="contained" startIcon={<Icon name="OpenInNew" />} onClick={() => item.requestId && onOpenRequest(item.requestId)}>
-              Open request
-            </Button>
+            <Button variant="contained" startIcon={<Icon name="OpenInNew" />} onClick={() => item.requestId && onOpenRequest(item.requestId)}>Open request</Button>
           ) : canManage && (
             <>
               <Tooltip title="Delete">
                 <IconButton color="error" onClick={doDelete} disabled={remove.isPending}><Icon name="Delete" /></IconButton>
               </Tooltip>
+              <Tooltip title="Move to another calendar">
+                <IconButton onClick={(e) => setMoveAnchor(e.currentTarget)} disabled={patch.isPending}><Icon name="DriveFileMove" /></IconButton>
+              </Tooltip>
+              <Menu anchorEl={moveAnchor} open={!!moveAnchor} onClose={() => setMoveAnchor(null)}>
+                <Typography variant="caption" color="text.secondary" sx={{ px: 2, display: 'block' }}>Move to</Typography>
+                {CALENDAR_CODES.filter((c) => viewAll || myCodes.includes(c.code)).map((c) => (
+                  <MenuItem key={c.code} onClick={() => moveTo(c.code)} disabled={item.members.length === 1 && item.members[0] === c.code}>
+                    <ListItemIcon><CalendarAvatar code={c.code} size={24} /></ListItemIcon>{tCal(c.title)}
+                  </MenuItem>
+                ))}
+              </Menu>
               <Box sx={{ flex: 1 }} />
-              {item.status !== 'COMPLETED' && !cancelled && (
-                <Button
-                  variant="outlined" color="success" startIcon={<Icon name="TaskAlt" />}
-                  disabled={setStatus.isPending}
-                  onClick={() => item.eventId && setStatus.mutate({ id: item.eventId, status: 'COMPLETED' })}
-                >
-                  Done
-                </Button>
+              {item.status !== 'COMPLETED' && !cancelled && isPast && (
+                <Button variant="outlined" color="success" startIcon={<Icon name="TaskAlt" />} disabled={patch.isPending} onClick={() => patch.mutate({ status: 'COMPLETED' })}>Done</Button>
               )}
-              <Button variant="contained" startIcon={<Icon name="EditNote" />} onClick={() => onEdit(item)}>Edit</Button>
+              <Button variant="contained" startIcon={<Icon name="Edit" />} onClick={() => onEdit(item)}>Edit</Button>
             </>
           )}
         </DialogActions>

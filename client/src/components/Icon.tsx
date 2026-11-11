@@ -10,6 +10,7 @@ import {
   Home, HourglassEmpty, Inbox, Info, Insights, Keyboard, KeyboardDoubleArrowLeft, KeyboardDoubleArrowRight, Label, LightMode, ListAlt, LocationCity, Lock, Mail, MarkEmailRead, Menu, MoreVert, NoteAdd, Notes, Notifications, NotificationsNone,
   OpenInNew, Person, PersonAdd, Phone, PhotoCamera, PhotoLibrary, PictureAsPdf, Place, PriorityHigh, Print, Public, RadioButtonUnchecked, Remove,
   ReportProblem, Rotate90DegreesCw, SearchOff, Search, Send, Settings, Spa, SwapHoriz,
+  CalendarMonth, DriveFileMove, Edit, FormatAlignCenter, FormatAlignLeft, FormatAlignRight, FormatBold, FormatClear, FormatColorFill, FormatColorText, FormatItalic, FormatListBulleted, FormatListNumbered, FormatStrikethrough, FormatUnderlined, Fullscreen, FullscreenExit, Groups, Redo, Refresh, Share, TextDecrease, TextIncrease, Undo, ViewDay, ViewWeek,
   TableView, TaskAlt, Timeline, Today, Translate, Tune, UploadFile, Videocam, ViewKanban, ViewList, ViewModule, Visibility, VisibilityOff, Warning,
 } from '@mui/icons-material';
 
@@ -24,6 +25,7 @@ const REGISTRY: Record<string, ComponentType<SvgIconProps>> = {
   Home, HourglassEmpty, Inbox, Info, Insights, Keyboard, KeyboardDoubleArrowLeft, KeyboardDoubleArrowRight, Label, LightMode, ListAlt, LocationCity, Lock, Mail, MarkEmailRead, Menu, MoreVert, NoteAdd, Notes, Notifications, NotificationsNone,
   OpenInNew, Person, PersonAdd, Phone, PhotoCamera, PhotoLibrary, PictureAsPdf, Place, PriorityHigh, Print, Public, RadioButtonUnchecked, Remove,
   ReportProblem, Rotate90DegreesCw, SearchOff, Search, Send, Settings, Spa, SwapHoriz,
+  CalendarMonth, DriveFileMove, Edit, FormatAlignCenter, FormatAlignLeft, FormatAlignRight, FormatBold, FormatClear, FormatColorFill, FormatColorText, FormatItalic, FormatListBulleted, FormatListNumbered, FormatStrikethrough, FormatUnderlined, Fullscreen, FullscreenExit, Groups, Redo, Refresh, Share, TextDecrease, TextIncrease, Undo, ViewDay, ViewWeek,
   TableView, TaskAlt, Timeline, Today, Translate, Tune, UploadFile, Videocam, ViewKanban, ViewList, ViewModule, Visibility, VisibilityOff, Warning,
 };
 

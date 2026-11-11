@@ -35,7 +35,7 @@ export function setRsvp(id: string, code: string, status: string) {
   return api.post(`/calendar/events/${id}/rsvp`, { code, status }).then((r) => r.data as CalendarItem);
 }
 
-export function setAttendance(id: string, body: { code: string; status: string; members?: string[]; note?: string }) {
+export function setAttendance(id: string, body: { code: string; status: string | null; members?: string[]; note?: string }) {
   return api.post(`/calendar/events/${id}/attendance`, body).then((r) => r.data as CalendarItem);
 }
 
@@ -47,7 +47,7 @@ export function setReply(id: string, reply: string) {
   return api.patch(`/calendar/events/${id}/reply`, { reply }).then((r) => r.data as CalendarItem);
 }
 
-export function setSocial(id: string, body: { code: string; status: string; platforms?: string[]; caption?: string }) {
+export function setSocial(id: string, body: { code: string; status: string | null; platforms?: string[]; caption?: string }) {
   return api.post(`/calendar/events/${id}/social`, body).then((r) => r.data as CalendarItem);
 }
 
@@ -62,7 +62,7 @@ export function markAway(body: { members: string[]; start: string; end: string; 
 
 export interface WorkLists {
   toDecide: CalendarItem[]; toCheck: CalendarItem[]; toFill: CalendarItem[];
-  toPost: CalendarItem[]; organisersNotReplied: CalendarItem[]; comingUp: CalendarItem[];
+  toPost: CalendarItem[]; toPrepare: CalendarItem[]; organisersNotReplied: CalendarItem[]; comingUp: CalendarItem[];
 }
 export function fetchWorkLists() {
   return api.get('/calendar/worklists').then((r) => r.data as WorkLists);
@@ -120,9 +120,9 @@ export interface CalendarReferenceData {
   eventStatuses: { code: string; label: string }[];
   repeatOptions: { code: string; label: string }[];
   attendanceStatuses: { code: string; label: string }[];
-  holidaySources: unknown;
-  holidays: Record<string, { date: string; name: string }[]>;
-  worldDaysEveryYear: { date: string; name: string }[];
+  holidaySources: { code: string; label: string; short: string; color: string; note: string }[];
+  holidays: Record<string, { date: string; name: string; note?: string }[]>;
+  worldDaysEveryYear: { monthDay: string; name: string }[];
   kannadaLabels: Record<string, string>;
 }
 export function fetchReferenceData() {
@@ -138,4 +138,16 @@ export function uploadEventDocument(eventId: string, file: File, documentType: s
   form.append('files', file);
   form.append('documentType', documentType);
   return api.post(`/documents/calendar/${eventId}`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+}
+
+export function searchEvents(q: string) {
+  return api.get('/calendar/search', { params: { q } }).then((r) => r.data as import('./calendarUtils').CalendarItem[]);
+}
+
+export interface CalendarSuggestions {
+  venues: string[]; areas: string[]; organizers: string[]; organizerKinds: Record<string, string>;
+  contacts: { name: string; phone: string }[];
+}
+export function fetchSuggestions() {
+  return api.get('/calendar/suggestions').then((r) => r.data as CalendarSuggestions);
 }
