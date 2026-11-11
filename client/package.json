@@ -14,7 +14,9 @@
   "dependencies": {
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
+    "@fontsource/baloo-tamma-2": "^5.3.0",
     "@fontsource/inter": "^5.0.20",
+    "@fontsource/noto-sans-kannada": "^5.3.0",
     "@hookform/resolvers": "^3.9.0",
     "@mla/shared": "*",
     "@mui/icons-material": "^5.16.7",

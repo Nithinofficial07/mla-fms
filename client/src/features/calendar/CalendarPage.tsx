@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Badge, Box, Button, ButtonBase, Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, FormControlLabel, GlobalStyles, Grid,
@@ -39,6 +39,8 @@ const VIEWS: { value: CalendarView; label: string; icon: string; key: string }[]
   { value: 'agenda', label: 'Agenda', icon: 'ViewList', key: 'a' },
 ];
 const ALL_TYPES = CALENDAR_EVENT_TYPES.map((t) => t.code as string);
+// Loaded on demand - it brings the poster designs and Kannada fonts with it.
+const PosterDialog = lazy(() => import('./poster/PosterDialog'));
 const PREFS_KEY = 'calendar:prefs';
 const DEFAULT_HOLIDAYS = ['CENTRAL', 'KARNATAKA'];
 type PageTab = 'calendar' | 'social' | 'reports';
@@ -240,6 +242,7 @@ export function CalendarPage() {
   const [importGoogleOpen, setImportGoogleOpen] = useState(false);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
+  const [posterDate, setPosterDate] = useState<Dayjs | null>(null);
   const exportFilters = useMemo(
     () => ({ types: visibleTypes.length === ALL_TYPES.length ? undefined : visibleTypes.join(','), members: prefs.calendars.join(',') || undefined }),
     [visibleTypes, prefs.calendars],
@@ -385,7 +388,7 @@ export function CalendarPage() {
         <Tab value="reports" icon={<Icon name="BarChart" fontSize="small" />} iconPosition="start" label={tCal('Reports')} sx={{ minHeight: 48 }} />
       </Tabs>
 
-      {tab === 'social' && <SocialMediaPanel onSelect={setSelected} />}
+      {tab === 'social' && <SocialMediaPanel onSelect={setSelected} onPoster={setPosterDate} />}
       {tab === 'reports' && <ReportsPanel filters={exportFilters} />}
 
       {tab === 'calendar' && (
@@ -531,6 +534,9 @@ export function CalendarPage() {
                       </ToggleButton>
                     </Tooltip>
                   )}
+                  <Tooltip title="Daily poster (Kannada)">
+                    <IconButton size="small" onClick={() => setPosterDate(date)} aria-label="Daily poster"><Icon name="PhotoLibrary" fontSize="small" /></IconButton>
+                  </Tooltip>
                   <Tooltip title="Export">
                     <IconButton size="small" onClick={(e) => setExportAnchor(e.currentTarget)} aria-label="Export"><Icon name="Download" fontSize="small" /></IconButton>
                   </Tooltip>
@@ -626,6 +632,11 @@ export function CalendarPage() {
       <WorkListsDialog open={!!worklists} initial={worklists?.initial} onClose={() => setWorklists(null)} onSelect={setSelected} />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} onSelect={setSelected} />
       {canAdmin && <AdminCalendarDialog open={adminOpen} onClose={() => setAdminOpen(false)} />}
+      {posterDate && (
+        <Suspense fallback={null}>
+          <PosterDialog open date={posterDate} onClose={() => setPosterDate(null)} />
+        </Suspense>
+      )}
     </Box>
   );
 }

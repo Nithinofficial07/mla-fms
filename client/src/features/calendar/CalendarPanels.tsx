@@ -433,7 +433,7 @@ function publicScheduleText(day: Dayjs, items: CalendarItem[], tCal: (s: string)
   return `*${tCal('Programmes')} - ${day.format('dddd, D MMMM YYYY')}*\n\n${lines.join('\n')}`;
 }
 
-export function SocialMediaPanel({ onSelect }: { onSelect: (i: CalendarItem) => void }) {
+export function SocialMediaPanel({ onSelect, onPoster }: { onSelect: (i: CalendarItem) => void; onPoster?: (d: Dayjs) => void }) {
   const { enqueueSnackbar } = useSnackbar();
   const invalidate = useInvalidate();
   const { tCal } = useCalendarReference();
@@ -484,6 +484,7 @@ export function SocialMediaPanel({ onSelect }: { onSelect: (i: CalendarItem) => 
               <TextField type="date" size="small" value={day.format('YYYY-MM-DD')} onChange={(e) => e.target.value && setDay(dayjs(e.target.value))} />
               <IconButton size="small" onClick={() => setDay(day.add(1, 'day'))}><Icon name="ChevronRight" /></IconButton>
               <Button size="small" onClick={() => setDay(dayjs().add(1, 'day').startOf('day'))}>Tomorrow</Button>
+              {onPoster && <Button size="small" variant="contained" startIcon={<Icon name="PhotoLibrary" />} onClick={() => onPoster(day)}>Poster</Button>}
             </Stack>
           </Stack>
           {dayQ.isLoading ? <LinearProgress /> : scheduleText ? (
