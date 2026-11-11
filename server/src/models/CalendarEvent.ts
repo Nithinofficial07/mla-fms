@@ -60,6 +60,9 @@ const calendarEventSchema = new Schema(
 
     title: { type: String, required: true, trim: true },
     description: { type: String, default: '' }, // rich text (HTML), sanitised on render, not on write
+    // Kannada wording for posters / the public schedule (corrected by hand once, then reused).
+    titleKn: { type: String, default: '' },
+    venueKn: { type: String, default: '' },
     type: { type: String, enum: CALENDAR_EVENT_TYPE_CODES, default: CALENDAR_DEFAULT_TYPE, index: true },
     status: { type: String, enum: CALENDAR_EVENT_STATUSES, default: 'SCHEDULED' },
 

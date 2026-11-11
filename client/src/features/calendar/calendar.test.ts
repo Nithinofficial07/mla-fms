@@ -72,3 +72,20 @@ describe('viewRange', () => {
     expect(from.isBefore(dayjs('2026-11-01').add(1, 'minute'))).toBe(true);
   });
 });
+
+describe('toKannada (poster wording)', () => {
+  it('leaves Kannada alone and converts the office title shapes', async () => {
+    const { toKannada, needsKannada } = await import('@mla/shared');
+    expect(toKannada('ಹುತ್ತದ ಪೂಜೆ')).toBe('ಹುತ್ತದ ಪೂಜೆ');
+    expect(needsKannada('ಹುತ್ತದ ಪೂಜೆ')).toBe(false);
+    expect(toKannada('Wedding(Ravi weds Anusha)')).toBe('ರವಿ ಮತ್ತು ಅನುಷಾ ರವರ ವಿವಾಹ');
+    expect(toKannada('Reception(Manoj G weds Devika)')).toBe('ಮನೋಜ್ ಜಿ. ಮತ್ತು ದೇವಿಕ ರವರ ವಿವಾಹ ಆರತಕ್ಷತೆ');
+    expect(toKannada('Md Toufiq and Muskan Khanum Valima')).toMatch(/^ಮಹಮ್ಮದ್ .* ಮತ್ತು .* ರವರ ವಲಿಮಾ$/);
+    expect(toKannada('VMJ Opening')).toBe('ವಿ ಎಂ ಜೆ ಉದ್ಘಾಟನೆ');
+    expect(toKannada('Anjaneya Swami temple')).toBe('ಆಂಜನೇಯ ಸ್ವಾಮಿ ದೇವಸ್ಥಾನ');
+    expect(toKannada('Bapuji Bank Community Hall, Davangere')).toBe('ಬಾಪೂಜಿ ಬ್ಯಾಂಕ್ ಸಮುದಾಯ ಭವನ, ದಾವಣಗೆರೆ');
+    expect(toKannada('Inauguration of Vasavi Convention Hall')).toBe('ವಾಸವಿ ಕನ್ವೆನ್ಷನ್ ಹಾಲ್ ಉದ್ಘಾಟನೆ');
+    expect(toKannada('44th Annual Day')).toBe('44ನೇ ವಾರ್ಷಿಕೋತ್ಸವ');
+    expect(toKannada('Ganeshotsava 10:30 AM')).toBe('ಗಣೇಶೋತ್ಸವ 10:30 AM');
+  });
+});

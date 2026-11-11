@@ -96,6 +96,15 @@ describe('calendar', () => {
     await expect(CalendarEvent.collection.insertOne({ title: 'dup', members: ['MLA_S'], start: new Date(), end: new Date(), legacyId: 'google:x' })).rejects.toThrow();
   });
 
+  it('saves Kannada wording for posters on an event (patch with just those two fields)', async () => {
+    const created = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({ title: 'Wedding(Ravi weds Anusha)', venue: 'Vasavi Hall' }));
+    expect(created.body.titleKn).toBe('');
+    const res = await request(app).patch(`/api/calendar/events/${created.body.id}`).set(auth(token))
+      .send({ titleKn: 'ರವಿ ಮತ್ತು ಅನುಷಾ ರವರ ವಿವಾಹ', venueKn: 'ವಾಸವಿ ಹಾಲ್, ದಾವಣಗೆರೆ.' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ title: 'Wedding(Ravi weds Anusha)', titleKn: 'ರವಿ ಮತ್ತು ಅನುಷಾ ರವರ ವಿವಾಹ', venueKn: 'ವಾಸವಿ ಹಾಲ್, ದಾವಣಗೆರೆ.' });
+  });
+
   it('expands SS Family to all 3 real calendars on save', async () => {
     const res = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({ members: ['SS_FAMILY'] }));
     expect(res.status).toBe(201);

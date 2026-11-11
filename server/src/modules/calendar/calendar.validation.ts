@@ -26,6 +26,8 @@ const speechSchema = z.object({
 const base = z.object({
   members: z.array(memberCode).min(1, 'Pick at least one calendar'),
   title: z.string().trim().min(1, 'Title is required').max(200),
+  titleKn: z.string().trim().max(300).optional(),
+  venueKn: z.string().trim().max(400).optional(),
   description: z.string().max(20_000).optional(),
   type: z.enum(CALENDAR_EVENT_TYPE_CODES).optional(),
   status: z.enum(CALENDAR_EVENT_STATUSES).optional(),

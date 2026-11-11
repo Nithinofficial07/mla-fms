@@ -35,6 +35,9 @@ export interface CalendarItem {
   requestId?: string;
   title: string;
   description?: string;
+  /** Kannada wording for posters (optional; falls back to an automatic conversion). */
+  titleKn?: string;
+  venueKn?: string;
   type: string;
   status?: string;
   start: string;

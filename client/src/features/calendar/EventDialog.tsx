@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Accordion, AccordionDetails, AccordionSummary, Alert, Autocomplete, Box, Button, Chip, Dialog,
+  Accordion, AccordionDetails, AccordionSummary, Alert, Autocomplete, Box, Button, Chip, Dialog, InputAdornment,
   DialogActions, DialogContent, DialogTitle, FormControlLabel, Grid, IconButton, MenuItem, Stack, Switch, TextField,
   ToggleButton, ToggleButtonGroup, Tooltip, Typography, useMediaQuery,
 } from '@mui/material';
@@ -10,7 +10,7 @@ import { useSnackbar } from 'notistack';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   CALENDAR_CODES, CALENDAR_DEFAULT_TYPE, CALENDAR_EVENT_GROUPS, CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPES,
-  CALENDAR_PREP_ITEMS, CALENDAR_RECURRENCE, CALENDAR_ROLE_AT_EVENT, calendarTypeMeta,
+  CALENDAR_PREP_ITEMS, CALENDAR_RECURRENCE, CALENDAR_ROLE_AT_EVENT, calendarTypeMeta, needsKannada, toKannada,
 } from '@mla/shared';
 import { errorMessage } from '@/api/client';
 import { Icon } from '@/components/Icon';
@@ -43,6 +43,8 @@ interface FormState {
   members: string[];
   rsvp: Record<string, string>;
   title: string;
+  titleKn: string;
+  venueKn: string;
   type: string;
   status: string;
   allDay: boolean;
@@ -90,6 +92,8 @@ function fromItem(item: CalendarItem): FormState {
     members: item.members ?? [],
     rsvp: Object.fromEntries((item.members ?? []).map((m) => [m, item.rsvp?.[m] ?? 'UNDECIDED'])),
     title: item.title,
+    titleKn: item.titleKn ?? '',
+    venueKn: item.venueKn ?? '',
     type: calendarTypeMeta(item.type).code === 'UNKNOWN' ? CALENDAR_DEFAULT_TYPE : calendarTypeMeta(item.type).code,
     status: item.status ?? 'SCHEDULED',
     allDay: !!item.allDay,
@@ -126,7 +130,7 @@ function fromItem(item: CalendarItem): FormState {
 
 function blank(start: Dayjs, end: Dayjs, allDay: boolean, members: string[]): FormState {
   return {
-    members, rsvp: {}, title: '', type: CALENDAR_DEFAULT_TYPE, status: 'SCHEDULED', allDay,
+    members, rsvp: {}, title: '', titleKn: '', venueKn: '', type: CALENDAR_DEFAULT_TYPE, status: 'SCHEDULED', allDay,
     startDate: start.format('YYYY-MM-DD'), startTime: start.format('HH:mm'),
     endDate: end.format('YYYY-MM-DD'), endTime: end.format('HH:mm'),
     arrival: '', sessions: [],
@@ -300,6 +304,8 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
       const body: Record<string, unknown> = {
         members: form.members,
         title: form.title.trim(),
+        titleKn: form.titleKn.trim(),
+        venueKn: form.venueKn.trim(),
         type: form.type,
         status: form.status,
         allDay: form.allDay,
@@ -394,6 +400,22 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
                 onChange={(e) => set('title', e.target.value)}
                 placeholder={isAway ? 'e.g. Assembly session - Bengaluru' : 'e.g. Ganesha temple Kalashotsava'}
               />
+              {!isAway && (
+                <TextField
+                  fullWidth size="small" label="Kannada title (for the poster)" value={form.titleKn} sx={{ mt: 1.5 }}
+                  onChange={(e) => set('titleKn', e.target.value)}
+                  placeholder={needsKannada(form.title) ? toKannada(form.title) : 'Leave empty to use the title as it is'}
+                  helperText={needsKannada(form.title) && !form.titleKn ? 'Empty: the poster converts the English title automatically.' : undefined}
+                  InputProps={{
+                    sx: { fontFamily: '"Noto Sans Kannada", Inter, sans-serif' },
+                    endAdornment: needsKannada(form.title) ? (
+                      <InputAdornment position="end">
+                        <Button size="small" onClick={() => set('titleKn', toKannada(form.title))} sx={{ minWidth: 0 }}>ಕನ್ನಡ</Button>
+                      </InputAdornment>
+                    ) : undefined,
+                  }}
+                />
+              )}
               {isAway && (
                 <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                   {awayPresets.map((p) => (
@@ -523,6 +545,23 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
               <Grid container spacing={1.5}>
                 <Grid item xs={12} sm={7}><Suggest label="Venue" value={form.venue} onChange={(v) => set('venue', v)} options={s?.venues ?? []} placeholder="e.g. Kalyana Mantapa, PJ Extension" /></Grid>
                 <Grid item xs={12} sm={5}><Suggest label="Area / Ward / Village" value={form.area} onChange={(v) => set('area', v)} options={s?.areas ?? []} /></Grid>
+                {needsKannada(`${form.venue} ${form.area}`) && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth size="small" label="Kannada venue (for the poster)" value={form.venueKn}
+                      onChange={(e) => set('venueKn', e.target.value)}
+                      placeholder={toKannada([form.venue, form.area].filter(Boolean).join(', '))}
+                      InputProps={{
+                        sx: { fontFamily: '"Noto Sans Kannada", Inter, sans-serif' },
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Button size="small" onClick={() => set('venueKn', toKannada([form.venue, form.area].filter(Boolean).join(', ')))} sx={{ minWidth: 0 }}>ಕನ್ನಡ</Button>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                )}
                 <Grid item xs={12} sm={8}>
                   <Autocomplete
                     freeSolo size="small" options={s?.organizers ?? []} inputValue={form.organizer}
