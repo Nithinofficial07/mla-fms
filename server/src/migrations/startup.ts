@@ -3,7 +3,7 @@ import { logger } from '../config/logger.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import {
   backfillPrincipal, fixRequestTypes, fixStatusTransitions, grantAgencyWorkCreate, grantOfficerWorkCreate, migrateUserAgencies,
-  grantCalendarPermissions, remapCalendarTypes, migrateCalendarMembers, grantCalendarAdminPermission, cleanupGoogleImports,
+  grantCalendarPermissions, remapCalendarTypes, migrateCalendarMembers, grantCalendarAdminPermission, cleanupGoogleImports, fixCalendarLegacyIdIndex,
 } from './fixes.js';
 
 /** One row per migration that has completed on this database. */
@@ -37,6 +37,8 @@ const MIGRATIONS: { name: string; run: () => Promise<unknown> }[] = [
   { name: '2026-11-calendar-admin-permission', run: grantCalendarAdminPermission },
   // Google-imported events: guess types, strip Meet boilerplate, fill contact phones.
   { name: '2026-11-calendar-google-cleanup', run: cleanupGoogleImports },
+  // legacyId unique index must ignore normal (non-imported) events.
+  { name: '2026-11-calendar-legacyid-index', run: fixCalendarLegacyIdIndex },
 ];
 
 /**

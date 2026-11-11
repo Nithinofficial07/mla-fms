@@ -438,7 +438,7 @@ router.get(
     ok(res, {
       toDecide: shape(upcoming.filter((ev) => myRsvp(ev) === 'UNDECIDED')),
       // Past 60 days: someone was going but attendance isn't recorded yet.
-      toCheck: shape(pastRecent.filter((ev) => real(ev) && going(ev) && !marked(ev))),
+      toCheck: shape(pastRecent.filter((ev) => real(ev) && ev.end < now && going(ev) && !marked(ev))),
       toPrepare: shape(upcoming.filter((ev) => (ev.prep ?? []).length > (ev.prepDone ?? []).length)),
       toFill: shape([...upcoming, ...pastRecent].filter((ev) => ev.draft || ev.dateUnknown)),
       // Past 45 days: attended (or a representative went), public, not posted or skipped yet.

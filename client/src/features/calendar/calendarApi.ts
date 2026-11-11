@@ -112,7 +112,8 @@ export interface CalendarReferenceData {
   eventTypes: { code: string; label: string }[];
   rsvpStatuses: { code: string; label: string }[];
   organiserKinds: { code: string; label: string }[];
-  awayPresets: { code: string; label: string }[];
+  /** Plain strings in the reference file; objects kept for older data. */
+  awayPresets: (string | { code: string; label: string })[];
   roleAtEvent: { code: string; label: string }[];
   preparationItems: { code: string; label: string }[];
   organiserReplyStatuses: { code: string; label: string }[];

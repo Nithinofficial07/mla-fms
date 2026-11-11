@@ -49,7 +49,8 @@ const calendarEventSchema = new Schema(
     // brought in via Admin > Import calendar backup. That artifact used its
     // own (non-ObjectId) ids, so they can't become this document's real _id -
     // this is what "preserve original ids, safe to import twice" keys off.
-    legacyId: { type: String, default: null, index: true, sparse: true, unique: true },
+    // Absent (not null) on normal events - see the partial unique index below.
+    legacyId: { type: String },
 
     // Which calendar(s) this event is on. Always the real codes (MLA_S/MLA_N/MP) -
     // "SS Family" is a UI convenience that expands to all 3 before saving, never
@@ -114,6 +115,8 @@ const calendarEventSchema = new Schema(
 );
 
 calendarEventSchema.index({ members: 1, start: 1 });
+// Unique only among real import ids. (A sparse index still indexes `null`, so it allowed just one normal event.)
+calendarEventSchema.index({ legacyId: 1 }, { unique: true, partialFilterExpression: { legacyId: { $type: 'string' } } });
 
 applyCommonPlugins(calendarEventSchema, { softDelete: true });
 

@@ -123,9 +123,10 @@ export function AwayDialog({ open, onClose }: { open: boolean; onClose: () => vo
           </Stack>
           {!!ref?.awayPresets?.length && (
             <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-              {ref.awayPresets.map((p) => (
-                <Button key={p.code} size="small" variant="outlined" onClick={() => setReason(p.label)}>{p.label}</Button>
-              ))}
+              {ref.awayPresets.map((p) => {
+                const label = typeof p === 'string' ? p : p.label;
+                return <Button key={label} size="small" variant="outlined" onClick={() => setReason(label)}>{label}</Button>;
+              })}
             </Stack>
           )}
           <TextField fullWidth size="small" label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} />

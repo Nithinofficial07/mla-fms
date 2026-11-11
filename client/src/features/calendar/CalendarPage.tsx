@@ -298,7 +298,7 @@ export function CalendarPage() {
           size="small" variant={n ? 'outlined' : 'text'} color={n ? color : 'inherit'}
           onClick={() => setWorklists({ initial: key })}
           startIcon={<Badge badgeContent={n} color={color} max={99}><Icon name={icon} fontSize="small" /></Badge>}
-          sx={{ textTransform: 'none', fontWeight: 700, minWidth: 0, px: { xs: 1, md: 1.5 }, '& .MuiButton-startIcon': { mr: { xs: 0, lg: 1 } } }}
+          sx={{ textTransform: 'none', fontWeight: 700, minWidth: 0, px: { xs: 1, md: 1.5 }, '& .MuiButton-startIcon': { mr: { xs: 0, lg: 1.75 } }, '& .MuiBadge-badge': { top: -2, right: -4 } }}
         >
           <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>{label}</Box>
         </Button>
@@ -379,7 +379,7 @@ export function CalendarPage() {
         )}
       />
 
-      <Tabs value={tab} onChange={(_e, v) => setNav({ tab: v })} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <Tabs value={tab} onChange={(_e, v) => setNav({ tab: v })} variant="scrollable" scrollButtons={false} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Tab value="calendar" icon={<Icon name="CalendarMonth" fontSize="small" />} iconPosition="start" label={tCal('Calendar')} sx={{ minHeight: 48 }} />
         <Tab value="social" icon={<Icon name="Share" fontSize="small" />} iconPosition="start" label={tCal('Social media')} sx={{ minHeight: 48 }} />
         <Tab value="reports" icon={<Icon name="BarChart" fontSize="small" />} iconPosition="start" label={tCal('Reports')} sx={{ minHeight: 48 }} />
@@ -521,11 +521,15 @@ export function CalendarPage() {
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center">
                   {view === 'day' && prefs.calendars.length > 1 && !isMobile && (
-                    <FormControlLabel
-                      sx={{ mr: 0.5, '& .MuiFormControlLabel-label': { fontSize: '0.8rem', fontWeight: 600 } }}
-                      control={<Switch size="small" checked={prefs.sideBySide} onChange={(e) => setPrefs((p) => ({ ...p, sideBySide: e.target.checked }))} />}
-                      label={tCal('Side by side')}
-                    />
+                    <Tooltip title={tCal('Side by side')}>
+                      <ToggleButton
+                        size="small" value="lanes" selected={prefs.sideBySide} aria-label="Side by side"
+                        onChange={() => setPrefs((p) => ({ ...p, sideBySide: !p.sideBySide }))}
+                        sx={{ px: 1, py: 0.5 }}
+                      >
+                        <Icon name="ViewWeek" fontSize="small" />
+                      </ToggleButton>
+                    </Tooltip>
                   )}
                   <Tooltip title="Export">
                     <IconButton size="small" onClick={(e) => setExportAnchor(e.currentTarget)} aria-label="Export"><Icon name="Download" fontSize="small" /></IconButton>
@@ -549,7 +553,7 @@ export function CalendarPage() {
                     >
                       {VIEWS.map((v) => (
                         <Tooltip key={v.value} title={`${v.label} (${v.key.toUpperCase()})`}>
-                          <ToggleButton value={v.value}><Icon name={v.icon} fontSize="small" /><Box component="span" sx={{ display: { sm: 'none', lg: 'inline' } }}>{v.label}</Box></ToggleButton>
+                          <ToggleButton value={v.value}><Icon name={v.icon} fontSize="small" /><Box component="span" sx={{ display: { xs: 'none', xl: 'inline' } }}>{v.label}</Box></ToggleButton>
                         </Tooltip>
                       ))}
                     </ToggleButtonGroup>

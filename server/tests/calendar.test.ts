@@ -76,6 +76,26 @@ describe('calendar', () => {
     expect(await ids()).toContain(id);
   });
 
+  it('legacyId index fix: after it runs, any number of normal events can be created', async () => {
+    const { fixCalendarLegacyIdIndex } = await import('../src/migrations/fixes.js');
+    const { CalendarEvent } = await import('../src/models/CalendarEvent.js');
+    // Recreate the old, broken state: unique sparse index + an event saved with legacyId: null.
+    await CalendarEvent.collection.dropIndexes().catch(() => {});
+    await CalendarEvent.collection.createIndex({ legacyId: 1 }, { unique: true, sparse: true });
+    await CalendarEvent.collection.insertOne({ title: 'old', members: ['MLA_S'], start: new Date(), end: new Date(), legacyId: null, deletedAt: null });
+
+    const result = await fixCalendarLegacyIdIndex();
+    expect(result).toMatchObject({ droppedOldIndex: true, nullsRemoved: 1 });
+
+    for (const title of ['First', 'Second']) {
+      const res = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({ title }));
+      expect(res.status).toBe(201);
+    }
+    // Import ids stay unique.
+    await CalendarEvent.collection.insertOne({ title: 'imp', members: ['MLA_S'], start: new Date(), end: new Date(), legacyId: 'google:x' });
+    await expect(CalendarEvent.collection.insertOne({ title: 'dup', members: ['MLA_S'], start: new Date(), end: new Date(), legacyId: 'google:x' })).rejects.toThrow();
+  });
+
   it('expands SS Family to all 3 real calendars on save', async () => {
     const res = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({ members: ['SS_FAMILY'] }));
     expect(res.status).toBe(201);

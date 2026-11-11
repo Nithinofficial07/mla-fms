@@ -189,6 +189,22 @@ export async function grantCalendarAdminPermission() {
  * The original values are copied to `calendar_import_backup` first, so this
  * can be reverted by hand if a guess turns out wrong.
  */
+/**
+ * legacyId used to default to null under a unique *sparse* index - sparse
+ * still indexes null, so once that index was built only one normal event
+ * could be created. Swaps it for a partial index on string ids only and
+ * drops the stored nulls. Created explicitly: prod runs with autoIndex off.
+ */
+export async function fixCalendarLegacyIdIndex() {
+  const coll = CalendarEvent.collection;
+  const indexes = await coll.indexes().catch(() => [] as { name?: string; partialFilterExpression?: unknown }[]);
+  const old = indexes.find((i) => i.name === 'legacyId_1' && !i.partialFilterExpression);
+  if (old) await coll.dropIndex('legacyId_1');
+  const unset = await coll.updateMany({ legacyId: null }, { $unset: { legacyId: '' } });
+  await coll.createIndex({ legacyId: 1 }, { unique: true, partialFilterExpression: { legacyId: { $type: 'string' } } });
+  return { droppedOldIndex: !!old, nullsRemoved: unset.modifiedCount };
+}
+
 export async function cleanupGoogleImports() {
   const docs = await CalendarEvent.collection
     .find({ legacyId: /^google:/ }, { projection: { title: 1, description: 1, venue: 1, type: 1, contactPhone: 1, publicSchedule: 1 } })

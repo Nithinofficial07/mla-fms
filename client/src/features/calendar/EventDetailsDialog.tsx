@@ -135,7 +135,7 @@ function Details({ item, canManage, onClose, onEdit, onOpenRequest }: Props & { 
   const repeat = item.isRecurring ? CALENDAR_RECURRENCE.find((r) => r.code === item.recurrence)?.label : null;
   const cancelled = item.status === 'CANCELLED';
   const myOwn = isDeadline ? [] : (viewAll ? item.members : item.members.filter((m) => myCodes.includes(m)));
-  const isPast = dayjs(item.start).isBefore(dayjs());
+  const isPast = dayjs(item.end).isBefore(dayjs());
   const isAway = item.type === 'UNAVAILABLE';
   const going = item.members.filter((m) => rsvpOf(item, m) === 'GOING');
 

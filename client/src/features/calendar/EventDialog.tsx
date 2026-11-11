@@ -220,6 +220,7 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
   const [form, setForm] = useState<FormState>(() => blank(dayjs(), dayjs().add(1, 'hour'), false, []));
   const [error, setError] = useState<string | null>(null);
   const [showEndDate, setShowEndDate] = useState(false);
+  const [prepOpen, setPrepOpen] = useState(false);
   const sugg = useQuery({ queryKey: ['calendar', 'suggestions'], queryFn: fetchSuggestions, enabled: open, staleTime: 10 * 60_000 });
   const awayPresets = (ref.data?.awayPresets ?? []).map((p) => (typeof p === 'string' ? p : (p as { label: string }).label));
 
@@ -232,11 +233,13 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
       // Timed events that span more than an overnight need the explicit end-date field.
       const span = dayjs(f.endDate).diff(dayjs(f.startDate), 'day');
       setShowEndDate(!f.allDay && (span > 1 || (span === 1 && f.endTime > f.startTime)));
+      setPrepOpen(!!(f.role || f.prep.length || f.prepNote));
     } else {
       const s = defaults?.start ?? dayjs().add(1, 'hour').startOf('hour');
       const e = defaults?.end ?? s.add(1, 'hour');
       setForm(blank(s, e, !!defaults?.allDay, defaults?.members?.length ? defaults.members : defaultCalendars));
       setShowEndDate(false);
+      setPrepOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item, defaults]);
@@ -558,7 +561,7 @@ export function EventDialog({ open, onClose, item, defaults }: EventDialogProps)
 
           {/* ----- role & preparation ----- */}
           {!isAway && (
-            <Accordion defaultExpanded={!!(form.role || form.prep.length || form.prepNote)} disableGutters sx={{ border: 1, borderColor: 'divider', borderRadius: '8px !important', boxShadow: 'none', '&::before': { display: 'none' } }}>
+            <Accordion expanded={prepOpen} onChange={(_e, x) => setPrepOpen(x)} disableGutters sx={{ border: 1, borderColor: 'divider', borderRadius: '8px !important', boxShadow: 'none', '&::before': { display: 'none' } }}>
               <AccordionSummary expandIcon={<Icon name="ExpandMore" />}>
                 <Typography variant="subtitle2"><Icon name="Checklist" fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />Role &amp; preparation{form.prep.length ? ` · ${form.prepDone.length}/${form.prep.length}` : ''}</Typography>
               </AccordionSummary>

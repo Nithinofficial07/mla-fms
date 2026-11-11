@@ -81,15 +81,9 @@ export function AttendanceMark({ item, size = 13 }: { item: CalendarItem; size?:
     const meta = { ATTENDED: ['CheckCircle', '#2E7D32', 'Attended'], REPRESENTATIVE: ['Group', '#ED6C02', 'Sent a representative'], NOT_ATTENDED: ['Cancel', '#D32F2F', 'Did not attend'] }[s];
     return <Icon name={meta[0]} titleAccess={meta[2]} sx={{ fontSize: size, color: meta[1], flexShrink: 0 }} />;
   }
-  if (item.status !== 'CANCELLED' && dayjs(item.start).isBefore(dayjs()) && item.members.some((m) => rsvpOf(item, m) === 'GOING')) {
-    return (
-      <Box
-        component="span" title="Attendance not recorded yet"
-        sx={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, display: 'inline-grid', placeItems: 'center', bgcolor: '#F59E0B', color: '#fff', fontSize: size * 0.7, fontWeight: 900, lineHeight: 1 }}
-      >
-        ?
-      </Box>
-    );
+  // Over, someone was going, nobody has said whether they went.
+  if (item.status !== 'CANCELLED' && dayjs(item.end).isBefore(dayjs()) && item.members.some((m) => rsvpOf(item, m) === 'GOING')) {
+    return <Icon name="FactCheck" titleAccess="Attendance not marked yet" sx={{ fontSize: size + 1, color: '#F59E0B', flexShrink: 0 }} />;
   }
   return null;
 }

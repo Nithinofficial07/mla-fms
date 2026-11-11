@@ -127,8 +127,9 @@ export function onDay(item: CalendarItem, day: Dayjs): boolean {
 }
 
 /** All-day, or spans more than one calendar day - shown in the all-day strip of week/day views. */
+/** All-day, or 24 hours or longer. An overnight event (10 PM - 1 AM) stays in the time grid, split across both days. */
 export function isAllDayLike(item: CalendarItem): boolean {
-  return !!item.allDay || !dayjs(item.start).isSame(dayjs(item.end).subtract(1, 'minute'), 'day');
+  return !!item.allDay || dayjs(item.end).diff(dayjs(item.start), 'minute') >= 24 * 60;
 }
 
 export function timeLabel(item: CalendarItem): string {
