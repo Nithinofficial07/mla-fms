@@ -278,6 +278,60 @@ describe('calendar', () => {
       expect(second.body.updated).toBe(6);
     });
 
+    it('guesses each event type from its title, strips Google Meet boilerplate, and never exposes legacyId', async () => {
+      const start = new Date(Date.now() + 2 * 86_400_000);
+      const meet = [
+        '-::~:~::~:~:~:~:~:~:~:~:~::~:~::-',
+        'Join with Google Meet: https://meet.google.com/abc-defg-hij',
+        '',
+        'Learn more about Meet at: https://support.google.com/a/users/answer/9282720',
+        '',
+        'Please do not edit this section.',
+        '-::~:~::~:~:~:~:~:~:~:~:~::~:~::-',
+      ].join('\n');
+      const ics = [
+        'BEGIN:VCALENDAR', 'VERSION:2.0',
+        'BEGIN:VEVENT', 'UID:wed-1@google.com', `DTSTART:${icsUtc(start)}`, `DTEND:${icsUtc(new Date(start.getTime() + 3_600_000))}`,
+        'SUMMARY:Wedding(Ravi weds Anusha)', `DESCRIPTION:Contact 98450 12345\n${meet}`, 'END:VEVENT',
+        'BEGIN:VEVENT', 'UID:temple-1@google.com', `DTSTART:${icsUtc(start)}`, `DTEND:${icsUtc(new Date(start.getTime() + 3_600_000))}`,
+        'SUMMARY:ಶ್ರೀ ಗಂಗಾಪರಮೇಶ್ವರಿ ದೇವಸ್ಥಾನ ಉದ್ಘಾಟನಾ ಕಾರ್ಯಕ್ರಮ', 'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+      const res = await request(app).post('/api/calendar/import-ics').set(auth(token)).field('members', 'MLA_S').attach('file', Buffer.from(ics), 'c.ics');
+      expect(res.body.created).toBe(2);
+
+      const list = await request(app).get('/api/calendar/events').set(auth(token)).query({
+        from: new Date(Date.now()).toISOString(), to: new Date(Date.now() + 5 * 86_400_000).toISOString(),
+      });
+      const wedding = list.body.find((e: { title: string }) => e.title.startsWith('Wedding'));
+      expect(wedding.type).toBe('EVENT_T2');
+      expect(wedding.description).toBe('Contact 98450 12345');
+      expect(wedding.contactPhone).toBe('98450 12345');
+      expect(wedding.publicSchedule).toBe(true);
+      expect(wedding).not.toHaveProperty('legacyId');
+      expect(list.body.find((e: { title: string }) => e.title.includes('ದೇವಸ್ಥಾನ')).type).toBe('EVENT_T3');
+    });
+
+    it('the one-time cleanup re-types already-imported events and keeps a backup of the old values', async () => {
+      const { cleanupGoogleImports } = await import('../src/migrations/fixes.js');
+      const { CalendarEvent } = await import('../src/models/CalendarEvent.js');
+      const base = { members: ['MLA_S'], start: new Date(), end: new Date(Date.now() + 3_600_000), deletedAt: null, publicSchedule: false, contactPhone: '' };
+      await CalendarEvent.collection.insertMany([
+        { ...base, legacyId: 'google:a', title: 'Reception(Manoj G weds Devika)', type: 'MEETING_OFFICIAL', description: '-::~:~::-\nJoin with Google Meet: https://meet.google.com/x\nPlease do not edit this section.\n-::~:~::-' },
+        { ...base, legacyId: 'google:b', title: 'Zilla Panchayat review', type: 'MEETING_OFFICIAL', description: '' },
+        { ...base, legacyId: 'google:c', title: 'Kept by hand', type: 'SITE_VISIT', description: '' },
+        { ...base, legacyId: 'google:d', title: '100 Cr', type: 'MEETING_OFFICIAL', description: '' },
+      ]);
+      const result = await cleanupGoogleImports() as { updated: number };
+      expect(result.updated).toBe(2);
+      const byId = async (id: string) => CalendarEvent.collection.findOne({ legacyId: id });
+      expect(await byId('google:a')).toMatchObject({ type: 'EVENT_T2', description: '', publicSchedule: true });
+      expect(await byId('google:b')).toMatchObject({ type: 'MEETING_GOVERNANCE' });
+      expect(await byId('google:c')).toMatchObject({ type: 'SITE_VISIT' }); // already re-sorted - untouched
+      expect(await byId('google:d')).toMatchObject({ type: 'MEETING_OFFICIAL' }); // unrecognisable - untouched
+      expect(await CalendarEvent.db.collection('calendar_import_backup').countDocuments()).toBe(2);
+    });
+
     it('rejects a non-.ics file', async () => {
       const res = await request(app).post('/api/calendar/import-ics').set(auth(token)).field('members', 'MLA_S').attach('file', Buffer.from('not ics'), 'notes.txt');
       expect(res.status).toBe(400);

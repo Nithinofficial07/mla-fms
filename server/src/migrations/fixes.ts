@@ -1,4 +1,7 @@
-import { CALENDAR_LEGACY_TYPE_MAP, DEFAULT_REQUEST_TYPES, PERMISSIONS, ROLES } from '@mla/shared';
+import {
+  CALENDAR_LEGACY_TYPE_MAP, CALENDAR_PRIVATE_BY_DEFAULT, DEFAULT_REQUEST_TYPES, PERMISSIONS, ROLES,
+  classifyCalendarEvent, cleanImportedDescription, findMobileNumber,
+} from '@mla/shared';
 import { CalendarEvent } from '../models/CalendarEvent.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import { Principal } from '../models/Principal.js';
@@ -172,4 +175,51 @@ export async function grantCalendarAdminPermission() {
     { $addToSet: { permissions: PERMISSIONS.CALENDAR_ADMIN } },
   );
   return { updated: res.modifiedCount, matched: res.matchedCount };
+}
+
+/**
+ * Events imported from Google Calendar all landed as MEETING_OFFICIAL (Google
+ * has no types), with Google's Meet-link boilerplate in the description and
+ * hidden from the public schedule. For every google-imported event:
+ *  - type still MEETING_OFFICIAL -> guessed from title / notes / place
+ *    (left alone when nothing is recognisable), and publicSchedule set to
+ *    that type's default;
+ *  - description -> Meet block / reminder boilerplate removed;
+ *  - empty contact phone -> first mobile number found in the notes or title.
+ * The original values are copied to `calendar_import_backup` first, so this
+ * can be reverted by hand if a guess turns out wrong.
+ */
+export async function cleanupGoogleImports() {
+  const docs = await CalendarEvent.collection
+    .find({ legacyId: /^google:/ }, { projection: { title: 1, description: 1, venue: 1, type: 1, contactPhone: 1, publicSchedule: 1 } })
+    .toArray();
+  const ops: { updateOne: { filter: { _id: unknown }; update: { $set: Record<string, unknown> } } }[] = [];
+  const backup: Record<string, unknown>[] = [];
+  const byType: Record<string, number> = {};
+  let cleaned = 0, phones = 0;
+
+  for (const d of docs) {
+    const set: Record<string, unknown> = {};
+    const description = cleanImportedDescription(d.description);
+    if (description !== (d.description ?? '')) { set.description = description; cleaned++; }
+    if (d.type === 'MEETING_OFFICIAL') {
+      const guess = classifyCalendarEvent({ title: d.title, description, venue: d.venue });
+      if (guess && guess !== d.type) {
+        set.type = guess;
+        set.publicSchedule = !CALENDAR_PRIVATE_BY_DEFAULT.includes(guess);
+        byType[guess] = (byType[guess] ?? 0) + 1;
+      }
+    }
+    if (!d.contactPhone) {
+      const phone = findMobileNumber(description) ?? findMobileNumber(d.title);
+      if (phone) { set.contactPhone = phone; phones++; }
+    }
+    if (!Object.keys(set).length) continue;
+    backup.push({ eventId: d._id, type: d.type, description: d.description, contactPhone: d.contactPhone ?? '', publicSchedule: d.publicSchedule, at: new Date() });
+    ops.push({ updateOne: { filter: { _id: d._id }, update: { $set: set } } });
+  }
+
+  if (backup.length) await CalendarEvent.db.collection('calendar_import_backup').insertMany(backup);
+  for (let i = 0; i < ops.length; i += 500) await CalendarEvent.collection.bulkWrite(ops.slice(i, i + 500) as Parameters<typeof CalendarEvent.collection.bulkWrite>[0], { ordered: false });
+  return { scanned: docs.length, updated: ops.length, retyped: byType, descriptionsCleaned: cleaned, phonesFilled: phones };
 }

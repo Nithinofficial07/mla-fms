@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
 import ical, { type VEvent, type ParameterValue, type CalendarResponse } from 'node-ical';
 import {
-  CALENDAR_PRIVATE_BY_DEFAULT, CALENDAR_REAL_CODES, expandMembers, expandOccurrences,
-  type CalendarEventType,
+  CALENDAR_PRIVATE_BY_DEFAULT, CALENDAR_REAL_CODES, classifyCalendarEvent, cleanImportedDescription, expandMembers,
+  expandOccurrences, findMobileNumber, type CalendarEventType,
 } from '@mla/shared';
 import { CalendarEvent } from '../../models/CalendarEvent.js';
 import { CalendarEventLog } from '../../models/CalendarEventLog.js';
@@ -108,6 +108,8 @@ export async function findClashes(
  */
 export function toApiShape(doc: Record<string, any>) {
   const plain = withId(doc) as Record<string, any>;
+  // The import key (google:<uid>, old backup id) is internal bookkeeping - never shown.
+  delete plain.legacyId;
   for (const key of ['rsvp', 'attendance', 'social'] as const) {
     if (plain[key] instanceof Map) plain[key] = Object.fromEntries(plain[key]);
   }
@@ -164,8 +166,11 @@ export interface IcsImportResult { created: number; updated: number; skipped: nu
  * Brings events in from a .ics export (Google Calendar: Settings > Import &
  * export > Export) into the given calendar(s). Google has no concept of our
  * MLA_S/MLA_N/MP codes, so every imported event lands on whichever
- * calendar(s) the user picked, as `type`, defaulting private (publicSchedule
- * false) since these were personal entries, not vetted office events.
+ * calendar(s) the user picked. `type` is either one fixed type for every
+ * event, or 'AUTO' to guess each one from its title / notes / place
+ * (classifyCalendarEvent), falling back to MEETING_OFFICIAL. Google's own
+ * boilerplate (Meet link block, reminders) is stripped from descriptions,
+ * and a mobile number in the notes or title fills an empty contact phone.
  *
  * Recurring events are expanded into individual one-off occurrences
  * (bounded to 1 year back / 2 years ahead, capped at 2000 iterations) rather
@@ -198,34 +203,41 @@ export async function importGoogleIcs(
   let skipped = 0;
   const errors: string[] = [];
 
-  const upsert = async (legacyId: string, fields: Record<string, unknown>) => {
+  const upsert = async (legacyId: string, { createOnly, ...fields }: Record<string, unknown> & { createOnly: Record<string, unknown> }) => {
     const existing = await CalendarEvent.findOne({ legacyId });
     if (existing) {
       existing.set(fields);
       await existing.save();
       updated += 1;
     } else {
-      await CalendarEvent.create({ ...fields, legacyId, members, type, createdBy: userId });
+      await CalendarEvent.create({ ...fields, ...createOnly, legacyId, members, createdBy: userId });
       created += 1;
     }
   };
 
   for (const ev of vevents) {
     try {
+      const title = icsPlainText(ev.summary) || 'Untitled';
+      const description = cleanImportedDescription(icsPlainText(ev.description));
+      const venue = icsPlainText(ev.location);
+      const eventType = type === 'AUTO' ? (classifyCalendarEvent({ title, description, venue }) ?? 'MEETING_OFFICIAL') : type;
+      const phone = findMobileNumber(description) ?? findMobileNumber(title);
       const base = {
-        title: icsPlainText(ev.summary) || 'Untitled',
-        description: icsPlainText(ev.description),
-        venue: icsPlainText(ev.location),
+        title,
+        description,
+        venue,
         status: GOOGLE_STATUS_MAP[ev.status ?? 'CONFIRMED'] ?? 'SCHEDULED',
-        publicSchedule: false,
         updatedBy: userId,
       };
+      // Only set on first import - a re-import must not undo types / contacts fixed by hand.
+      const createOnly = { type: eventType, publicSchedule: defaultPublicSchedule(eventType), ...(phone ? { contactPhone: phone } : {}) };
 
       if (ev.rrule) {
         const instances = ical.expandRecurringEvent(ev, { from: windowFrom, to: windowTo, maxIterations: 2000 });
         for (const inst of instances) {
           await upsert(`google:${ev.uid}:${inst.start.toISOString()}`, {
             ...base,
+            createOnly,
             allDay: inst.isFullDay,
             start: inst.start,
             end: inst.end ?? new Date(inst.start.getTime() + 60 * 60_000),
@@ -234,6 +246,7 @@ export async function importGoogleIcs(
       } else {
         await upsert(`google:${ev.uid}`, {
           ...base,
+          createOnly,
           allDay: ev.datetype === 'date',
           start: ev.start,
           end: ev.end ?? new Date(ev.start.getTime() + 60 * 60_000),

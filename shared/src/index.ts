@@ -5,3 +5,4 @@ export * from './types.js';
 export * from './fileId.js';
 export * from './works.js';
 export * from './calendar.js';
+export * from './calendarClassify.js';

@@ -834,9 +834,10 @@ router.post(
     if (!auth.viewAllPrincipals && !members.some((m) => codes.includes(m))) {
       throw AppError.forbidden('You can only import onto one of your own calendars');
     }
+    // Default: guess each event's type from its title (Google's export carries no colour / type).
     const type = req.body.type && (CALENDAR_EVENT_TYPE_CODES as readonly string[]).includes(req.body.type)
       ? req.body.type
-      : 'MEETING_OFFICIAL';
+      : 'AUTO';
 
     const result = await importGoogleIcs(req.file.buffer.toString('utf8'), members, type, auth.userId);
     recordAudit(req, {

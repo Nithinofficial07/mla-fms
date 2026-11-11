@@ -147,7 +147,7 @@ export function ImportGoogleCalendarDialog({ open, onClose }: { open: boolean; o
   const defaultCalendars = useDefaultCalendars();
   const fileRef = useRef<HTMLInputElement>(null);
   const [members, setMembers] = useState<string[]>([]);
-  const [type, setType] = useState<string>(CALENDAR_DEFAULT_TYPE);
+  const [type, setType] = useState<string>('AUTO');
   const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
 
   useEffect(() => {
@@ -179,7 +179,8 @@ export function ImportGoogleCalendarDialog({ open, onClose }: { open: boolean; o
             </Typography>
           </Box>
           <CalendarsField value={members} onChange={setMembers} label="Add these events to" size="small" />
-          <TextField select fullWidth size="small" label="Import as type" value={type} onChange={(e) => setType(e.target.value)} helperText="You can re-sort individual events afterwards.">
+          <TextField select fullWidth size="small" label="Import as type" value={type} onChange={(e) => setType(e.target.value)} helperText="Auto guesses each event's type from its title (weddings, temples, openings, meetings...). You can change any event afterwards.">
+            <MenuItem value="AUTO">Auto - guess from the title</MenuItem>
             {CALENDAR_EVENT_TYPES.map((t) => <MenuItem key={t.code} value={t.code}>{t.label}</MenuItem>)}
           </TextField>
           <Button variant="outlined" startIcon={<Icon name="UploadFile" />} onClick={() => fileRef.current?.click()} disabled={!members.length || importMut.isPending}>
