@@ -1,7 +1,8 @@
 import {
   CALENDAR_LEGACY_TYPE_MAP, CALENDAR_PRIVATE_BY_DEFAULT, DEFAULT_REQUEST_TYPES, PERMISSIONS, ROLES,
-  classifyCalendarEvent, cleanImportedDescription, findMobileNumber,
+  DEFAULT_QUOTES, classifyCalendarEvent, cleanImportedDescription, findMobileNumber,
 } from '@mla/shared';
+import { CalendarQuote } from '../models/CalendarQuote.js';
 import { CalendarEvent } from '../models/CalendarEvent.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import { Principal } from '../models/Principal.js';
@@ -203,6 +204,13 @@ export async function fixCalendarLegacyIdIndex() {
   const unset = await coll.updateMany({ legacyId: null }, { $unset: { legacyId: '' } });
   await coll.createIndex({ legacyId: 1 }, { unique: true, partialFilterExpression: { legacyId: { $type: 'string' } } });
   return { droppedOldIndex: !!old, nullsRemoved: unset.modifiedCount };
+}
+
+/** Loads the starter ದಿನದ ಚಿಂತನೆ list (only into an empty collection - never over the office's own edits). */
+export async function seedCalendarQuotes() {
+  if (await CalendarQuote.estimatedDocumentCount()) return { seeded: 0 };
+  await CalendarQuote.insertMany(DEFAULT_QUOTES.map((q, i) => ({ ...q, author: q.author ?? '', monthDay: q.monthDay ?? null, seq: i + 1 })));
+  return { seeded: DEFAULT_QUOTES.length };
 }
 
 export async function cleanupGoogleImports() {

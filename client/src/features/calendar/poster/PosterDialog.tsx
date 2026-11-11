@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert, Box, Button, ButtonBase, Checkbox, Chip, CircularProgress, FormControlLabel, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton,
-  Stack, TextField, Tooltip, Typography, useMediaQuery,
+  MenuItem, Stack, TextField, Tooltip, Typography, useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import dayjs, { type Dayjs } from 'dayjs';
-import { CALENDAR_REAL_CODES, PERMISSIONS, needsKannada, toKannada } from '@mla/shared';
+import { CALENDAR_REAL_CODES, PERMISSIONS, QUOTE_KINDS, needsKannada, pickQuote, toKannada, type QuoteKind } from '@mla/shared';
 import '@fontsource/baloo-tamma-2/700.css';
 import '@fontsource/baloo-tamma-2/800.css';
 import '@fontsource/noto-sans-kannada/500.css';
 import '@fontsource/noto-sans-kannada/600.css';
 import { api } from '@/api/client';
 import { useAuth } from '@/app/AuthProvider';
-import { updateEvent } from '../calendarApi';
+import { fetchQuotes, updateEvent } from '../calendarApi';
+import { QuotesDialog } from './QuotesDialog';
 import { Icon } from '@/components/Icon';
 import { expandSessions, rsvpOf, type CalendarItem } from '../calendarUtils';
 import {
@@ -33,7 +34,8 @@ interface Row extends PosterLine {
   /** Changed by hand in this dialog. */
   edited?: boolean;
 }
-interface Saved { template?: number; quote?: string; author?: string; rows?: Row[] }
+interface Saved { template?: number; quote?: string; author?: string; quoteAuto?: boolean; quoteOffset?: number; rows?: Row[] }
+const QUOTE_KIND_KEY = 'calendar:poster:quoteKind';
 
 /** Venues on the posters end with a full stop ("..., ದಾವಣಗೆರೆ."). */
 const withFullStop = (s: string) => (s && !/[.!?]$/.test(s) ? `${s}.` : s);
@@ -89,6 +91,11 @@ export function PosterDialog({ open, onClose, date: initialDate }: { open: boole
   const [template, setTemplate] = useState(1);
   const [quote, setQuote] = useState('');
   const [author, setAuthor] = useState('');
+  // ದಿನದ ಚಿಂತನೆ: picked automatically for the date until someone types their own.
+  const [quoteAuto, setQuoteAuto] = useState(true);
+  const [quoteOffset, setQuoteOffset] = useState(0);
+  const [quoteKind, setQuoteKind] = useState<QuoteKind | 'ANY'>(() => { try { return (localStorage.getItem(QUOTE_KIND_KEY) as QuoteKind | 'ANY') || 'ANY'; } catch { return 'ANY'; } });
+  const [quotesOpen, setQuotesOpen] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [ready, setReady] = useState(false);
   const [drawing, setDrawing] = useState(false);
@@ -108,6 +115,7 @@ export function PosterDialog({ open, onClose, date: initialDate }: { open: boole
     }).then((r) => r.data as CalendarItem[]),
     enabled: open,
   });
+  const quotes = useQuery({ queryKey: ['calendar', 'quotes'], queryFn: fetchQuotes, enabled: open, staleTime: 5 * 60_000 });
 
   // Load (or rebuild) this date's poster whenever the date or its events change.
   useEffect(() => {
@@ -118,6 +126,8 @@ export function PosterDialog({ open, onClose, date: initialDate }: { open: boole
     setTemplate(saved.template ?? (last || defaultTemplateFor(date)));
     setQuote(saved.quote ?? '');
     setAuthor(saved.author ?? '');
+    setQuoteAuto(saved.quoteAuto ?? !saved.quote);
+    setQuoteOffset(saved.quoteOffset ?? 0);
     setRows(merge(toRows(events.data, date), saved.rows));
     setReady(true);
   }, [open, events.data, date]);
@@ -125,9 +135,18 @@ export function PosterDialog({ open, onClose, date: initialDate }: { open: boole
   // Remember edits for this date.
   useEffect(() => {
     if (!ready) return;
-    writeSaved(date, { template, quote, author, rows });
+    writeSaved(date, { template, quote, author, quoteAuto, quoteOffset, rows });
     try { localStorage.setItem(LAST_TEMPLATE, String(template)); } catch { /* ignore */ }
-  }, [ready, date, template, quote, author, rows]);
+  }, [ready, date, template, quote, author, quoteAuto, quoteOffset, rows]);
+
+  // Automatic quote for the date (special-day line, else the next in the office's rotation).
+  useEffect(() => {
+    if (!ready || !quoteAuto || !quotes.data) return;
+    const q = pickQuote(quotes.data, date.format('YYYY-MM-DD'), quoteKind, quoteOffset);
+    setQuote(q?.text ?? '');
+    setAuthor(q?.author ?? '');
+  }, [ready, quoteAuto, quotes.data, date, quoteKind, quoteOffset]);
+  useEffect(() => { try { localStorage.setItem(QUOTE_KIND_KEY, quoteKind); } catch { /* ignore */ } }, [quoteKind]);
 
   const lines = useMemo(() => rows.filter((r) => r.include), [rows]);
 
@@ -175,7 +194,7 @@ export function PosterDialog({ open, onClose, date: initialDate }: { open: boole
   const resetDay = () => {
     try { localStorage.removeItem(storeKey(date)); } catch { /* ignore */ }
     if (events.data) setRows(toRows(events.data, date));
-    setQuote(''); setAuthor('');
+    setQuoteAuto(true); setQuoteOffset(0);
   };
 
   const fileName = `karyakrama-${date.format('YYYY-MM-DD')}.png`;
@@ -236,10 +255,31 @@ export function PosterDialog({ open, onClose, date: initialDate }: { open: boole
               </Stack>
             </Box>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              <TextField size="small" fullWidth label="ದಿನದ ಚಿಂತನೆ (quote of the day)" value={quote} onChange={(e) => setQuote(e.target.value)} multiline maxRows={3} />
-              <TextField size="small" label="By (optional)" value={author} onChange={(e) => setAuthor(e.target.value)} sx={{ minWidth: { sm: 170 } }} />
-            </Stack>
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>
+                <Typography variant="caption" color="text.secondary" fontWeight={700}>ದಿನದ ಚಿಂತನೆ</Typography>
+                <TextField
+                  select size="small" value={quoteKind} onChange={(e) => { setQuoteKind(e.target.value as QuoteKind | 'ANY'); setQuoteAuto(true); setQuoteOffset(0); }}
+                  sx={{ minWidth: 130, '& .MuiSelect-select': { py: 0.5 } }}
+                >
+                  <MenuItem value="ANY">ಯಾವುದಾದರೂ (any)</MenuItem>
+                  {QUOTE_KINDS.map((k) => <MenuItem key={k.code} value={k.code}>{k.label} ({k.en})</MenuItem>)}
+                </TextField>
+                <Tooltip title="Another line">
+                  <Button size="small" startIcon={<Icon name="Autorenew" />} onClick={() => { setQuoteAuto(true); setQuoteOffset((o) => o + 1); }}>ಬೇರೆ</Button>
+                </Tooltip>
+                {canSave && <Button size="small" color="inherit" onClick={() => setQuotesOpen(true)}>Manage quotes</Button>}
+                {quoteAuto && quote && <Chip size="small" label="Automatic" color="success" variant="outlined" sx={{ height: 20 }} />}
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <TextField
+                  size="small" fullWidth label="Quote (edit or type your own)" value={quote} multiline maxRows={3}
+                  onChange={(e) => { setQuote(e.target.value); setQuoteAuto(false); }}
+                  placeholder={quotes.isSuccess && !quotes.data.length ? 'No quotes saved yet - type one, or add some in Manage quotes' : undefined}
+                />
+                <TextField size="small" label="By (optional)" value={author} onChange={(e) => { setAuthor(e.target.value); setQuoteAuto(false); }} sx={{ minWidth: { sm: 170 } }} />
+              </Stack>
+            </Box>
 
             <Divider />
             <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -311,6 +351,7 @@ export function PosterDialog({ open, onClose, date: initialDate }: { open: boole
         {canShare && <Button variant="outlined" startIcon={<Icon name="Share" />} onClick={share} disabled={!ready}>Share</Button>}
         <Button variant="contained" startIcon={<Icon name="Download" />} onClick={download} disabled={!ready}>Download PNG</Button>
       </DialogActions>
+      {quotesOpen && <QuotesDialog open onClose={() => setQuotesOpen(false)} />}
     </Dialog>
   );
 }

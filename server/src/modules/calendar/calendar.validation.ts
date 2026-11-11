@@ -3,7 +3,7 @@ import {
   CALENDAR_ATTENDANCE_STATUSES, CALENDAR_EVENT_STATUSES, CALENDAR_EVENT_TYPE_CODES, CALENDAR_ORGANISER_KINDS,
   CALENDAR_ORGANISER_REPLY_STATUSES, CALENDAR_PREP_ITEMS, CALENDAR_REAL_CODES, CALENDAR_RECURRENCE_CODES,
   CALENDAR_ROLE_AT_EVENT, CALENDAR_RSVP_STATUSES, CALENDAR_SOCIAL_PLATFORMS, CALENDAR_SOCIAL_STATUSES,
-  CALENDAR_SS_FAMILY,
+  CALENDAR_SS_FAMILY, QUOTE_KIND_CODES,
 } from '@mla/shared';
 
 const objectId = z.string().length(24, 'Invalid id');
@@ -148,5 +148,14 @@ export const importIcsBodySchema = z.object({
 });
 
 export const idParam = z.object({ id: objectId });
+
+export const quoteSchema = z.object({
+  text: z.string().trim().min(1, 'Quote text is required').max(400),
+  author: z.string().trim().max(120).optional(),
+  kind: z.enum(QUOTE_KIND_CODES).optional(),
+  monthDay: z.string().regex(/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Use MM-DD').nullable().optional(),
+  active: z.boolean().optional(),
+});
+export const quoteUpdateSchema = quoteSchema.partial();
 
 export const searchQuerySchema = z.object({ q: z.string().trim().min(2).max(100) });

@@ -89,3 +89,19 @@ describe('toKannada (poster wording)', () => {
     expect(toKannada('Ganeshotsava 10:30 AM')).toBe('ಗಣೇಶೋತ್ಸವ 10:30 AM');
   });
 });
+
+describe('pickQuote (daily ದಿನದ ಚಿಂತನೆ)', () => {
+  it('uses the special-day line, otherwise rotates without repeating; offset, kind and switched-off lines', async () => {
+    const { pickQuote, DEFAULT_QUOTES } = await import('@mla/shared');
+    const list = DEFAULT_QUOTES.map((q, i) => ({ ...q, id: String(i), active: true }));
+    expect(pickQuote(list, '2026-11-01')?.author).toBe('ಕುವೆಂಪು');
+    const days = Array.from({ length: 30 }, (_, i) => dayjs('2026-02-01').add(i, 'day').format('YYYY-MM-DD'));
+    const picked = days.map((d) => pickQuote(list, d)!.text);
+    expect(new Set(picked).size).toBe(30); // a month without repeats
+    expect(pickQuote(list, '2026-02-03', 'ANY', 1)!.text).toBe(pickQuote(list, '2026-02-04')!.text);
+    expect(pickQuote(list, '2026-02-03', 'GAADE')!.kind).toBe('GAADE');
+    expect(pickQuote(list, '2026-11-01', 'ANY', 1)!.monthDay).toBeUndefined(); // "another" on a special day -> rotation
+    const off = list.map((q) => ({ ...q, active: q.kind !== 'SUBHASHITA' }));
+    expect(pickQuote(off, '2026-02-03', 'SUBHASHITA')).toBeNull();
+  });
+});

@@ -105,6 +105,29 @@ describe('calendar', () => {
     expect(res.body).toMatchObject({ title: 'Wedding(Ravi weds Anusha)', titleKn: 'ರವಿ ಮತ್ತು ಅನುಷಾ ರವರ ವಿವಾಹ', venueKn: 'ವಾಸವಿ ಹಾಲ್, ದಾವಣಗೆರೆ.' });
   });
 
+  it('daily quotes: seeded once, listed in rotation order, and managed by calendar managers only', async () => {
+    const { seedCalendarQuotes } = await import('../src/migrations/fixes.js');
+    const first = await seedCalendarQuotes() as { seeded: number };
+    expect(first.seeded).toBeGreaterThan(50);
+    expect(await seedCalendarQuotes()).toEqual({ seeded: 0 }); // never over the office's own list
+
+    const list = await request(app).get('/api/calendar/quotes').set(auth(token));
+    expect(list.status).toBe(200);
+    expect(list.body.length).toBe(first.seeded);
+    expect(list.body[0].seq).toBe(1);
+
+    const added = await request(app).post('/api/calendar/quotes').set(auth(token)).send({ text: 'ಸೇವೆಯೇ ಸಂತೋಷ.', kind: 'CHINTANE', monthDay: '07-01' });
+    expect(added.status).toBe(201);
+    expect(added.body.seq).toBe(first.seeded + 1);
+    const bad = await request(app).post('/api/calendar/quotes').set(auth(token)).send({ text: 'x', monthDay: '13-40' });
+    expect(bad.status).toBe(400);
+
+    const off = await request(app).patch(`/api/calendar/quotes/${added.body.id}`).set(auth(token)).send({ active: false });
+    expect(off.body.active).toBe(false);
+    const del = await request(app).delete(`/api/calendar/quotes/${added.body.id}`).set(auth(token));
+    expect(del.status).toBe(200);
+  });
+
   it('expands SS Family to all 3 real calendars on save', async () => {
     const res = await request(app).post('/api/calendar/events').set(auth(token)).send(payload({ members: ['SS_FAMILY'] }));
     expect(res.status).toBe(201);

@@ -18,6 +18,7 @@ import { withId } from '../../utils/queryFeatures.js';
 import { CalendarEvent, type CalendarEventDoc } from '../../models/CalendarEvent.js';
 import { CalendarEventLog } from '../../models/CalendarEventLog.js';
 import { CalendarPhoto } from '../../models/CalendarPhoto.js';
+import { CalendarQuote } from '../../models/CalendarQuote.js';
 import { RequestModel } from '../../models/Request.js';
 import { RequestStatus } from '../../models/config.js';
 import { requestsService } from '../requests/requests.service.js';
@@ -28,9 +29,9 @@ import {
   toApiShape, expandEventsInRange, importGoogleIcs,
 } from './calendar.service.js';
 import {
-  createEventSchema, updateEventSchema, quickEventSchema, rangeQuerySchema, searchQuerySchema, rsvpSchema, attendanceSchema,
+  createEventSchema, updateEventSchema, quickEventSchema, rangeQuerySchema, searchQuerySchema, quoteSchema, quoteUpdateSchema, rsvpSchema, attendanceSchema,
   prepUpdateSchema, replyUpdateSchema, socialUpdateSchema, moveEventSchema, awayRangeSchema, exportQuerySchema,
-  importIcsBodySchema,
+  importIcsBodySchema, idParam,
 } from './calendar.validation.js';
 
 const router = Router();
@@ -845,6 +846,51 @@ router.post(
       message: `import .ics: ${result.created} created, ${result.updated} updated, ${result.skipped} skipped`,
     });
     ok(res, result);
+  }),
+);
+
+/* ------------------------------ daily quotes ---------------------------------- */
+// ದಿನದ ಚಿಂತನೆ lines for the daily poster. Everyone who sees the calendar can read
+// them (the poster picks one per date); people who manage the calendar keep the list.
+
+router.get(
+  '/quotes',
+  requirePermission(PERMISSIONS.CALENDAR_VIEW),
+  asyncHandler(async (_req, res) => {
+    ok(res, withId(await CalendarQuote.find({}).sort({ seq: 1, _id: 1 }).lean()));
+  }),
+);
+
+router.post(
+  '/quotes',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ body: quoteSchema }),
+  asyncHandler(async (req, res) => {
+    const last = await CalendarQuote.findOne({}).sort({ seq: -1 }).select('seq').lean();
+    const doc = await CalendarQuote.create({ ...req.body, seq: (last?.seq ?? 0) + 1, createdBy: req.auth!.userId });
+    created(res, withId(doc.toObject()));
+  }),
+);
+
+router.patch(
+  '/quotes/:id',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ params: idParam, body: quoteUpdateSchema }),
+  asyncHandler(async (req, res) => {
+    const doc = await CalendarQuote.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true }).lean();
+    if (!doc) throw AppError.notFound('Quote not found');
+    ok(res, withId(doc));
+  }),
+);
+
+router.delete(
+  '/quotes/:id',
+  requirePermission(PERMISSIONS.CALENDAR_MANAGE),
+  validate({ params: idParam }),
+  asyncHandler(async (req, res) => {
+    const doc = await CalendarQuote.findByIdAndDelete(req.params.id).lean();
+    if (!doc) throw AppError.notFound('Quote not found');
+    ok(res, { id: req.params.id });
   }),
 );
 

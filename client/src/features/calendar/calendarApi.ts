@@ -152,3 +152,17 @@ export interface CalendarSuggestions {
 export function fetchSuggestions() {
   return api.get('/calendar/suggestions').then((r) => r.data as CalendarSuggestions);
 }
+
+export interface CalendarQuote { id: string; text: string; author: string; kind: string; monthDay: string | null; active: boolean; seq: number }
+export function fetchQuotes() {
+  return api.get('/calendar/quotes').then((r) => r.data as CalendarQuote[]);
+}
+export function createQuote(body: Partial<CalendarQuote>) {
+  return api.post('/calendar/quotes', body).then((r) => r.data as CalendarQuote);
+}
+export function updateQuote(id: string, body: Partial<CalendarQuote>) {
+  return api.patch(`/calendar/quotes/${id}`, body).then((r) => r.data as CalendarQuote);
+}
+export function deleteQuote(id: string) {
+  return api.delete(`/calendar/quotes/${id}`);
+}
