@@ -49,8 +49,9 @@ export interface PrincipalOpt { id: string; code: string; label: string; idPrefi
 const PRINCIPAL_ORDER = ['MLA_S', 'MLA_N', 'MP'];
 
 /** The office's 3 principals, in their fixed display order (not alphabetical - "MP" would sort before "MLA"). */
-export const usePrincipals = () =>
+export const usePrincipals = (enabled = true) =>
   useQuery({
+    enabled,
     queryKey: ['opt', 'principals'],
     queryFn: () =>
       api.get('/principals', { params: { pageSize: 10 } }).then((r) => r.data.data as PrincipalOpt[])

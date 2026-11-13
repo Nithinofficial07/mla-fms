@@ -46,6 +46,14 @@ export function setActivePrincipal(id: string | null) {
   } catch {
     /* ignore */
   }
+  principalListeners.forEach((fn) => fn());
+}
+
+const principalListeners = new Set<() => void>();
+/** Subscribe to principal switches (for UI that depends on it, e.g. the leader photo). Returns the unsubscribe. */
+export function onActivePrincipalChange(fn: () => void): () => void {
+  principalListeners.add(fn);
+  return () => { principalListeners.delete(fn); };
 }
 export function getActivePrincipal(): string | null {
   return activePrincipalId;

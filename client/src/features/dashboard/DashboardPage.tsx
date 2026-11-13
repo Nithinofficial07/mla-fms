@@ -19,8 +19,7 @@ import { DataTable } from '@/components/DataTable';
 import { DashboardRangeFilter, resolveRange, type RangeKey } from '@/components/DashboardRangeFilter';
 import { StatusChip, PriorityChip, STATUS_COLORS } from '@/components/chips';
 import { Icon } from '@/components/Icon';
-import { LeaderCaption, LeaderCutout } from '@/components/LeaderPhoto';
-import { useBranding } from '@/hooks/useBranding';
+import { LeaderCaption, LeaderCutout, useActiveLeader } from '@/components/LeaderPhoto';
 import { RequestDetailDialog } from '@/features/requests/RequestDetailDialog';
 import { MILESTONES, MILESTONE_COLORS, getMilestoneIndex } from '@/lib/milestones';
 import { api } from '@/api/client';
@@ -99,7 +98,7 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const { data: branding } = useBranding();
+  const leader = useActiveLeader();
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0];
 
@@ -127,10 +126,10 @@ export function DashboardPage() {
   const stats = useQuery({ queryKey: ['dashboard', 'stats', dateParams], queryFn: () => api.get('/dashboard/stats', { params: dateParams }).then((r) => r.data) });
   const charts = useQuery({ queryKey: ['dashboard', 'charts', dateParams], queryFn: () => api.get('/dashboard/charts', { params: dateParams }).then((r) => r.data) });
   const recent = useQuery({ queryKey: ['dashboard', 'recent', dateParams], queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 10 } }).then((r) => r.data) });
-  const latest = useQuery({ queryKey: ['dashboard', 'latest', dateParams], queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 1 } }).then((r) => r.data[0]) });
+  const latest = useQuery({ queryKey: ['dashboard', 'latest', dateParams], queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 1 } }).then((r) => r.data[0] ?? null) });
   const followUpPreview = useQuery({
     queryKey: ['dashboard', 'followup-preview', dateParams],
-    queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 1, statusCode: 'AWAITING_INFO,DEPT_RESPONSE' } }).then((r) => r.data[0]),
+    queryFn: () => api.get('/dashboard/recent', { params: { ...dateParams, limit: 1, statusCode: 'AWAITING_INFO,DEPT_RESPONSE' } }).then((r) => r.data[0] ?? null),
   });
 
   const s = stats.data ?? {};
@@ -221,8 +220,8 @@ export function DashboardPage() {
         <Stack direction="row" alignItems="flex-end" justifyContent="space-between" sx={{ minHeight: { xs: 130, sm: 180 }, pl: { xs: 2.5, sm: 3.5 } }}>
           <Stack spacing={0.75} sx={{ py: 2.5, pr: 2, alignSelf: 'center', minWidth: 0 }}>
             <LeaderCaption />
-            {branding?.constituencyName && (
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>{branding.constituencyName}</Typography>
+            {leader.constituency && (
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>{leader.constituency}</Typography>
             )}
           </Stack>
           <Box sx={{ pr: { xs: 1, sm: 4 }, pt: 1.5, flexShrink: 0 }}>
