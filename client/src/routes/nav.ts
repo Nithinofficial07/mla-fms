@@ -14,6 +14,7 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { label: 'Dashboard', labelKey: 'nav.dashboard', to: '/', icon: 'Dashboard', permission: PERMISSIONS.DASHBOARD_VIEW },
   { label: 'Calendar', labelKey: 'nav.calendar', to: '/calendar', icon: 'Event', permission: PERMISSIONS.CALENDAR_VIEW },
+  { label: 'Tasks', labelKey: 'nav.tasks', to: '/tasks', icon: 'Checklist', permission: PERMISSIONS.TASK_VIEW },
   {
     label: 'Requests',
     labelKey: 'nav.requests',

@@ -25,6 +25,7 @@ import reportsRoutes from '../modules/reports/reports.routes.js';
 import auditRoutes from '../modules/audit/audit.routes.js';
 import settingsRoutes from '../modules/settings/settings.routes.js';
 import calendarRoutes from '../modules/calendar/calendar.routes.js';
+import taskRoutes from '../modules/tasks/tasks.routes.js';
 
 export const api = Router();
 
@@ -63,3 +64,4 @@ api.use('/reports', reportsRoutes);
 api.use('/audit-logs', auditRoutes);
 api.use('/settings', settingsRoutes);
 api.use('/calendar', calendarRoutes);
+api.use('/tasks', taskRoutes);

@@ -3,6 +3,7 @@ import { logger } from '../config/logger.js';
 import { RequestModel } from '../models/Request.js';
 import { RequestStatus, SystemSettings } from '../models/config.js';
 import { notifyUsers } from '../modules/notifications/notify.js';
+import { runTimeTriggers } from '../modules/tasks/tasks.engine.js';
 
 /**
  * Lightweight in-process jobs (no external queue for the scaffold).
@@ -41,6 +42,10 @@ async function sweep(): Promise<void> {
     });
   }
   logger.info({ overdue: overdue.length, dueSoon: dueSoon.length }, 'due-date sweep complete');
+
+  // Office tasks: "due date arrives" / "becomes overdue" automations.
+  const tasks = await runTimeTriggers();
+  if (tasks.fired) logger.info(tasks, 'task time automations fired');
 }
 
 let timer: NodeJS.Timeout | null = null;

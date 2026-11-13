@@ -23,6 +23,7 @@ import { FundingDetailPage } from '@/features/funding/FundingDetailPage';
 import { FundingListPage } from '@/features/funding/FundingListPage';
 import { WorkListPage } from '@/features/works/WorkListPage';
 import { CalendarPage } from '@/features/calendar/CalendarPage';
+import { TasksPage } from '@/features/tasks/TasksPage';
 import { WorkCreatePage } from '@/features/works/WorkCreatePage';
 import { WorkDetailPage } from '@/features/works/WorkDetailPage';
 import { ImportPage } from '@/features/imports/ImportPage';
@@ -92,6 +93,7 @@ export function App() {
         </Route>
 
         <Route path="calendar" element={<RequirePermission permission={PERMISSIONS.CALENDAR_VIEW}><CalendarPage /></RequirePermission>} />
+        <Route path="tasks" element={<RequirePermission permission={PERMISSIONS.TASK_VIEW}><TasksPage /></RequirePermission>} />
 
         <Route path="locations">
           <Route path="area-types" element={<RequirePermission permission={PERMISSIONS.LOCATION_MANAGE}><AreaTypesPage /></RequirePermission>} />

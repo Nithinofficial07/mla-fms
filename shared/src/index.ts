@@ -8,3 +8,4 @@ export * from './calendar.js';
 export * from './calendarClassify.js';
 export * from './kannadaConvert.js';
 export * from './calendarQuotes.js';
+export * from './tasks.js';

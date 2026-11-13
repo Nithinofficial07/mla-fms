@@ -3,7 +3,7 @@ import { logger } from '../config/logger.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import {
   backfillPrincipal, fixRequestTypes, fixStatusTransitions, grantAgencyWorkCreate, grantOfficerWorkCreate, migrateUserAgencies,
-  grantCalendarPermissions, remapCalendarTypes, migrateCalendarMembers, grantCalendarAdminPermission, cleanupGoogleImports, fixCalendarLegacyIdIndex, seedCalendarQuotes,
+  grantCalendarPermissions, remapCalendarTypes, migrateCalendarMembers, grantCalendarAdminPermission, cleanupGoogleImports, fixCalendarLegacyIdIndex, seedCalendarQuotes, grantTaskPermissions,
 } from './fixes.js';
 
 /** One row per migration that has completed on this database. */
@@ -41,6 +41,8 @@ const MIGRATIONS: { name: string; run: () => Promise<unknown> }[] = [
   { name: '2026-11-calendar-legacyid-index', run: fixCalendarLegacyIdIndex },
   // Starter list of ದಿನದ ಚಿಂತನೆ / ಸುಭಾಷಿತ / ಗಾದೆ lines for the daily poster.
   { name: '2026-11-calendar-quotes-seed', run: seedCalendarQuotes },
+  // Office tasks (Office Teams): task.view / task.manage / task.admin for the default roles.
+  { name: '2026-11-task-permissions', run: grantTaskPermissions },
 ];
 
 /**

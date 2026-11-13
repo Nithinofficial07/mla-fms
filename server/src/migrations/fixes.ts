@@ -206,6 +206,23 @@ export async function fixCalendarLegacyIdIndex() {
   return { droppedOldIndex: !!old, nullsRemoved: unset.modifiedCount };
 }
 
+/** Office tasks: grant the new task permissions to the roles that get them by default. */
+export async function grantTaskPermissions() {
+  const grants: [string, string[]][] = [
+    [ROLES.SUPER_ADMIN, [PERMISSIONS.TASK_VIEW, PERMISSIONS.TASK_MANAGE, PERMISSIONS.TASK_ADMIN]],
+    [ROLES.ADMIN, [PERMISSIONS.TASK_VIEW, PERMISSIONS.TASK_MANAGE, PERMISSIONS.TASK_ADMIN]],
+    [ROLES.MLA, [PERMISSIONS.TASK_VIEW, PERMISSIONS.TASK_MANAGE, PERMISSIONS.TASK_ADMIN]],
+    [ROLES.DATA_ENTRY_OPERATOR, [PERMISSIONS.TASK_VIEW, PERMISSIONS.TASK_MANAGE]],
+    [ROLES.VIEWER, [PERMISSIONS.TASK_VIEW]],
+  ];
+  let updated = 0;
+  for (const [code, perms] of grants) {
+    const res = await Role.updateOne({ code }, { $addToSet: { permissions: { $each: perms } } });
+    updated += res.modifiedCount;
+  }
+  return { updated };
+}
+
 /** Loads the starter ದಿನದ ಚಿಂತನೆ list (only into an empty collection - never over the office's own edits). */
 export async function seedCalendarQuotes() {
   if (await CalendarQuote.estimatedDocumentCount()) return { seeded: 0 };

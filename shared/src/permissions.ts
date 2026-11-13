@@ -64,6 +64,12 @@ export const PERMISSIONS = {
   CALENDAR_MANAGE: 'calendar.manage',
   // calendar admin: photos, backup/export, import - above ordinary staff CRUD
   CALENDAR_ADMIN: 'calendar.admin',
+
+  // office tasks (Office Teams): see tasks, add / update them, and run the
+  // workspace (team list, workflows, automations, deleting)
+  TASK_VIEW: 'task.view',
+  TASK_MANAGE: 'task.manage',
+  TASK_ADMIN: 'task.admin',
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

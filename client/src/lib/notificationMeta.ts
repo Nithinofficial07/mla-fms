@@ -16,6 +16,8 @@ const MAP: Record<string, Meta> = {
   DOCUMENT_UPLOADED: { icon: 'UploadFile', color: 'primary' },
   DUE_DATE_APPROACHING: { icon: 'Event', color: 'warning' },
   REQUEST_OVERDUE: { icon: 'ReportProblem', color: 'error' },
+  TASK_UPDATE: { icon: 'Checklist', color: 'primary' },
+  TASK_COMMENT: { icon: 'Comment', color: 'info' },
   REQUEST_COMPLETED: { icon: 'TaskAlt', color: 'success' },
 };
 
