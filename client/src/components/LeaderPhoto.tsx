@@ -13,9 +13,15 @@ export const LEADER_FACE = '/leader-face.png';
 /**
  * Principals with their own photo. Anyone not listed (MLA South, and "All")
  * uses the default photo above with the name / title from Settings.
- * To add MLA North: drop leader-mla-n.png + leader-mla-n-face.png in client/public and add an entry.
  */
 const LEADER_BY_PRINCIPAL: Record<string, { photo: string; face: string; name: string; title: string; constituency?: string }> = {
+  MLA_N: {
+    photo: '/leader-mla-n.png',
+    face: '/leader-mla-n-face.png',
+    name: 'S. S. Mallikarjun',
+    title: 'MLA - Davanagere North',
+    constituency: 'Davanagere North Constituency',
+  },
   MP: {
     photo: '/leader-mp.png',
     face: '/leader-mp-face.png',
