@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import {
   AUTOMATION_ACTION_CODES, AUTOMATION_TRIGGER_CODES, PERMISSIONS, TASK_CATEGORIES, TASK_FOR_CODES, TASK_PRIORITY_CODES,
-  TASK_REPEAT_CODES, TASK_STATUS_CODES, TASK_TEAM_CODES, rolesForTeam,
+  TASK_REPEAT_CODES, TASK_STATUS_CODES, TASK_TEAM_CODES,
 } from '@mla/shared';
 import { authenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
@@ -73,7 +73,7 @@ const memberSchema = z.object({
   phone: z.string().trim().max(20).optional(),
   userId: objectId.nullable().optional(),
   active: z.boolean().optional(),
-}).refine((m) => rolesForTeam(m.team).includes(m.role), { message: 'That role is not used in this team', path: ['role'] });
+}); // role is free text - the standard roles are only suggestions
 
 const workflowSchema = z.object({
   name: z.string().trim().min(1, 'Add a name').max(120),

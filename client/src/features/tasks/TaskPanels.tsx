@@ -17,6 +17,12 @@ import {
 } from './tasksApi';
 import { AvatarStack, ForChip, MemberAvatar, StatusPill, Tick } from './TaskBits';
 
+/** Standard roles plus any custom role someone has been given. */
+function useAllRoles() {
+  const ws = useWs();
+  return [...new Set([...ALL_TEAM_ROLES, ...ws.members.map((m) => m.role).filter(Boolean)])];
+}
+
 const Tile = ({ label, value, color, onClick }: { label: string; value: number | string; color?: string; onClick?: () => void }) => (
   <Card sx={{ cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
     <CardContent sx={{ py: 2 }}>
@@ -310,6 +316,7 @@ export function WorkflowsPanel({ onStart }: { onStart: (workflowId: string) => v
 
 function WorkflowDialog({ value, onClose }: { value: Partial<Workflow>; onClose: () => void }) {
   const [w, setW] = useState(value);
+  const allRoles = useAllRoles();
   const save = useTaskMutation((x: Partial<Workflow>) => tasksApi.saveWorkflow(x), 'Workflow saved');
   const steps = w.steps ?? [];
   const setStep = (i: number, p: Partial<{ text: string; role: string }>) => setW({ ...w, steps: steps.map((s, j) => (j === i ? { ...s, ...p } : s)) });
@@ -324,7 +331,7 @@ function WorkflowDialog({ value, onClose }: { value: Partial<Workflow>; onClose:
             <Grid item xs={12} sm={4}><TextField select fullWidth label="Priority" value={w.priority ?? 'MEDIUM'} onChange={(e) => setW({ ...w, priority: e.target.value })}>{TASK_PRIORITIES.map((p) => <MenuItem key={p.code} value={p.code}>{p.label}</MenuItem>)}</TextField></Grid>
             <Grid item xs={12} sm={4}><TextField fullWidth type="number" label="Due in (days)" value={w.dueInDays ?? ''} onChange={(e) => setW({ ...w, dueInDays: e.target.value === '' ? null : Number(e.target.value) })} inputProps={{ min: 0 }} /></Grid>
             <Grid item xs={12} sm={6}><FormControlLabel control={<Switch checked={!!w.approval?.required} onChange={(e) => setW({ ...w, approval: { approverRole: w.approval?.approverRole ?? 'PA-T1', required: e.target.checked } })} />} label="Needs approval" /></Grid>
-            {w.approval?.required && <Grid item xs={12} sm={6}><TextField select fullWidth label="Approver role" value={w.approval.approverRole} onChange={(e) => setW({ ...w, approval: { required: true, approverRole: e.target.value } })}>{ALL_TEAM_ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}</TextField></Grid>}
+            {w.approval?.required && <Grid item xs={12} sm={6}><TextField select fullWidth label="Approver role" value={w.approval.approverRole} onChange={(e) => setW({ ...w, approval: { required: true, approverRole: e.target.value } })}>{allRoles.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}</TextField></Grid>}
           </Grid>
           <Typography variant="overline" color="text.secondary" fontWeight={700}>Steps</Typography>
           {steps.map((s, i) => (
@@ -332,7 +339,7 @@ function WorkflowDialog({ value, onClose }: { value: Partial<Workflow>; onClose:
               <Typography color="text.secondary" sx={{ width: 20 }}>{i + 1}.</Typography>
               <TextField size="small" sx={{ flex: 2 }} value={s.text} placeholder="What needs doing" onChange={(e) => setStep(i, { text: e.target.value })} />
               <TextField select size="small" sx={{ flex: 1 }} value={s.role} onChange={(e) => setStep(i, { role: e.target.value })}>
-                <MenuItem value="">Anyone</MenuItem>{ALL_TEAM_ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                <MenuItem value="">Anyone</MenuItem>{allRoles.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
               </TextField>
               <IconButton size="small" onClick={() => setW({ ...w, steps: steps.filter((_s, j) => j !== i) })}><Icon name="Close" fontSize="small" /></IconButton>
             </Stack>
@@ -448,6 +455,7 @@ export function AutomationsPanel({ tasks, onOpen }: { tasks: Task[]; onOpen: (id
 
 function ValueInput({ kind, value, onChange }: { kind?: string; value: string; onChange: (v: string) => void }) {
   const ws = useWs();
+  const allRoles = useAllRoles();
   if (!kind) return null;
   const sel = (opts: [string, string][]) => (
     <TextField select size="small" value={value} onChange={(e) => onChange(e.target.value)} sx={{ flex: 1, minWidth: 160 }}>
@@ -455,7 +463,7 @@ function ValueInput({ kind, value, onChange }: { kind?: string; value: string; o
     </TextField>
   );
   const people: [string, string][] = [
-    ...ALL_TEAM_ROLES.filter((r) => r !== 'Other').map((r) => [`role:${r}`, `${r} (same team)`] as [string, string]),
+    ...allRoles.filter((r) => r !== 'Other').map((r) => [`role:${r}`, `${r} (same team)`] as [string, string]),
     ...ws.active.map((m) => [m.id, `${m.name} – ${m.role}`] as [string, string]),
   ];
   if (kind === 'status') return sel(TASK_STATUSES.map((s) => [s.code, s.label]));
@@ -543,7 +551,7 @@ export function TeamPanel({ tasks, onFilterPerson }: { tasks: Task[]; onFilterPe
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 2 }}>
         {TASK_TEAMS.map((team) => {
           const roles = rolesForTeam(team.code);
-          const ms = ws.members.filter((m) => m.team === team.code).sort((a, b) => roles.indexOf(a.role) - roles.indexOf(b.role) || a.name.localeCompare(b.name));
+          const ms = ws.members.filter((m) => m.team === team.code).sort((a, b) => ((roles.indexOf(a.role) + 1) || 99) - ((roles.indexOf(b.role) + 1) || 99) || a.role.localeCompare(b.role) || a.name.localeCompare(b.name));
           return (
             <Card key={team.code} sx={{ overflow: 'hidden' }}>
               <Stack direction="row" justifyContent="space-between" sx={{ bgcolor: team.color, color: '#fff', px: 2, py: 1.5 }}>
@@ -593,7 +601,9 @@ function MemberDialog({ value, onClose }: { value: Partial<Member>; onClose: () 
     const t = setTimeout(() => { tasksApi.linkableUsers(q).then(setUsers).catch(() => setUsers([])); }, 250);
     return () => clearTimeout(t);
   }, [q]);
-  const roles = rolesForTeam(m.team ?? 'MLA_S');
+  const ws = useWs();
+  const std = rolesForTeam(m.team ?? 'MLA_S').filter((r) => r !== 'Other');
+  const roles = [...new Set([...std, ...ws.members.filter((x) => x.team === m.team).map((x) => x.role)])];
   const linked = users.find((u) => u.id === m.userId);
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
@@ -602,12 +612,14 @@ function MemberDialog({ value, onClose }: { value: Partial<Member>; onClose: () 
         <Stack spacing={2}>
           <TextField label="Name" value={m.name ?? ''} onChange={(e) => setM({ ...m, name: e.target.value })} autoFocus />
           <Stack direction="row" spacing={1.5}>
-            <TextField select fullWidth label="Team" value={m.team} onChange={(e) => { const team = e.target.value; setM({ ...m, team, role: rolesForTeam(team).includes(m.role ?? '') ? m.role : rolesForTeam(team)[0] }); }}>
+            <TextField select fullWidth label="Team" value={m.team} onChange={(e) => { const team = e.target.value; setM({ ...m, team, role: m.role?.trim() ? m.role : rolesForTeam(team)[0] }); }}>
               {TASK_TEAMS.map((t) => <MenuItem key={t.code} value={t.code}>{t.name}</MenuItem>)}
             </TextField>
-            <TextField select fullWidth label="Role" value={m.role} onChange={(e) => setM({ ...m, role: e.target.value })}>
-              {roles.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-            </TextField>
+            <Autocomplete
+              freeSolo fullWidth options={roles} value={m.role ?? ''} inputValue={m.role ?? ''}
+              onInputChange={(_e, v) => setM({ ...m, role: v })} onChange={(_e, v) => setM({ ...m, role: v ?? '' })}
+              renderInput={(p) => <TextField {...p} label="Role" placeholder="Pick or type a role" helperText="Type any role, e.g. Office Assistant" />}
+            />
           </Stack>
           <TextField label="Phone (for WhatsApp)" value={m.phone ?? ''} onChange={(e) => setM({ ...m, phone: e.target.value })} inputProps={{ inputMode: 'tel' }} placeholder="98xxxxxxxx" />
           <Autocomplete
@@ -622,7 +634,7 @@ function MemberDialog({ value, onClose }: { value: Partial<Member>; onClose: () 
       <DialogActions>
         {m.id && <Button color="error" sx={{ mr: 'auto' }} onClick={async () => { if (await confirm({ title: `Remove ${m.name}?`, message: 'They are taken off open tasks. Tip: switch Active off instead to keep them in history.', confirmLabel: 'Remove', destructive: true })) { del.mutate(m.id!); onClose(); } }}>Remove</Button>}
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" disabled={!m.name?.trim() || save.isPending} onClick={() => save.mutate({ ...m, name: m.name!.trim() }, { onSuccess: onClose })}>Save</Button>
+        <Button variant="contained" disabled={!m.name?.trim() || !m.role?.trim() || save.isPending} onClick={() => save.mutate({ ...m, name: m.name!.trim(), role: m.role!.trim() }, { onSuccess: onClose })}>Save</Button>
       </DialogActions>
       {dialog}
     </Dialog>

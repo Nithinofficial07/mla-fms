@@ -36,9 +36,18 @@ describe('office tasks (Office Teams)', () => {
     };
   });
 
-  it('rejects a role that does not belong to the team', async () => {
-    const r = await request(app).post('/api/tasks/team').set(auth(token)).send({ name: 'X', team: 'SOCIAL', role: 'Driver' });
-    expect(r.status).toBe(400);
+  it('accepts a free-text role, and a workflow step for that role finds the person', async () => {
+    const r = await request(app).post('/api/tasks/team').set(auth(token)).send({ name: 'Girish', team: 'MLA_S', role: 'Office Assistant' });
+    expect(r.status).toBe(201);
+    expect(r.body.role).toBe('Office Assistant');
+    const empty = await request(app).post('/api/tasks/team').set(auth(token)).send({ name: 'X', team: 'MLA_S', role: '' });
+    expect(empty.status).toBe(400);
+    const wf = await request(app).post('/api/tasks/workflows').set(auth(token)).send({
+      name: 'File movement', category: 'Office work', priority: 'MEDIUM', approval: { required: false, approverRole: 'PA-T1' },
+      steps: [{ text: 'Carry the file to the DC office', role: 'Office Assistant' }],
+    });
+    const t = await request(app).post('/api/tasks').set(auth(token)).send({ title: 'Move file', forWhom: 'MLA_S', workflowId: wf.body.id });
+    expect(t.body.steps[0].assignee).toBe(r.body.id);
   });
 
   it('a workflow picks people by role, then steps, approval and done move the status', async () => {
