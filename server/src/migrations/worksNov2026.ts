@@ -21,6 +21,7 @@ import { Principal } from '../models/Principal.js';
 import { Role } from '../models/Role.js';
 import { User } from '../models/User.js';
 import { Work } from '../models/Work.js';
+import { Ward } from '../models/location.js';
 import { worksService } from '../modules/works/works.service.js';
 
 interface Row { name: string; place: string; lakhs: number; agency: 'KRIDL' | 'Nirmithi Kendra'; city?: boolean }
@@ -101,4 +102,61 @@ export async function loadNov2026Works() {
     }
   }
   return { created, skipped, totalLakhs: [...MUZRAI, ...CSR].reduce((a, r) => a + r.lakhs, 0) };
+}
+
+/**
+ * Two KRIDL works at Mandakki Bhatti, Ward 03 (Siddarameshwara Badavane),
+ * Davangere City Corporation - Rs 50 lakh each (Rs 100 lakh total), under the
+ * Minority Welfare "slum/colony development in 11 corporations" scheme.
+ * Shifted from PRED to KRIDL on the MLA's letter Dvg_South/107/KA/521/2026
+ * (10.09.2026); administrative approval by the DC, order
+ * ಜಿದಾ/ಜಿಅಸಂಕಇದಾ/ಅ.ಸ್ಲಂ.ಅ.ಕಾ/ಸಿಆರ್/2022-23 dated 06.10.2026; Corporation NOC
+ * 01/2026-27 (25.09.2026); KRIDL technical sanction TS 37/26-27 (13.10.2026),
+ * TSC 38 & 39/26-27 (30.09.2026). Filed under MLA South; in progress.
+ */
+const MANDAKKI: { name: string; ts: string; scope: string }[] = [
+  {
+    name: 'ದಾವಣಗೆರೆ ಮಹಾನಗರ ಪಾಲಿಕೆ ವ್ಯಾಪ್ತಿಯ ವಾರ್ಡ್ ನಂ.03ರ ಸಿದ್ದರಾಮೇಶ್ವರ ಬಡಾವಣೆಯ ಮೊಹಮ್ಮದ್ ರಫೀಕ್ ವರ್ಕ್ ಶಾಪ್‌ನಿಂದ ಮೊಹಮ್ಮದ್ ಫಯಾಜ್ (ಮಂಡಕ್ಕಿ ಭಟ್ಟಿ) ರಾಜಕಾಲುವೆವರೆಗೂ ರಸ್ತೆ ಅಭಿವೃದ್ಧಿ ಕಾಮಗಾರಿ',
+    ts: 'TSC No. 38/26-27 (30.09.2026), TS No. 37/26-27 (13.10.2026)',
+    scope: 'CC road 278 m x 5.5 m (M-30, 0.20 m) on WMM / GSB, earthen shoulders, RCC name board',
+  },
+  {
+    name: 'ದಾವಣಗೆರೆ ಮಹಾನಗರ ಪಾಲಿಕೆ ವ್ಯಾಪ್ತಿಯ ವಾರ್ಡ್ ನಂ.03ರ ಸಿದ್ದರಾಮೇಶ್ವರ ಬಡಾವಣೆಯ ಮೊಹಮ್ಮದ್ ರಫೀಕ್ ವರ್ಕ್ ಶಾಪ್‌ನಿಂದ ಮೊಹಮ್ಮದ್ ಫಯಾಜ್ (ಮಂಡಕ್ಕಿ ಭಟ್ಟಿ) ರಾಜಕಾಲುವೆವರೆಗೂ 2 ಬದಿ ಸಿ.ಸಿ ಚರಂಡಿ ನಿರ್ಮಾಣ ಕಾಮಗಾರಿ',
+    ts: 'TSC No. 39/26-27 (30.09.2026)',
+    scope: 'CC drain both sides 280 m (0.60 m clear vent), deck slab, precast RCC perforated covers, RCC name board',
+  },
+];
+
+export async function loadMandakkiBhattiWorks() {
+  const principal = await Principal.findOne({ code: 'MLA_S' }).lean();
+  if (!principal) return { skipped: 'no MLA_S principal' };
+  const adminRole = await Role.findOne({ code: 'SUPER_ADMIN' }).select('_id').lean();
+  const actor = (adminRole && await User.findOne({ roleId: adminRole._id }).select('_id').lean()) ?? await User.findOne({}).select('_id').lean();
+  if (!actor) return { skipped: 'no user yet' };
+  const kridl = await department('KRIDL', /KRIDL|Rural Infrastructure/i, 'Karnataka Rural Infrastructure Development Limited (KRIDL)');
+  // Ward 03 if the ward list has it; otherwise the office picks it when editing.
+  const ward = await Ward.findOne({ $or: [{ number: { $in: ['3', '03'] } }, { code: { $in: ['3', '03', 'W03', 'W3'] } }, { name: /^(ward\s*)?0?3\b/i }] }).select('_id').lean();
+
+  let created = 0;
+  let skipped = 0;
+  for (const w of MANDAKKI) {
+    if (await Work.exists({ nameOfWork: w.name })) { skipped++; continue; }
+    await worksService.create({
+      actorId: String(actor._id),
+      body: {
+        principalId: principal._id,
+        departmentId: kridl,
+        implementingAgency: 'KRIDL',
+        fundingSource: 'Minority Welfare Dept – slum / colony development in 11 corporations (Head 4225-04-102-0-01(386))',
+        fundingYear: '2026-27',
+        nameOfWork: w.name,
+        location: { locationType: 'CITY', wardId: ward?._id ?? null, gramPanchayatId: null, villageId: null },
+        address: 'Mandakki Bhatti, Siddarameshwara Badavane, Ward 03, Davangere City Corporation (14.4842 N, 75.9285 E)',
+        remarks: `WORK IN PROGRESS. ${w.scope}. Estimate Rs 50,00,000 (KPWD SR 2023-24; incl. 1% TPI, 3% KRIDL charges, 18% GST). ${w.ts}. DC administrative approval order dated 06.10.2026 (Rs 100 lakh for both works; Rs 96 lakh released to KRIDL after 2% GST + 2% TDS). Shifted from PRED to KRIDL on MLA letter Dvg_South/107/KA/521/2026 (10.09.2026). City Corporation NOC 01/2026-27 (25.09.2026). Minority Welfare letter 154/2026-27 (10.09.2026).`,
+        amountLakhs: 50,
+      },
+    });
+    created++;
+  }
+  return { created, skipped, wardLinked: !!ward };
 }

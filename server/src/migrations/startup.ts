@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { loadNov2026Works } from './worksNov2026.js';
+import { loadMandakkiBhattiWorks, loadNov2026Works } from './worksNov2026.js';
 import { logger } from '../config/logger.js';
 import { seedConfigDefaults } from '../seed/configDefaults.js';
 import {
@@ -46,6 +46,8 @@ const MIGRATIONS: { name: string; run: () => Promise<unknown> }[] = [
   { name: '2026-11-task-permissions', run: grantTaskPermissions },
   // Works from the DC Muzrai letter (27.10.2026) and Hutti Gold Mines CSR 2025-26 letter - KRIDL / Nirmithi Kendra.
   { name: '2026-11-works-muzrai-csr-letters', run: loadNov2026Works },
+  // Two KRIDL works at Mandakki Bhatti, Ward 03 (CC road + CC drain, Rs 50 lakh each) - MLA South, in progress.
+  { name: '2026-11-works-mandakki-bhatti', run: loadMandakkiBhattiWorks },
 ];
 
 /**

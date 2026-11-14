@@ -4,7 +4,7 @@ import { createApp } from '../src/app.js';
 import { auth, login, seedCore } from './helpers.js';
 import { Principal } from '../src/models/Principal.js';
 import { Department } from '../src/models/Department.js';
-import { loadNov2026Works } from '../src/migrations/worksNov2026.js';
+import { loadMandakkiBhattiWorks, loadNov2026Works } from '../src/migrations/worksNov2026.js';
 
 const app = createApp();
 
@@ -34,5 +34,14 @@ describe('works from the Nov 2026 sanction letters', () => {
 
     const one = await request(app).get(`/api/works/${temple.id}`).set(auth(token));
     expect(one.status).toBe(200);
+  });
+
+  it('adds the two Mandakki Bhatti works under MLA South, KRIDL, in progress', async () => {
+    expect(await loadMandakkiBhattiWorks()).toMatchObject({ created: 2, skipped: 0 });
+    expect(await loadMandakkiBhattiWorks()).toMatchObject({ created: 0, skipped: 2 });
+    const res = await request(app).get('/api/works').set(auth(token)).query({ pageSize: 100 });
+    const rows = (res.body.data ?? res.body).filter((w: any) => w.nameOfWork.includes('ಮಂಡಕ್ಕಿ'));
+    expect(rows).toHaveLength(2);
+    expect(rows.every((w: any) => w.implementingAgency === 'KRIDL' && w.amountLakhs === 50 && w.remarks.startsWith('WORK IN PROGRESS'))).toBe(true);
   });
 });
